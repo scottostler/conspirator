@@ -1,0 +1,41 @@
+<html>
+<head>
+    <title>Dominion</title>
+    <link rel="stylesheet" type="text/css" href="assets/game.css"> 
+    <script src="assets/lib/jquery-2.0.3.min.js"></script>
+    <script src="assets/lib/underscore-min.js"></script>
+    <script src="assets/lib/EventEmitter.min.js"></script>
+    <script src="src/util.js"></script>
+    <script src="src/cards.js"></script>
+    <script src="src/player.js"></script>
+    <script src="src/game.js"></script>
+    <script src="src/ai.js"></script>
+    <script src="src/gameview.js"></script>
+    <script src="src/playerinterface.js"></script>
+    <script src="src/main.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="assets/bootstrap/bootstrap.min.css" rel="stylesheet" media="screen">
+</head>
+<body>
+    <div id="game-container">
+        <div class="game-area">
+            <div class="shared-piles">
+                <div class="kingdom-piles"></div>
+            </div>
+            <div class="in-play"></div>
+            <div class="player-areas"></div>
+        </div>
+        <div id="status-area">
+            <span id="status-message"></span>
+            <span id="status-counters">
+                <span class="count-label">Actions:</span><span class="action-count"></span>
+                <span class="count-label">Buys:</span><span class="buy-count"></span>
+                <span class="count-label">Coins:</span><span class="coin-count"></span>
+            </span>
+            <div class="button-container" class="hidden">
+                <button class="done-button">Done</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

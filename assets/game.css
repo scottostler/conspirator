@@ -1,0 +1,179 @@
+/* Base styles */
+
+html, body {
+    font-family: Helvetica, Verdana, Tahoma;
+
+}
+
+*, *:before, *:after {
+  -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
+ }
+
+.hidden {
+    display: none;
+}
+
+html body {
+    background: lightgray;
+    height: 100%;
+    width: 100%;
+}
+
+#game-container {
+    height: 100%;
+    width: 100%;
+
+}
+
+.game-area {
+    width: 1000px;
+    height: 700px;
+    border: 1px solid #BBB;
+    position: relative;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.in-play {
+    position: absolute;
+    top: 433px;
+    left: 115px;
+}
+
+#message-log {
+    margin-top: 15px;
+    width: 100%;
+    height: 150px;
+}
+
+.card {
+    height: 108px;
+    width: 70px;
+    position: relative;
+    display: inline-block;
+    box-shadow: 1px 1px rgba(0,0,0,0.2);
+}
+
+.card img {
+    height: 100%;
+    width: 100%;
+}
+
+.badge {
+    position: absolute;
+    z-index: 5;
+    bottom: -4px;
+    right: -4px;
+}
+
+#status-area {
+    width: 1000px;
+    margin: 25px auto 25px auto;
+}
+
+#status-message {
+    font-size: 24pt;
+}
+
+#status-counters {
+    float: right;
+    font-size: 18pt;
+}
+
+#status-counters label, #status-counters span {
+    display: inline;
+}
+
+.count-label {
+    font-size: 14pt;
+}
+
+.button-container {
+    margin-top: 20px;
+}
+
+/* Basic Layouts */
+
+.shared-piles {
+    position: absolute;
+    left: 136px;
+    top: 190px;
+}
+
+.in-play .card {
+    margin: 5px;
+}
+
+.shared-piles .card {
+    margin: 5px;
+}
+
+.kingdom-piles {
+    max-width: 740px;
+    display: inline-block;
+}
+
+.player-area.north {
+    position: absolute;
+    left: 25px;
+    top: 25px;
+}
+
+.player-area.south {
+    position: absolute;
+    left: 25px;
+    bottom: 25px;
+}
+
+.player-area.east {
+
+}
+
+.player-area.west {
+
+}
+
+.player-area .hand {
+    display: inline-block;
+}
+
+.player-area .card {
+    margin: 5px;
+}
+
+.player-area .discard {
+    margin-right: 25px;
+}
+
+/* Selection states */
+
+
+.kingdom-piles .card.not-selectable {
+    opacity:0.6;
+}
+
+.kingdom-piles .card.selectable {
+    cursor: pointer;
+    -webkit-transition: -webkit-transform 0.1s;
+}
+
+.kingdom-piles .card.selectable:hover {
+    -webkit-transform: scale(1.25, 1.25);
+    z-index: 5;
+}
+
+.hand .card.not-selectable {
+    opacity:0.6;
+}
+.hand .card.selectable {
+    cursor: pointer;
+    -webkit-transition: -webkit-transform 0.1s;
+    -webkit-transform: translateY(0px);
+}
+.hand .card.selectable:hover {
+    -webkit-transform: translateY(-15px);
+    z-index: 5;
+}
+
+
