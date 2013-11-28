@@ -47,7 +47,8 @@ PileView.prototype.updateCount = function() {
 
 var PlayerLocations = ['south', 'north', 'west', 'east'];
 
-function HumanPlayerView(player, index) {
+function HumanPlayerView(gameView, player, index) {
+    this.gameView = gameView;
     this.player = player;
     this.$el = $('<div>').addClass('player-area human-player ' + PlayerLocations[index]);
     this.deckView = new CardView(Cards.Cardback)
@@ -60,7 +61,7 @@ function HumanPlayerView(player, index) {
     this.$handContainer = $('<div>').addClass('hand').appendTo(this.$el);
     this.cardViewsInHand = [];
 
-    player.on('draw', _.bind(function(cards) {
+    this.player.on(Player.PlayerUpdates.DrawCards, _.bind(function(cards) {
         cards.forEach(_.bind(function(card) {
             var cardView = new CardView(card);
             this.$handContainer.append(cardView.$el);
@@ -69,21 +70,24 @@ function HumanPlayerView(player, index) {
         this.updateDeckAndDiscardViews();
     }, this));
 
-    player.on('discard', _.bind(function(cards) {
+    this.player.on(Player.PlayerUpdates.DiscardCards, _.bind(function(cards) {
         cards.forEach(_.bind(function(card) {
-            this.discardCardViewFromHand(this.viewForCard(card));
+            this.removeCardViewFromHand(this.viewForCard(card));
         }, this));
 
         this.updateDeckAndDiscardViews();
     }, this));
 
-    player.on('played', _.bind(function(card) {
-        this.discardCardViewFromHand(this.viewForCard(card));
+    this.player.on(Player.PlayerUpdates.PlayCard, _.bind(function(card) {
+        this.removeCardViewFromHand(this.viewForCard(card));
         this.updateDeckAndDiscardViews();
     }, this));
 
-    player.on('shuffle', _.bind(function() {
-        this.updateDeckAndDiscardViews();
+      this.player.on(Player.PlayerUpdates.TrashCards, _.bind(function(cards) {
+        cards.forEach(_.bind(function(card) {
+            this.removeCardViewFromHand(this.viewForCard(card));
+        }, this));
+        this.gameView.updateTrashView();
     }, this));
 };
 
@@ -107,10 +111,10 @@ HumanPlayerView.prototype.viewForCard = function(card) {
 }
 
 HumanPlayerView.prototype.clearSelectionMode = function() {
-    this.$el.find('.card').unbind('click').removeClass('selectable not-selectable');
+    this.$el.find('.card').unbind('click').removeClass('selectable not-selectable selected');
 };
 
-HumanPlayerView.prototype.discardCardViewFromHand = function(cardView) {
+HumanPlayerView.prototype.removeCardViewFromHand = function(cardView) {
     this.cardViewsInHand = _.without(this.cardViewsInHand, cardView);
     cardView.$el.remove();
 };
@@ -124,6 +128,11 @@ function GameStatusMessageLabel(game) {
         this.$message.text(description);
         this.updateStatusCounter();
     }, this));
+
+    game.on('stat-update', _.bind(function() {
+        this.updateStatusCounter();
+    }, this));
+
 }
 
 GameStatusMessageLabel.prototype.updateStatusCounter = function() {
@@ -155,7 +164,7 @@ function GameView(game, humanPlayerIndex) {
 
     var $playerViews = $('.player-areas');
     this.playerViews = this.game.players.map(_.bind(function(p, i) {
-        var view = new HumanPlayerView(p, i);
+        var view = new HumanPlayerView(this, p, i);
         $playerViews.append(view.$el);
         return view;
     }, this));
@@ -228,6 +237,11 @@ GameView.prototype.showStatusMessage = function(message) {
     this.statusMessageLabel.$message.text(message);
 };
 
+GameView.prototype.updateTrashView = function() {
+    var topCard = _.last(this.game.trash);
+    this.trashView.setCardImage(topCard || Cards.Trash);
+};
+
 GameView.prototype.clearSelectionMode = function() {
     this.$kingdomPiles.find('.card')
         .removeClass('selectable not-selectable').unbind('click').unbind('hover');
@@ -258,24 +272,85 @@ GameView.prototype.offerPileSelection = function(selectablePiles, onSelect) {
     }, this));
 };
 
+GameView.prototype.offerHandSelection = function(minCards, maxCards, autoConfirm, selectableCards, onSelect) {
+    var currentSelection = [];
 
-GameView.prototype.offerHandSelection = function(selectableCards, onSelect) {
-    this.clearSelectionMode();
+    var endSelection = _.bind(function() {
+        this.hideDoneButton();
+        this.clearSelectionMode();
+        onSelect(_.pluck(currentSelection, 'card'));
+    }, this);
+
+    var showOrHideDoneButton = _.bind(function() {
+        if (currentSelection.length >= minCards) {
+            this.offerDoneButton(endSelection);
+        } else {
+            this.hideDoneButton();
+        }
+    }, this);
+
+    var cardToggleHandler = _.bind(function(cardView) {
+        var wasSelected = cardView.$el.hasClass('selected');
+        if (!wasSelected && currentSelection.length == maxCards) {
+            alert("You've already selected " + maxCards + " " + pluralize('card', maxCards));
+            return;
+        }
+
+        if (wasSelected) {
+            currentSelection = removeFirst(currentSelection, cardView);
+        } else {
+            currentSelection.push(cardView);
+        }
+
+        if (currentSelection.length >= minCards && autoConfirm) {
+            endSelection();
+        } else {
+            cardView.$el.toggleClass('selected');
+            showOrHideDoneButton();
+        }
+    }, this);
+
     var playerView = this.viewForPlayer(this.game.activePlayer);
-
     _.each(playerView.cardViewsInHand, _.bind(function(cardView) {
         if (_.contains(selectableCards, cardView.card)) {
-            cardView.$el.addClass('selectable').click(_.bind(function() {
-                this.clearSelectionMode();
-                this.hideDoneButton();
-
-                onSelect(cardView.card);
-            }, this));
+            cardView.$el.addClass('selectable').click(_.partial(cardToggleHandler, cardView));
         } else {
             cardView.$el.addClass('not-selectable');
         }
     }, this));
+
+    showOrHideDoneButton();
 };
+
+// Prompt user to select one card or press done.
+GameView.prototype.offerOptionalSingleHandSelection = function(selectableCards, onSelect) {
+    if (arguments.length == 1) {
+        onSelect = selectableCards;
+        selectableCards = this.game.activePlayer.hand;
+    }
+
+    this.offerHandSelection(0, 1, true, selectableCards, adaptListToOption(onSelect));
+};
+
+// Prompt user to select one card.
+GameView.prototype.offerSingleHandSelection = function(selectableCards, onSelect) {
+    if (arguments.length == 1) {
+        onSelect = selectableCards;
+        selectableCards = this.game.activePlayer.hand;
+    }
+
+    this.offerHandSelection(1, 1, true, selectableCards, adaptListToOption(onSelect));
+};
+
+GameView.prototype.offerMultipleHandSelection = function(minCards, maxCards, selectableCards, onSelect) {
+    if (arguments.length == 3) {
+        onSelect = selectableCards;
+        selectableCards = this.game.activePlayer.hand;
+    }
+
+    this.offerHandSelection(minCards, maxCards, false, selectableCards, onSelect);
+};
+
 
 GameView.prototype.hideDoneButton = function() {
     this.$doneButton.hide().unbind('click');

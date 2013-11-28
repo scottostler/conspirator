@@ -2,9 +2,11 @@ $(function() {
 
     function makeComputerPlayers(numPlayers) {
         var computerNames = ['Alice', 'Bob', 'Carlos'];
-        var AI = new ComputerAI();
         return _.take(computerNames, numPlayers).map(function(name) {
-            return new Player(name, AI);
+            var AI = new ComputerAI(null);
+            var player = new Player(name, AI);
+            AI.player = player;
+            return player;
         });
     }
 
@@ -13,8 +15,9 @@ $(function() {
     var $log = $('#log');
     var kingdomCards = _.sample(Cards.BaseSet, NumKingdomCards);
 
-    var playerInterface = new PlayerInterface();
+    var playerInterface = new PlayerInterface(null);
     var humanPlayer = new Player('Player', playerInterface);
+    playerInterface.player = humanPlayer;
     var players = [humanPlayer].concat(makeComputerPlayers(numPlayers - 1));
 
     var game = new Game(kingdomCards, players);

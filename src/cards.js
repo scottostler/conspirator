@@ -22,13 +22,13 @@ function gainBuys(num) {
 
 function drawCards(num) {
     return function(game, activePlayer, otherPlayers) {
-        game.activePlayeDrawCards(num);
+        game.activePlayerDrawCards(num);
     };
 }
 
 function trashCards(min, max) {
     return function(game, activePlayer, otherPlayers) {
-        // game.promptPlayerToTrashCards(min, max);
+        game.activePlayerTrashesCards(min, max);
     };
 }
 
@@ -46,7 +46,7 @@ function otherPlayersDraw(num) {
 
 function discardAndDraw() {
     return function(game, activePlayer, otherPlayers) {
-        // game.promptPlayerToDiscardAndDraw(num);
+        game.playerDiscardsAndDraws(activePlayer);
     }
 }
 
@@ -191,14 +191,29 @@ Cards.Woodcutter = new Card({
 });
 
 Cards.BaseSet = [
+    // Cards.Adventurer,
+    // Cards.Bureaucrat,
     Cards.Chapel,
     Cards.Cellar,
+    // Cards.Chancellor,
     Cards.CouncilRoom,
+    // Cards.Feast,
     Cards.Festival,
+    // Cards.Gardens,
     Cards.Market,
     Cards.Laboratory,
+    // Cards.Library,
+    // Cards.Mine,
+    // Cards.Moat,
+    // Cards.Moneylender,
     Cards.Militia,
+    // Cards.Remodel,
     Cards.Smithy,
+    // Cards.Spy,
+    // Cards.Thief,
+    // Cards.ThroneRoom,
     Cards.Village,
+    // Cards.Witch,
     Cards.Woodcutter
+    // Cards.Workshop,
 ];

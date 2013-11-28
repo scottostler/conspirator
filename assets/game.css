@@ -5,10 +5,6 @@ html, body {
 
 }
 
-*, *:before, *:after {
-  -moz-box-sizing: border-box; -webkit-box-sizing: border-box; box-sizing: border-box;
- }
-
 .hidden {
     display: none;
 }
@@ -166,14 +162,24 @@ html body {
 .hand .card.not-selectable {
     opacity:0.6;
 }
-.hand .card.selectable {
+.hand .card.selectable:not(.selected) {
     cursor: pointer;
     -webkit-transition: -webkit-transform 0.1s;
     -webkit-transform: translateY(0px);
 }
-.hand .card.selectable:hover {
+.hand .card.selectable:hover:not(.selected) {
     -webkit-transform: translateY(-15px);
     z-index: 5;
 }
+
+.hand .card.selectable.selected {
+    cursor: pointer;
+    -webkit-transform: translateY(-15px);
+    z-index: 5;
+
+    border: 1px solid yellow;
+    margin: 4px;
+}
+
 
 

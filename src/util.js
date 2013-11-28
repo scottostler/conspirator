@@ -15,6 +15,10 @@ function removeFirst(array, o) {
     }
 }
 
+function reverseCopy(array) {
+    return array.concat().reverse();
+}
+
 _.mixin({
     mapSum: function(list, iterator, context) {
         if (context) {
@@ -25,3 +29,21 @@ _.mixin({
         }, 0);
     }
 });
+
+function pluralize(noun, n) {
+    return n == 1 ? noun : noun + 's';
+}
+
+// Adapts a function which accepts an object or null to accept
+// an empty or single element array.
+function adaptListToOption(f) {
+    return function(l) {
+        if (l.length == 1) {
+            f(l[0]);
+        } else if (l.length == 0) {
+            f(null);
+        } else {
+            console.error('adaptListToOption: unexpected list size', l, f);
+        }
+    }
+}
