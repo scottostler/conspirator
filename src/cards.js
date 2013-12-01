@@ -1,54 +1,97 @@
-window.Cards = [];
+var Cards = [];
 
 var CardAssetRoot = 'assets/cards/';
 
 function gainCoins(num) {
     return function(game, activePlayer, otherPlayers) {
-       game.activePlayerGainsCoins(num);
+        game.activePlayerGainsCoinsEffect(num);
     };
 }
 
 function gainActions(num) {
     return function(game, activePlayer, otherPlayers) {
-       game.activePlayerGainsActions(num);
+       game.activePlayerGainsActionsEffect(num);
     };
 }
 
 function gainBuys(num) {
     return function(game, activePlayer, otherPlayers) {
-       game.activePlayerGainsBuys(num);
+       game.activePlayerGainsBuysEffect(num);
     };
 }
 
 function drawCards(num) {
     return function(game, activePlayer, otherPlayers) {
-        game.activePlayerDrawCards(num);
+        game.playerDrawsCardsEffect(activePlayer, num);
     };
 }
 
 function trashCards(min, max) {
     return function(game, activePlayer, otherPlayers) {
-        game.activePlayerTrashesCards(min, max);
+        game.playerTrashesCardsEffect(activePlayer, min, max, Card.Type.All);
     };
 }
 
 function otherPlayersDiscardTo(to) {
     return function(game, activePlayer, otherPlayers) {
-        game.inactivePlayersDiscardTo(to);
+        game.inactivePlayersDiscardToEffect(to);
     }
 }
 
 function otherPlayersDraw(num) {
     return function(game, activePlayer, otherPlayers) {
-        game.inactivePlayersDraw(num);
+        game.playersDrawCardsEffect(otherPlayers, num);
     }
 }
 
 function discardAndDraw() {
     return function(game, activePlayer, otherPlayers) {
-        game.playerDiscardsAndDraws(activePlayer);
+        game.playerDiscardsAndDrawsEffect(activePlayer);
     }
 }
+
+function otherPlayersGainCards(cards) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersGainCardsEffect(otherPlayers, cards);
+    };
+}
+
+function gainCardCosting(minCost, maxCost, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerChoosesGainedCardEffect(activePlayer, minCost, maxCost, cardOrType);
+    };
+}
+
+function trashCardForEffect(cardOrType, effect) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
+            if (cards.length === 1) {
+                game.pushGameEvent(effect);
+            }
+        });
+    };
+}
+
+function trashThisCard() {
+    return function(game, activePlayer, otherPlayers) {
+        game.trashCardInPlayEffect(_.last(game.playArea));
+    };
+}
+
+// Note: type of card trashed is assumed to match type of card gained.
+//       e.g. All -> All, or Treasure -> Treasure
+function trashCardToGainCostingUpToPlusCost(plusCost, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
+            if (cards.length === 1) {
+                var card = cards[0];
+                var maxCost = game.computeEffectiveCardCost(card) + plusCost;
+                game.pushGameEvent(gainCardCosting(0, maxCost, cardOrType));
+            }
+        });
+    };
+};
+
 
 function Card(properties) {
     _.extend(this, properties);
@@ -56,6 +99,13 @@ function Card(properties) {
     var filename = this.name.toLowerCase().replace(' ', '_') + '.jpg';
     this.assetURL = CardAssetRoot + filename;
 }
+
+Card.Type = {
+    Action: 'action',
+    Treasure: 'treasure',
+    Victory: 'victory',
+    All: 'all'
+};
 
 Card.prototype.toString = function() {
     return this.name;
@@ -71,6 +121,26 @@ Card.prototype.isTreasure = function() {
 
 Card.prototype.isVictory = function() {
     return this.vp != null;
+};
+
+Card.prototype.matchesCardOrType = function(cardOrType) {
+    if (_.isString(cardOrType)) {
+        switch (cardOrType) {
+            case Card.Type.All:
+                return true;
+            case Card.Type.Action:
+                return this.isAction();
+            case Card.Type.Treasure:
+                return this.isTreasure();
+            case Card.Type.Victory:
+                return this.isVictory();
+        }
+    } else if (cardOrType instanceof Card) {
+        return this === cardOrType;
+    }
+
+    console.error('Unknown card or card type', cardOrType);
+    return false;
 };
 
 // Dummy Cards
@@ -125,7 +195,7 @@ Cards.Province = new Card({
 Cards.Curse = new Card({
     name: 'Curse',
     cost: 0,
-    vp: -1,
+    vp: -1
 });
 
 // Base Set
@@ -148,6 +218,12 @@ Cards.CouncilRoom = new Card({
     effects: [drawCards(4), gainBuys(1), otherPlayersDraw(1)]
 });
 
+Cards.Feast = new Card({
+    name: 'Feast',
+    cost: 4,
+    effects: [trashThisCard(), gainCardCosting(0, 5, Card.Type.All)]
+});
+
 Cards.Festival = new Card({
     name: 'Festival',
     cost: 5,
@@ -166,10 +242,28 @@ Cards.Laboratory = new Card({
     effects: [drawCards(2), gainActions(1)]
 });
 
+Cards.Mine = new Card({
+    name: 'Mine',
+    cost: 5,
+    effects: [trashCardToGainCostingUpToPlusCost(3, Card.Type.Treasure)]
+});
+
 Cards.Militia = new Card({
     name: 'Militia',
     cost: 4,
     effects: [gainCoins(2), otherPlayersDiscardTo(3)]
+});
+
+Cards.Moneylender = new Card({
+    name: "Moneylender",
+    cost: 4,
+    effects: [trashCardForEffect(Cards.Copper, gainCoins(3))]
+});
+
+Cards.Remodel = new Card({
+    name: 'Remodel',
+    cost: 4,
+    effects: [trashCardToGainCostingUpToPlusCost(2, Card.Type.All)]
 });
 
 Cards.Smithy = new Card({
@@ -184,10 +278,22 @@ Cards.Village = new Card({
     effects: [drawCards(1), gainActions(2)]
 });
 
+Cards.Witch = new Card({
+    name: 'Witch',
+    cost: 5,
+    effects: [drawCards(2), otherPlayersGainCards([Cards.Curse])]
+});
+
 Cards.Woodcutter = new Card({
     name: 'Woodcutter',
     cost: 3,
     effects: [gainCoins(2), gainBuys(1)]
+});
+
+Cards.Workshop = new Card({
+    name: 'Workshop',
+    cost: 3,
+    effects: [gainCardCosting(0, 4, Card.Type.All)]
 });
 
 Cards.BaseSet = [
@@ -197,23 +303,23 @@ Cards.BaseSet = [
     Cards.Cellar,
     // Cards.Chancellor,
     Cards.CouncilRoom,
-    // Cards.Feast,
+    Cards.Feast,
     Cards.Festival,
     // Cards.Gardens,
     Cards.Market,
     Cards.Laboratory,
     // Cards.Library,
-    // Cards.Mine,
+    Cards.Mine,
     // Cards.Moat,
-    // Cards.Moneylender,
+    Cards.Moneylender,
     Cards.Militia,
-    // Cards.Remodel,
+    Cards.Remodel,
     Cards.Smithy,
     // Cards.Spy,
     // Cards.Thief,
     // Cards.ThroneRoom,
     Cards.Village,
-    // Cards.Witch,
-    Cards.Woodcutter
-    // Cards.Workshop,
+    Cards.Witch,
+    Cards.Woodcutter,
+    Cards.Workshop
 ];

@@ -15,10 +15,15 @@ html body {
     width: 100%;
 }
 
+.game-buttons {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
 #game-container {
     height: 100%;
     width: 100%;
-
 }
 
 .game-area {
@@ -85,8 +90,10 @@ html body {
     font-size: 14pt;
 }
 
-.button-container {
-    margin-top: 20px;
+#status-area .button-container {
+    display: inline-block;
+    margin-left: 20px;
+    vertical-align: text-bottom;
 }
 
 /* Basic Layouts */
@@ -112,14 +119,14 @@ html body {
 
 .player-area.north {
     position: absolute;
-    left: 25px;
-    top: 25px;
+    left: 15px;
+    top: 15px;
 }
 
 .player-area.south {
     position: absolute;
-    left: 25px;
-    bottom: 25px;
+    left: 15px;
+    bottom: 15px;
 }
 
 .player-area.east {
@@ -151,11 +158,11 @@ html body {
 
 .kingdom-piles .card.selectable {
     cursor: pointer;
-    -webkit-transition: -webkit-transform 0.1s;
+    -webkit-transition: -webkit-transform 0.2s;
 }
 
 .kingdom-piles .card.selectable:hover {
-    -webkit-transform: scale(1.25, 1.25);
+    -webkit-transform: scale(2.0, 2.0);
     z-index: 5;
 }
 
@@ -181,5 +188,9 @@ html body {
     margin: 4px;
 }
 
+/* Modals */
 
+.modal {
+    display: none;
+}
 

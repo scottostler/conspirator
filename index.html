@@ -3,8 +3,10 @@
     <title>Dominion</title>
     <link rel="stylesheet" type="text/css" href="assets/game.css"> 
     <script src="assets/lib/jquery-2.0.3.min.js"></script>
+    <script src="assets/bootstrap/bootstrap.min.js"></script>
     <script src="assets/lib/underscore-min.js"></script>
     <script src="assets/lib/EventEmitter.min.js"></script>
+    <script src="assets/lib/list-1.0.0.min.js"></script>
     <script src="src/util.js"></script>
     <script src="src/cards.js"></script>
     <script src="src/player.js"></script>
@@ -12,12 +14,16 @@
     <script src="src/ai.js"></script>
     <script src="src/gameview.js"></script>
     <script src="src/playerinterface.js"></script>
+    <script src="src/scoresheet.js"></script>
     <script src="src/main.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/bootstrap/bootstrap.min.css" rel="stylesheet" media="screen">
 </head>
 <body>
     <div id="game-container">
+        <div class="game-buttons">
+            <button class="new-game">New Game</button>
+        </div>
         <div class="game-area">
             <div class="shared-piles">
                 <div class="kingdom-piles"></div>
@@ -37,5 +43,21 @@
             </div>
         </div>
     </div>
+
+    <div class="scoresheet modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Player 1 Wins</h4>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary new-game">New Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </body>
 </html>

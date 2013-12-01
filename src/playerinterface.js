@@ -24,15 +24,21 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions) {
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
     this.gameView.showStatusMessage('Buy a card');
 
-    this.gameView.offerPileSelection(buyablePiles, function(treasuresToPlay, pile) {
-        _.each(treasuresToPlay, function(card) {
-            game.playTreasure(card);
-        });
-        game.buyFromPile(pile);
-    });
-    this.gameView.offerDoneButton(function() {
-        game.skipBuys();
-    });
+    this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
+        if (pile) {
+            _.each(this.player.getTreasuresInHand(), _.bind(function(card) {
+                game.playTreasure(card);
+            }, this));
+            game.buyFromPile(pile);
+        } else {
+            game.skipBuys();
+        }
+    }, this));
+};
+
+PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
+    this.gameView.showStatusMessage('Gain a card');
+    this.gameView.offerPileSelection(gainablePiles, true, onGain);
 };
 
 PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard) {
@@ -44,20 +50,10 @@ PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard)
         this.gameView.showStatusMessage('Discard ' + min + ' to ' + max + ' cards');
     }
     
-    this.gameView.offerMultipleHandSelection(min, max, _.bind(function(cards) {
-        if (cards.length > 0) {
-            game.discardCards(this.player, cards);
-        }
-
-        if (onDiscard) {
-            onDiscard(cards);
-        }
-
-        game.advanceGameState();
-    }, this));
+    this.gameView.offerMultipleHandSelection(min, max, onDiscard);
 };
 
-PlayerInterface.prototype.promptForTrashing = function(game, min, max) {
+PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
     if (min == max) {
         this.gameView.showStatusMessage('Trash ' + min + ' ' + pluralize('card', min));
     } else if (min == 0) {
@@ -66,10 +62,6 @@ PlayerInterface.prototype.promptForTrashing = function(game, min, max) {
         this.gameView.showStatusMessage('Trash ' + min + ' to ' + max + ' cards');
     }
 
-    this.gameView.offerMultipleHandSelection(min, max, _.bind(function(cards) {
-        if (cards.length > 0) {
-            game.trashCards(this.player, cards);
-        }
-        game.advanceGameState();
-    }, this));
+
+    this.gameView.offerMultipleHandSelection(min, max, cards, onTrash);
 }

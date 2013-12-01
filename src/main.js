@@ -10,24 +10,31 @@ $(function() {
         });
     }
 
-    var numPlayers = 2;
-    var $canvas = $('#canvas');
-    var $log = $('#log');
-    var kingdomCards = _.sample(Cards.BaseSet, NumKingdomCards);
+    function beginGame() {
+        var numPlayers = 2;
+        var $canvas = $('#canvas');
+        var $log = $('#log');
+        var kingdomCards = _.sample(Cards.BaseSet, NumKingdomCards);
 
-    var playerInterface = new PlayerInterface(null);
-    var humanPlayer = new Player('Player', playerInterface);
-    playerInterface.player = humanPlayer;
-    var players = [humanPlayer].concat(makeComputerPlayers(numPlayers - 1));
+        var playerInterface = new PlayerInterface(null);
+        var humanPlayer = new Player('Player', playerInterface);
+        playerInterface.player = humanPlayer;
+        var players = [humanPlayer].concat(makeComputerPlayers(numPlayers - 1));
 
-    var game = new Game(kingdomCards, players);
-    var gameView = new GameView(game, 0);
+        var game = new Game(kingdomCards, players);
+        var gameView = new GameView(game, 0);
 
-    playerInterface.setGameView(gameView);
-    game.start();
+        playerInterface.setGameView(gameView);
+        game.start();
 
-    window.dominion = {
-        g: game,
-        gv: gameView
-    };
+        window.dominion = {
+            g: game,
+            gv: gameView,
+            beginGame: beginGame
+        };
+    }
+
+    $('.new-game').click(beginGame);
+
+    beginGame();
 });

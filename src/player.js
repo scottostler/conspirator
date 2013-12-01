@@ -28,3 +28,26 @@ Player.prototype.getTreasuresInHand = function() {
         return c.isTreasure();
     });
 };
+
+Player.prototype.getActionsInHand = function() {
+    return _.filter(this.hand, function(c) {
+        return c.isAction();
+    });
+};
+
+Player.prototype.getFullDeck = function() {
+    return this.hand.concat(this.deck, this.discard);
+};
+
+Player.prototype.calculateScore = function() {
+    var score = _.mapSum(this.getFullDeck(), _.bind(function(card) {
+        return _.has(card, 'vp') ? card.vp : 0;
+    }, this));
+    return score;
+};
+
+Player.prototype.getMatchingCardsInHand = function(cardOrType) {
+    return _.filter(this.hand, function(c) {
+        return c.matchesCardOrType(cardOrType);
+    });
+};
