@@ -11,7 +11,9 @@
     <script src="src/cards.js"></script>
     <script src="src/player.js"></script>
     <script src="src/game.js"></script>
+    <script src="src/effects.js"></script>
     <script src="src/ai.js"></script>
+    <script src="src/decisions.js"></script>
     <script src="src/gameview.js"></script>
     <script src="src/playerinterface.js"></script>
     <script src="src/scoresheet.js"></script>
@@ -21,10 +23,10 @@
 </head>
 <body>
     <div id="game-container">
-        <div class="game-buttons">
-            <button class="new-game">New Game</button>
-        </div>
         <div class="game-area">
+            <div class="game-buttons">
+                <button class="new-game">New Game</button>
+            </div>
             <div class="shared-piles">
                 <div class="kingdom-piles"></div>
             </div>
@@ -52,6 +54,19 @@
             <h4 class="modal-title">Player 1 Wins</h4>
           </div>
           <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary new-game">New Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="choice modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Player 1 Wins</h4>
+          </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-primary new-game">New Game</button>
           </div>

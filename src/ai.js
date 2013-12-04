@@ -1,3 +1,6 @@
+/**
+ * @constructor
+ */
 function ComputerAI (player) { 
     this.player = player;
 }
@@ -24,3 +27,7 @@ ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash
     }
     onTrash([]);
 };
+
+ComputerAI.prototype.promptForChoice = function(game, decision, onDecide) {
+    onDecide(_.sample(decision.options));
+}

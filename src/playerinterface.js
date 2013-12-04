@@ -1,3 +1,6 @@
+/**
+ * @constructor
+ */
 function PlayerInterface(player) {
     this.player = player;
 };
@@ -65,3 +68,21 @@ PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, on
 
     this.gameView.offerMultipleHandSelection(min, max, cards, onTrash);
 }
+
+PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
+    var $modal = $('.choice');
+    var $footer = $modal.find('.modal-footer');
+
+    $modal.find('.modal-title').text(decision.title);
+    $footer.empty();
+
+    _.each(decision.options, function(option) {
+        var $button = $('<button>').addClass('btn btn-primary').text(option.toString()).click(function() {
+            $modal.modal('hide');
+            onDecide(option);
+        });
+        $button.appendTo($footer);
+    });
+
+    $modal.modal('show');
+};

@@ -1,6 +1,9 @@
 var NumKingdomCards = 10;
 
-function Game(kingdomCards, players, opts) {
+/**
+ * @constructor
+ */
+function Game(kingdomCards, players) {
     this.activePlayerIndex = -1;
     this.turnIndex = -1;
     this.players = players;
@@ -59,7 +62,7 @@ Game.prototype.drawInitialHands = function() {
 
 // Turn advancement and game state
 
-Game.prototype.checkEndgame = function() {
+Game.prototype.isGameOver = function() {
     var provincePile = this.pileForCard(Cards.Province);
     if (provincePile.count == 0) {
         return true;
@@ -77,7 +80,7 @@ Game.prototype.checkEndgame = function() {
 };
 
 Game.prototype.advanceTurn = function() {
-    if (this.checkEndgame()) {
+    if (this.isGameOver()) {
         alert('The game is over!');
         return true;
     }
@@ -102,7 +105,6 @@ Game.prototype.advanceTurn = function() {
 
     return false;
 };
-
 
 Game.prototype.advanceGameState = function() {
     if (this.eventStack.length > 0) {
@@ -143,6 +145,11 @@ Game.prototype.advanceGameState = function() {
     } else {
         throw new Error('Illegal turn state: ' + this.turnState);
     }
+};
+
+Game.prototype.revealPlayerHand = function(player) {
+    // TODO
+    console.log('Player is revealign hand', player.name, player.hand);
 };
 
 Game.prototype.pushGameEvent = function(e) {
@@ -234,13 +241,17 @@ Game.prototype.buyFromPile = function(pile) {
 };
 
 
-Game.prototype.playerGainsFromPile = function(player, pile) {
+Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
     if (pile.count == 0) {
         throw new Error('Unable to buy from empty pile');
     }
 
     pile.count--;
-    player.discard.push(pile.card);
+    if (ontoDeck){
+        player.deck.push(pile.card);
+    } else {
+        player.discard.push(pile.card);
+    }
 
     this.emit(Game.GameUpdate,
         Game.GameUpdates.GainedCard,
@@ -268,10 +279,34 @@ Game.prototype.playAction = function(card) {
     this.advanceGameState();
 };
 
-Game.prototype.discardCards = function(player, cards) {
+Game.prototype.discardCardsFromDeck = function(player, num) {
+    console.log('discarding from', player, num);
+    for (var i = 0; i < num; i++) {
+        if (player.deck.length === 0 && player.discard.length > 0) {
+            player.shuffleCompletely();
+        }
+
+        var card = player.deck.pop();
+        if (card) {
+            player.discard.push(card);
+        }
+    }
+
+    player.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
+};
+
+Game.prototype.discardCards = function(player, cards, ontoDeck) {
     _.each(cards, _.bind(function(card) {
-        player.discard.push(card);
+        if (!_.contains(player.hand, card)) {
+            console.error('Player unable to discard', player, card);
+            return;
+        }
         player.hand = removeFirst(player.hand, card);
+        if (ontoDeck) {
+            player.deck.push(card);
+        } else {
+            player.discard.push(card);
+        }
     }, this));
     player.emit(Player.PlayerUpdates.DiscardCards, cards);
 };
@@ -285,111 +320,9 @@ Game.prototype.trashCards = function(player, cards) {
 };
 
 Game.prototype.drawCards = function(player, num) {
-    var drawn = [];
-    _.range(num).forEach(_.bind(function(i) {
-        if (player.deck.length === 0 && player.discard.length > 0) {
-            player.deck = _.shuffle(player.discard);
-            player.discard = [];
-        }
-
-        if (player.deck.length > 0) {
-            var card = player.deck.pop();
-            player.hand.push(card);
-            drawn.push(card);
-        }
-    }, this));
-
+    var drawn = player.takeCardsFromDeck(num);
+    player.hand = player.hand.concat(drawn);
     player.emit(Player.PlayerUpdates.DrawCards, drawn);
-};
-
-// Effect definitions
-
-Game.prototype.skipActions = function() {
-    this.activePlayerActionCount = 0;
-    this.emit('stat-update');
-    this.advanceGameState();
-};
-
-Game.prototype.skipBuys = function() {
-    this.activePlayerBuyCount = 0;
-    this.emit('stat-update');
-    this.advanceGameState();
-};
-
-Game.prototype.activePlayerGainsCoinsEffect = function(num) {
-    this.activePlayerMoneyCount += num;
-    this.emit('stat-update');
-    this.advanceGameState();
-};
-
-Game.prototype.activePlayerGainsActionsEffect = function(num) {
-    this.activePlayerActionCount += num;
-    this.emit('stat-update');
-    this.advanceGameState();
-};
-
-Game.prototype.activePlayerGainsBuysEffect = function(num) {
-    this.activePlayerBuyCount += num;
-    this.emit('stat-update');
-    this.advanceGameState();
-};
-
-Game.prototype.playerDrawsCardsEffect = function(player, num) {
-    this.playersDrawCardsEffect([player], num);
-}
-
-Game.prototype.playersDrawCardsEffect = function(players, num) {
-    _.each(players, _.bind(function(player) {
-        this.drawCards(player, num);
-    }, this));
-
-    this.emit('stat-update');
-    this.advanceGameState();
-}
-
-Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType, onTrash) {
-    if (arguments.length == 1) {
-        max = min;
-    }
-
-    var cards = player.getMatchingCardsInHand(cardOrType);
-    player.decider.promptForTrashing(this, min, max, cards, _.bind(function(cards) {
-        if (cards.length > 0) {
-            this.trashCards(player, cards);
-        }
-
-        if (onTrash) {
-            onTrash(cards);
-        }
-
-        this.advanceGameState();
-    }, this));
-}
-
-Game.prototype.trashCardInPlayEffect = function(card) {
-    this.playArea = removeFirst(this.playArea, card);
-    this.trash.push(card);
-    this.emit('trash-card-from-play', card);
-    this.advanceGameState();
-};
-
-Game.prototype.inactivePlayersDiscardToEffect = function(num) {
-    _.each(reverseCopy(this.inactivePlayers), _.bind(function(player) {
-        var numToDiscard = Math.max(0, player.hand.length - num);
-        if (numToDiscard > 0) {
-            this.eventStack.push(_.bind(function() {
-                player.decider.promptForDiscard(this, numToDiscard, numToDiscard, _.bind(function(cards) {
-                    if (cards.length > 0) {
-                        this.discardCards(player, cards);
-                    }
-
-                    this.advanceGameState();
-                }, this));
-            }, this));
-        }
-    }, this));
-
-    this.advanceGameState();
 };
 
 Game.prototype.filterGainablePiles = function(minCost, maxCost, cardOrType) {
@@ -402,42 +335,6 @@ Game.prototype.filterGainablePiles = function(minCost, maxCost, cardOrType) {
             var pileCost = this.computeEffectiveCardCost(pile.card);
             return pileCost >= minCost && pileCost <= maxCost;
         }
-    }, this));
-};
-
-Game.prototype.playersGainCardsEffect = function(players, cards) {
-    _.each(players, _.bind(function(player) {
-        _.each(cards, _.bind(function(card) {
-            var pile = this.pileForCard(card);
-            if (pile.count > 0) {
-                this.playerGainsFromPile(player, pile);
-            }
-        }, this));
-    }, this));
-
-    this.advanceGameState();
-};
-
-Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost, cardOrType) {
-    var gainablePiles = this.filterGainablePiles(minCost, maxCost, cardOrType);
-    if (gainablePiles.length > 0) {
-        player.decider.promptForGain(this, gainablePiles, _.bind(function(pile) {
-            this.playerGainsFromPile(player, pile);
-            this.advanceGameState();
-        }, this));
-    } else {
-        this.advanceGameState();
-    }
-};
-
-Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
-    player.decider.promptForDiscard(this, 0, player.hand.length, _.bind(function(cards) {
-        if (cards.length > 0) {
-            this.discardCards(player, cards);
-            this.drawCards(player, cards.length);
-        }
-
-        this.advanceGameState();
     }, this));
 };
 

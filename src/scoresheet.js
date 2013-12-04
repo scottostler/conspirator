@@ -1,3 +1,6 @@
+/**
+ * @constructor
+ */
 function ScoreSheet(game, $el) {
     this.game = game;
     this.$el = $el;

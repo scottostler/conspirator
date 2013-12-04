@@ -4,6 +4,9 @@ function startingDeck() {
         true);
 }
 
+/**
+ * @constructor
+ */
 function Player(name, decider) {
     this.name = name;
     this.decider = decider;
@@ -18,9 +21,46 @@ Player.prototype = new EventEmitter();
 
 Player.PlayerUpdates = {
     DiscardCards: 'discard-cards',
+    DiscardCardsFromDeck: 'discard-cards-from-deck',
     PlayCard: 'play-card',
     DrawCards: 'draw-cards',
-    TrashCards: 'trash-cards'
+    TrashCards: 'trash-cards',
+    Shuffle: 'shuffle'
+};
+
+Player.prototype.shuffleCompletely = function() {
+    this.deck = _.shuffle(this.deck.concat(this.discard));
+    this.discard = [];
+    this.emit(Player.PlayerUpdates.Shuffle);
+};
+
+Player.prototype.shuffleKeepingDeckOnTop = function() {
+    this.deck = _.shuffle(this.discard).concat(this.deck);
+    this.discard = [];
+    this.emit(Player.PlayerUpdates.Shuffle);
+};
+
+Player.prototype.takeCardsFromDeck = function(num) {
+    var cards = [];
+    while (cards.length < num
+        && (this.deck.length > 0 || this.discard.length > 0)) {
+
+        if (this.deck.length == 0) {
+            this.shuffleCompletely();
+        }
+
+        cards.push(this.deck.pop());
+    }
+
+    return cards;
+};
+
+Player.prototype.revealCardsFromDeck = function(n) {
+    if (this.deck.length < n) {
+        this.shuffleKeepingDeckOnTop();
+    }
+
+    return _.last(this.deck, n);
 };
 
 Player.prototype.getTreasuresInHand = function() {

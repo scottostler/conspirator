@@ -1,4 +1,6 @@
-
+/**
+ * @constructor
+ */
 function View() {
     // All views expect this.$el.
 }
@@ -9,6 +11,9 @@ View.prototype.addViews = function(views) {
     }, this));
 }
 
+/**
+ * @constructor
+ */
 function CardView(card) {
     this.card = card;
     this.$el = $('<div>').addClass('card');
@@ -23,6 +28,9 @@ CardView.prototype.setCardImage = function(card) {
     $img.attr('src', card ? card.assetURL : '');
 };
 
+/**
+ * @constructor
+ */
 function PileView(pile) {
     this.pile = pile;
 
@@ -47,6 +55,9 @@ PileView.prototype.updateCount = function() {
 
 var PlayerLocations = ['south', 'north', 'west', 'east'];
 
+/**
+ * @constructor
+ */
 function HumanPlayerView(gameView, player, index) {
     this.gameView = gameView;
     this.player = player;
@@ -70,6 +81,8 @@ function HumanPlayerView(gameView, player, index) {
         this.updateDeckAndDiscardViews();
     }, this));
 
+    this.player.on(Player.PlayerUpdates.Shuffle, _.bind(this.updateDeckAndDiscardViews, this));
+
     this.player.on(Player.PlayerUpdates.DiscardCards, _.bind(function(cards) {
         cards.forEach(_.bind(function(card) {
             this.removeCardViewFromHand(this.viewForCard(card));
@@ -79,6 +92,11 @@ function HumanPlayerView(gameView, player, index) {
 
     this.player.on(Player.PlayerUpdates.PlayCard, _.bind(function(card) {
         this.removeCardViewFromHand(this.viewForCard(card));
+        this.updateDeckAndDiscardViews();
+    }, this));
+
+    this.player.on(Player.PlayerUpdates.DiscardCardsFromDeck, _.bind(function() {
+        console.log(Player.PlayerUpdates.DiscardCardsFromDeck);
         this.updateDeckAndDiscardViews();
     }, this));
 
@@ -118,6 +136,9 @@ HumanPlayerView.prototype.removeCardViewFromHand = function(cardView) {
     cardView.$el.remove();
 };
 
+/**
+ * @constructor
+ */
 function GameStatusMessageLabel(game) {
     this.game = game;
     this.$message = $('#status-message');
@@ -153,6 +174,9 @@ function reorderKingdomPileGroups(pileGroups) {
     return firstRow.concat(secondRow);
 }
 
+/**
+ * @constructor
+ */
 function GameView(game, humanPlayerIndex) {
     this.$el = $('#game-container');
     this.game = game;

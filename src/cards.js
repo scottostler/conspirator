@@ -35,24 +35,30 @@ function trashCards(min, max) {
 function otherPlayersDiscardTo(to) {
     return function(game, activePlayer, otherPlayers) {
         game.inactivePlayersDiscardToEffect(to);
-    }
+    };
 }
 
 function otherPlayersDraw(num) {
     return function(game, activePlayer, otherPlayers) {
         game.playersDrawCardsEffect(otherPlayers, num);
-    }
+    };
 }
 
 function discardAndDraw() {
     return function(game, activePlayer, otherPlayers) {
         game.playerDiscardsAndDrawsEffect(activePlayer);
-    }
+    };
 }
 
 function otherPlayersGainCards(cards) {
     return function(game, activePlayer, otherPlayers) {
         game.playersGainCardsEffect(otherPlayers, cards);
+    };
+}
+
+function gainCardOntoDeck(card) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersGainCardsEffect([activePlayer], [card], true);
     };
 }
 
@@ -92,7 +98,33 @@ function trashCardToGainCostingUpToPlusCost(plusCost, cardOrType) {
     };
 };
 
+function offerToShuffleDiscardIntoDeck() {
+    return function(game, activePlayer, otherPlayers) {
+        game.shuffleDiscardIntoDeckOption(activePlayer);
+    };
+}
 
+function drawCardType(num, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDrawsCardTypeEffect(activePlayer, num, cardOrType);
+    };
+}
+
+function otherPlayersDiscardCardOntoDeck(cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersDiscardCardOntoDeckEffect(otherPlayers, cardOrType);
+    };
+}
+
+function chooseToKeepOrDiscardTopCardForAllPlayers() {
+    return function(game, activePlayer, otherPlayers) {
+        game.keepOrDiscardTopCardOption(activePlayer, [activePlayer].concat(otherPlayers));
+    };
+}
+
+/**
+ * @constructor
+ */
 function Card(properties) {
     _.extend(this, properties);
 
@@ -200,16 +232,34 @@ Cards.Curse = new Card({
 
 // Base Set
 
-Cards.Chapel = new Card({
-    name: 'Chapel',
-    cost: 2,
-    effects: [trashCards(0, 4)]
+Cards.Adventurer = new Card({
+    name: 'Adventurer',
+    cost: 6,
+    effects: [drawCardType(2, Card.Type.Treasure)]
+});
+
+Cards.Bureaucrat = new Card({
+    name: 'Bureaucrat',
+    cost: 4,
+    effects: [gainCardOntoDeck(Cards.Silver), otherPlayersDiscardCardOntoDeck(Card.Type.Victory)]
 });
 
 Cards.Cellar = new Card({
     name: 'Cellar',
     cost: 2,
     effects: [gainActions(1), discardAndDraw()]
+});
+
+Cards.Chancellor = new Card({
+    name: 'Chancellor',
+    cost: 3,
+    effects: [gainCoins(2), offerToShuffleDiscardIntoDeck()]
+});
+
+Cards.Chapel = new Card({
+    name: 'Chapel',
+    cost: 2,
+    effects: [trashCards(0, 4)]
 });
 
 Cards.CouncilRoom = new Card({
@@ -272,6 +322,12 @@ Cards.Smithy = new Card({
     effects: [drawCards(3)]
 });
 
+Cards.Spy = new Card({
+    name: 'Spy',
+    cost: 4,
+    effects: [drawCards(1), gainActions(1), chooseToKeepOrDiscardTopCardForAllPlayers()]
+});
+
 Cards.Village = new Card({
     name: 'Village',
     cost: 3,
@@ -297,11 +353,11 @@ Cards.Workshop = new Card({
 });
 
 Cards.BaseSet = [
-    // Cards.Adventurer,
-    // Cards.Bureaucrat,
-    Cards.Chapel,
+    Cards.Adventurer,
+    Cards.Bureaucrat,
     Cards.Cellar,
-    // Cards.Chancellor,
+    Cards.Chapel,
+    Cards.Chancellor,
     Cards.CouncilRoom,
     Cards.Feast,
     Cards.Festival,
@@ -315,7 +371,7 @@ Cards.BaseSet = [
     Cards.Militia,
     Cards.Remodel,
     Cards.Smithy,
-    // Cards.Spy,
+    Cards.Spy,
     // Cards.Thief,
     // Cards.ThroneRoom,
     Cards.Village,
@@ -323,3 +379,9 @@ Cards.BaseSet = [
     Cards.Woodcutter,
     Cards.Workshop
 ];
+
+Cards.uniq = function(cards) {
+    return _.uniq(cards, function(c) {
+        return c.name;
+    });
+};
