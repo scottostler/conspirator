@@ -4,7 +4,8 @@ Decisions.Options = {
     No: 'No',
     Yes: 'Yes',
     Discard: 'Discard',
-    Keep: 'Keep'
+    Keep: 'Keep',
+    Draw: 'Draw'
 };
 
 Decisions.shuffleDiscardIntoDeck = function(game) {
@@ -21,9 +22,16 @@ Decisions.discardCardOntoDeck = function(game, cards) {
     };
 };
 
-Decisions.keepOrDiscardTopCard = function(game, player, card) {
+Decisions.keepOrDiscardCard = function(game, player, card) {
     return {
         title: 'Keep or discard ' + player.name + "'s " + card.name + '?',
         options: [Decisions.Options.Discard, Decisions.Options.Keep]
+    };
+};
+
+Decisions.drawOrDiscardCard = function(game, card) {
+    return {
+        title: 'Draw or discard ' + card.name + '?',
+        options: [Decisions.Options.Discard, Decisions.Options.Draw]
     };
 };

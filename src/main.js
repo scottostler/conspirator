@@ -13,8 +13,12 @@ $(function() {
     function beginGame() {
         var numPlayers = 2;
         var $canvas = $('#canvas');
-        var $log = $('#log');
-        var kingdomCards = _.sample(Cards.BaseSet, NumKingdomCards);
+
+        var forcedCards = [Cards.Gardens, Cards.Library];
+        var randomCards = _.sample(
+            _.difference(Cards.BaseSet, forcedCards),
+            NumKingdomCards - forcedCards.length);
+        var kingdomCards = forcedCards.concat(randomCards);
 
         var playerInterface = new PlayerInterface(null);
         var humanPlayer = new Player('Player', playerInterface);

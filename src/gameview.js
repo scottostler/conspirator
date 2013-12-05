@@ -65,7 +65,7 @@ function HumanPlayerView(gameView, player, index) {
     this.deckView = new CardView(Cards.Cardback)
     this.addViews([this.deckView]);
 
-    this.discardView = new CardView();
+    this.discardView = new CardView(null);
     this.discardView.$el.addClass('discard');
     this.$el.append(this.discardView.$el);
 
@@ -96,7 +96,6 @@ function HumanPlayerView(gameView, player, index) {
     }, this));
 
     this.player.on(Player.PlayerUpdates.DiscardCardsFromDeck, _.bind(function() {
-        console.log(Player.PlayerUpdates.DiscardCardsFromDeck);
         this.updateDeckAndDiscardViews();
     }, this));
 
@@ -237,6 +236,7 @@ GameView.prototype.handleGameUpdate = function(update, description, subject, obj
             this.$inPlay.append(cardView.$el);
             break;
         case Game.GameUpdates.GameOver:
+            this.showStatusMessage('Game over');
             this.showScoreSheet();
             break;
         case Game.GameUpdates.NextTurn:
@@ -419,6 +419,6 @@ GameView.prototype.offerDoneButton = function(onDone) {
 };
 
 GameView.prototype.showScoreSheet = function() {
-    var scoresheet = new scoresheet(this.game, $('.scoresheet'));
+    var scoresheet = new ScoreSheet(this.game, $('.scoresheet'));
     scoresheet.show();
 };

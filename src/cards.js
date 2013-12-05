@@ -26,6 +26,12 @@ function drawCards(num) {
     };
 }
 
+function drawToNCardsAllowingDiscardsOfType(num, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDrawsToNCardsAllowingDiscardsEffect(activePlayer, num, cardOrType);
+    };
+}
+
 function trashCards(min, max) {
     return function(game, activePlayer, otherPlayers) {
         game.playerTrashesCardsEffect(activePlayer, min, max, Card.Type.All);
@@ -119,6 +125,15 @@ function otherPlayersDiscardCardOntoDeck(cardOrType) {
 function chooseToKeepOrDiscardTopCardForAllPlayers() {
     return function(game, activePlayer, otherPlayers) {
         game.keepOrDiscardTopCardOption(activePlayer, [activePlayer].concat(otherPlayers));
+    };
+}
+
+// VP counts
+
+function vpPerNCards(cardsPerVP, cardOrType) {
+    return function(activePlayer) {
+        var matchingCards = activePlayer.getMatchingCardsInDeck(cardOrType);
+        return Math.floor(matchingCards.length / cardsPerVP);
     };
 }
 
@@ -280,6 +295,18 @@ Cards.Festival = new Card({
     effects: [gainActions(2), gainBuys(1), gainCoins(2)]
 });
 
+Cards.Gardens = new Card({
+    name: 'Gardens',
+    cost: 4,
+    vp: vpPerNCards(10, Card.Type.All)
+});
+
+Cards.Library = new Card({
+    name: 'Library',
+    cost: 2,
+    effects: [drawToNCardsAllowingDiscardsOfType(7, Card.Type.Action)]
+});
+
 Cards.Market = new Card({
     name: 'Market',
     cost: 5,
@@ -361,10 +388,10 @@ Cards.BaseSet = [
     Cards.CouncilRoom,
     Cards.Feast,
     Cards.Festival,
-    // Cards.Gardens,
+    Cards.Gardens,
     Cards.Market,
     Cards.Laboratory,
-    // Cards.Library,
+    Cards.Library,
     Cards.Mine,
     // Cards.Moat,
     Cards.Moneylender,

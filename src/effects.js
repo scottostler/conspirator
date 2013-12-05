@@ -1,5 +1,5 @@
 // Effects implement card effects, and when fully
-// processed advance the game state to the next effect.
+// processed advance the game state to the next effect or phase.
 // As effects may require player decisions and are thus
 // asynchronous, they may not immediately advance the game state.
 
@@ -35,7 +35,45 @@ Game.prototype.activePlayerGainsBuysEffect = function(num) {
 
 Game.prototype.playerDrawsCardsEffect = function(player, num) {
     this.playersDrawCardsEffect([player], num);
-}
+};
+
+Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num, discardableCardOrType) {
+    var isDone = function() {
+        return !player.canDraw() || player.hand.length >= num;
+    };
+
+    var setAsideCards = [];
+    var drawCard = _.bind(function() {
+        if (isDone()) {
+            this.advanceGameState();
+            player.discard = player.discard.concat(setAsideCards);
+            player.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
+            return;
+        }
+
+        var card = player.takeCardFromDeck();
+        if (card.matchesCardOrType(discardableCardOrType)) {
+            var decision = Decisions.drawOrDiscardCard(this, card);
+            player.decider.promptForChoice(this, decision, _.bind(function(choice) {
+                if (choice === Decisions.Options.Draw) {
+                    player.addCardToHand(card);
+                } else {
+                    setAsideCards.push(card);
+                }
+
+                this.eventStack.push(drawCard);
+                this.advanceGameState();
+            }, this));
+        } else {
+            player.addCardToHand(card);
+            this.eventStack.push(drawCard);
+            this.advanceGameState();
+        }
+    }, this);
+
+    this.eventStack.push(drawCard);
+    this.advanceGameState();
+};
 
 Game.prototype.playersDrawCardsEffect = function(players, num) {
     _.each(players, _.bind(function(player) {
@@ -131,8 +169,7 @@ Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
     var selectedCards = [];
     var revealedCards = [];
 
-    while (selectedCards.length < num &&
-        (player.deck.length > 0 || player.discard.length > 0)) {
+    while (selectedCards.length < num && player.canDraw()) {
 
         if (player.deck.length == 0) {
             player.deck = _.shuffle(player.discard);
@@ -155,8 +192,8 @@ Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
     this.advanceGameState();
 };
 
-Game.prototype.shuffleDiscardIntoDeckOption = function(player, sourceCard) {
-    var decision = Decisions.shuffleDiscardIntoDeck(this, sourceCard);
+Game.prototype.shuffleDiscardIntoDeckOption = function(player) {
+    var decision = Decisions.shuffleDiscardIntoDeck(this);
     player.decider.promptForChoice(this, decision, _.bind(function(choice) {
 
         if (choice === Decisions.Options.Yes) {
@@ -193,7 +230,7 @@ Game.prototype.keepOrDiscardTopCardOption = function(choosingPlayer, targetPlaye
         this.eventStack.push(_.bind(function() {
             var cards = targetPlayer.revealCardsFromDeck(1);
             if (cards.length > 0) {
-                var decision = Decisions.keepOrDiscardTopCard(this, targetPlayer, cards[0]);
+                var decision = Decisions.keepOrDiscardCard(this, targetPlayer, cards[0]);
                 choosingPlayer.decider.promptForChoice(this, decision, _.bind(function(choice) {
                     console.log(choice);
                     if (choice === Decisions.Options.Discard) {

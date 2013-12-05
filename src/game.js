@@ -11,6 +11,8 @@ function Game(kingdomCards, players) {
     this.playArea = [];
     this.eventStack = [];
 
+    this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
+
     var sortedKingdomCards = _.sortBy(kingdomCards, 'cost');
 
     this.kingdomPileGroups = [];
@@ -72,7 +74,7 @@ Game.prototype.isGameOver = function() {
         return pile.count == 0 ? 1 : 0;
     });
 
-    if (emptyCount >= 3) {
+    if (emptyCount >= this.emptyPilesToEndGame) {
         return true;
     }
 
@@ -81,7 +83,6 @@ Game.prototype.isGameOver = function() {
 
 Game.prototype.advanceTurn = function() {
     if (this.isGameOver()) {
-        alert('The game is over!');
         return true;
     }
 
@@ -123,7 +124,7 @@ Game.prototype.advanceGameState = function() {
         }
     } else if (this.turnState == Game.TurnState.Buy) {
         var buyablePiles = this.currentlyBuyablePiles();
-        if (buyablePiles.length == 0 ) {
+        if (buyablePiles.length == 0) {
             this.turnState = Game.TurnState.Cleanup;
             this.advanceGameState();
         } else {
@@ -138,8 +139,10 @@ Game.prototype.advanceGameState = function() {
         this.discardCards(this.activePlayer, this.activePlayer.hand);
         this.drawCards(this.activePlayer, 5);
 
-        var gameover = this.advanceTurn();
-        if (!gameover) {
+        var isGameover = this.advanceTurn();
+        if (isGameover) {
+            this.endGame();
+        } else {
             this.advanceGameState();
         }
     } else {
@@ -149,7 +152,7 @@ Game.prototype.advanceGameState = function() {
 
 Game.prototype.revealPlayerHand = function(player) {
     // TODO
-    console.log('Player is revealign hand', player.name, player.hand);
+    console.log('Player is revealing hand', player.name, player.hand);
 };
 
 Game.prototype.pushGameEvent = function(e) {
@@ -280,7 +283,6 @@ Game.prototype.playAction = function(card) {
 };
 
 Game.prototype.discardCardsFromDeck = function(player, num) {
-    console.log('discarding from', player, num);
     for (var i = 0; i < num; i++) {
         if (player.deck.length === 0 && player.discard.length > 0) {
             player.shuffleCompletely();
@@ -321,8 +323,7 @@ Game.prototype.trashCards = function(player, cards) {
 
 Game.prototype.drawCards = function(player, num) {
     var drawn = player.takeCardsFromDeck(num);
-    player.hand = player.hand.concat(drawn);
-    player.emit(Player.PlayerUpdates.DrawCards, drawn);
+    player.addCardsToHand(drawn);
 };
 
 Game.prototype.filterGainablePiles = function(minCost, maxCost, cardOrType) {
@@ -344,4 +345,8 @@ Game.prototype.start = function() {
     this.drawInitialHands();
     this.advanceTurn();
     this.advanceGameState();
+};
+
+Game.prototype.endGame = function() {
+    this.emit(Game.GameUpdate, Game.GameUpdates.GameOver);
 };
