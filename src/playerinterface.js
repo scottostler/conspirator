@@ -24,6 +24,11 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions) {
     });
 };
 
+PlayerInterface.prototype.promptForHandSelection = function(game, cards, label, onSelect) {
+    this.gameView.showStatusMessage(label);
+    this.gameView.offerSingleHandSelection(cards, onSelect);
+};
+
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
     this.gameView.showStatusMessage('Buy a card');
 

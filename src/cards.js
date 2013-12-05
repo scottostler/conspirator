@@ -134,6 +134,12 @@ function chooseToKeepOrDiscardTopCardForAllPlayers() {
     };
 }
 
+function playActionMultipleTimes(num) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playActionMultipleTimesEffect(activePlayer, num);
+    };
+};
+
 // VP counts
 
 function vpPerNCards(cardsPerVP, cardOrType) {
@@ -367,6 +373,12 @@ Cards.Thief = new Card({
     effects: [trashAndMaybeGainCardFromOtherPlayersDeck(Card.Type.Treasure, 2)]
 });
 
+Cards.ThroneRoom = new Card({
+    name: 'Throne Room',
+    cost: 4,
+    effects: [playActionMultipleTimes(2)]
+});
+
 Cards.Village = new Card({
     name: 'Village',
     cost: 3,
@@ -412,7 +424,7 @@ Cards.BaseSet = [
     Cards.Smithy,
     Cards.Spy,
     Cards.Thief,
-    // Cards.ThroneRoom,
+    Cards.ThroneRoom,
     Cards.Village,
     Cards.Witch,
     Cards.Woodcutter,

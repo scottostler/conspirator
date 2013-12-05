@@ -103,9 +103,12 @@ Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType,
 }
 
 Game.prototype.trashCardInPlayEffect = function(card) {
-    this.playArea = removeFirst(this.playArea, card);
-    this.trash.push(card);
-    this.emit('trash-card-from-play', card);
+    // May not be true if a feast was throne-roomed, for example.
+    if (_.contains(this.playArea, card)) {
+        this.playArea = removeFirst(this.playArea, card);
+        this.trash.push(card);
+        this.emit('trash-card-from-play', card);        
+    }
     this.advanceGameState();
 };
 
@@ -301,8 +304,31 @@ Game.prototype.trashAndMaybeGainCardsEffect = function(attackingPlayer, targetPl
         });
     });
 
-
-
     this.advanceGameState();
 }
+
+Game.prototype.playActionMultipleTimesEffect = function(player, num) {
+    var that = this;
+    var actions = player.getActionsInHand();
+    if (actions.length > 0) {
+        this.activePlayer.decider.promptForHandSelection(this, actions, 'Select an action', function(card) {
+            player.hand = removeFirst(player.hand, card);
+            that.playArea.push(card);
+
+            that.emit(Game.GameUpdate,
+                Game.GameUpdates.PlayedCard,
+                player.name + ' played ' + card.name,
+                player,
+                card);
+
+            var cardEvents = _.reverse(_.flatten(repeat(card.effects, num))); // in event stack order
+            that.eventStack = that.eventStack.concat(cardEvents);
+            that.activePlayer.emit(Player.PlayerUpdates.PlayCard, card);
+
+            that.advanceGameState();
+        });
+    } else {
+        this.advanceGameState();
+    }
+};
 
