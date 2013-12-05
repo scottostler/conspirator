@@ -122,6 +122,12 @@ function otherPlayersDiscardCardOntoDeck(cardOrType) {
     };
 }
 
+function trashAndMaybeGainCardFromOtherPlayersDeck(cardOrType, number) {
+    return function(game, activePlayer, otherPlayers) {
+        game.trashAndMaybeGainCardsEffect(activePlayer, otherPlayers, cardOrType, number);
+    };
+}
+
 function chooseToKeepOrDiscardTopCardForAllPlayers() {
     return function(game, activePlayer, otherPlayers) {
         game.keepOrDiscardTopCardOption(activePlayer, [activePlayer].concat(otherPlayers));
@@ -301,9 +307,15 @@ Cards.Gardens = new Card({
     vp: vpPerNCards(10, Card.Type.All)
 });
 
+Cards.Laboratory = new Card({
+    name: 'Laboratory',
+    cost: 5,
+    effects: [drawCards(2), gainActions(1)]
+});
+
 Cards.Library = new Card({
     name: 'Library',
-    cost: 2,
+    cost: 5,
     effects: [drawToNCardsAllowingDiscardsOfType(7, Card.Type.Action)]
 });
 
@@ -311,12 +323,6 @@ Cards.Market = new Card({
     name: 'Market',
     cost: 5,
     effects: [drawCards(1), gainActions(1), gainBuys(1), gainCoins(1)]
-});
-
-Cards.Laboratory = new Card({
-    name: 'Laboratory',
-    cost: 5,
-    effects: [drawCards(2), gainActions(1)]
 });
 
 Cards.Mine = new Card({
@@ -353,6 +359,12 @@ Cards.Spy = new Card({
     name: 'Spy',
     cost: 4,
     effects: [drawCards(1), gainActions(1), chooseToKeepOrDiscardTopCardForAllPlayers()]
+});
+
+Cards.Thief = new Card({
+    name: 'Thief',
+    cost: 4,
+    effects: [trashAndMaybeGainCardFromOtherPlayersDeck(Card.Type.Treasure, 2)]
 });
 
 Cards.Village = new Card({
@@ -399,7 +411,7 @@ Cards.BaseSet = [
     Cards.Remodel,
     Cards.Smithy,
     Cards.Spy,
-    // Cards.Thief,
+    Cards.Thief,
     // Cards.ThroneRoom,
     Cards.Village,
     Cards.Witch,

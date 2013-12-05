@@ -177,6 +177,7 @@ function reorderKingdomPileGroups(pileGroups) {
  * @constructor
  */
 function GameView(game, humanPlayerIndex) {
+    var that = this;
     this.$el = $('#game-container');
     this.game = game;
 
@@ -186,18 +187,18 @@ function GameView(game, humanPlayerIndex) {
     this.inPlayViews = [];
 
     var $playerViews = $('.player-areas').empty();
-    this.playerViews = this.game.players.map(_.bind(function(p, i) {
-        var view = new HumanPlayerView(this, p, i);
+    this.playerViews = this.game.players.map(function(p, i) {
+        var view = new HumanPlayerView(that, p, i);
         $playerViews.append(view.$el);
         return view;
-    }, this));
+    });
 
     this.$kingdomPiles = $('.kingdom-piles').empty();
-    reorderKingdomPileGroups(this.game.kingdomPileGroups).forEach(_.bind(function(pile, i) {
+    reorderKingdomPileGroups(this.game.kingdomPileGroups).forEach(function(pile, i) {
         var pileView = new PileView(pile);
-        this.$kingdomPiles.append(pileView.$el);
-        this.pileViews.push(pileView);
-    }, this));
+        that.$kingdomPiles.append(pileView.$el);
+        that.pileViews.push(pileView);
+    });
 
     this.trashView = new CardView(Cards.Trash);
     this.$kingdomPiles.append(this.trashView.$el);
@@ -208,17 +209,21 @@ function GameView(game, humanPlayerIndex) {
 
     this.game.on(Game.GameUpdate, _.bind(this.handleGameUpdate, this));
 
-    this.game.on('empty-play-area', _.bind(function() {
-        this.$inPlay.empty();
-        this.inPlayViews = [];
-    }, this));
+    this.game.on('empty-play-area', function() {
+        that.$inPlay.empty();
+        that.inPlayViews = [];
+    });
 
-    this.game.on('trash-card-from-play', _.bind(function(card) {
+    this.game.on('trash-card-from-play', function(card) {
         var cardView = this.viewForInPlayCard(card);
-        this.inPlayViews = removeFirst(this.inPlayViews, cardView);
+        that.inPlayViews = removeFirst(that.inPlayViews, cardView);
         cardView.$el.remove();
-        this.updateTrashView();
-    }, this));
+        that.updateTrashView();
+    });
+
+    this.game.on('add-card-to-trash', function(card) {
+        that.updateTrashView();
+    });
 }
 
 GameView.prototype = new View();

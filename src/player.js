@@ -41,6 +41,15 @@ Player.prototype.addCardToHand = function(card) {
     this.addCardsToHand([card]);
 };
 
+Player.prototype.addCardToDiscard = function(card) {
+    this.addCardsToDiscard([card]);
+};
+
+Player.prototype.addCardsToDiscard = function(cards) {
+    this.discard = this.discard.concat(cards);
+    this.emit(Player.PlayerUpdates.DiscardCardsFromDeck, cards);
+};
+
 Player.prototype.shuffleCompletely = function() {
     this.deck = _.shuffle(this.deck.concat(this.discard));
     this.discard = [];
@@ -69,6 +78,12 @@ Player.prototype.takeCardsFromDeck = function(num) {
     }
 
     return cards;
+};
+
+Player.prototype.discardCardsFromDeck = function(num) {
+    var cards = this.takeCardsFromDeck(num);
+    this.discard = this.discard.concat(cards);
+    this.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
 };
 
 Player.prototype.revealCardsFromDeck = function(n) {

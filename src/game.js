@@ -282,21 +282,6 @@ Game.prototype.playAction = function(card) {
     this.advanceGameState();
 };
 
-Game.prototype.discardCardsFromDeck = function(player, num) {
-    for (var i = 0; i < num; i++) {
-        if (player.deck.length === 0 && player.discard.length > 0) {
-            player.shuffleCompletely();
-        }
-
-        var card = player.deck.pop();
-        if (card) {
-            player.discard.push(card);
-        }
-    }
-
-    player.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
-};
-
 Game.prototype.discardCards = function(player, cards, ontoDeck) {
     _.each(cards, _.bind(function(card) {
         if (!_.contains(player.hand, card)) {
@@ -319,6 +304,11 @@ Game.prototype.trashCards = function(player, cards) {
         this.trash.push(card);
     }, this));
     player.emit(Player.PlayerUpdates.TrashCards, cards);
+};
+
+Game.prototype.addCardToTrash = function(card) {
+    this.trash.push(card);
+    this.emit('add-card-to-trash', card);
 };
 
 Game.prototype.drawCards = function(player, num) {

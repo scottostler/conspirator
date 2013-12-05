@@ -27,6 +27,9 @@ _.mixin({
         return _.reduceRight(list, function(acc, value) {
             return acc + iterator(value);
         }, 0);
+    },
+    reverse: function(list) {
+        return list.concat().reverse();
     }
 });
 

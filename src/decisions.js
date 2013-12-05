@@ -35,3 +35,17 @@ Decisions.drawOrDiscardCard = function(game, card) {
         options: [Decisions.Options.Discard, Decisions.Options.Draw]
     };
 };
+
+Decisions.gainCard = function(game, card) {
+    return {
+        title: 'Gain ' + card.name + '?',
+        options: [Decisions.Options.No, Decisions.Options.Yes]
+    };
+};
+
+Decisions.chooseCardToTrash = function(game, player, cards) {
+    return {
+        title: 'Choose ' + player.name + "'s card to trash",
+        options: cards
+    };
+};

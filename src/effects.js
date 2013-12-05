@@ -46,8 +46,7 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
     var drawCard = _.bind(function() {
         if (isDone()) {
             this.advanceGameState();
-            player.discard = player.discard.concat(setAsideCards);
-            player.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
+            player.addCardsToDiscard(setAsideCards);
             return;
         }
 
@@ -111,33 +110,37 @@ Game.prototype.trashCardInPlayEffect = function(card) {
 };
 
 Game.prototype.inactivePlayersDiscardToEffect = function(num) {
-    _.each(reverseCopy(this.inactivePlayers), _.bind(function(player) {
+    var that = this;
+
+    _.each(_.reverse(this.inactivePlayers), function(player) {
         var numToDiscard = Math.max(0, player.hand.length - num);
         if (numToDiscard > 0) {
-            this.eventStack.push(_.bind(function() {
-                player.decider.promptForDiscard(this, numToDiscard, numToDiscard, _.bind(function(cards) {
+            that.eventStack.push(function() {
+                player.decider.promptForDiscard(that, numToDiscard, numToDiscard, function(cards) {
                     if (cards.length > 0) {
-                        this.discardCards(player, cards);
+                        that.discardCards(player, cards);
                     }
 
-                    this.advanceGameState();
-                }, this));
-            }, this));
+                    that.advanceGameState();
+                });
+            });
         }
-    }, this));
+    });
 
     this.advanceGameState();
 };
 
 Game.prototype.playersGainCardsEffect = function(players, cards, ontoDeck) {
-    _.each(players, _.bind(function(player) {
-        _.each(cards, _.bind(function(card) {
-            var pile = this.pileForCard(card);
+    var that = this;
+
+    _.each(players, function(player) {
+        _.each(cards, function(card) {
+            var pile = that.pileForCard(card);
             if (pile.count > 0) {
-                this.playerGainsFromPile(player, pile, ontoDeck);
+                that.playerGainsFromPile(player, pile, ontoDeck);
             }
-        }, this));
-    }, this));
+        });
+    });
 
     this.advanceGameState();
 };
@@ -226,24 +229,80 @@ Game.prototype.playersDiscardCardOntoDeckEffect = function(players, cardOrType) 
 };
 
 Game.prototype.keepOrDiscardTopCardOption = function(choosingPlayer, targetPlayers) {
-    _.each(reverseCopy(targetPlayers), _.bind(function(targetPlayer) {
-        this.eventStack.push(_.bind(function() {
+    var that = this;
+
+    _.each(_.reverse(targetPlayers), function(targetPlayer) {
+        that.eventStack.push(function() {
             var cards = targetPlayer.revealCardsFromDeck(1);
             if (cards.length > 0) {
-                var decision = Decisions.keepOrDiscardCard(this, targetPlayer, cards[0]);
-                choosingPlayer.decider.promptForChoice(this, decision, _.bind(function(choice) {
-                    console.log(choice);
+                var decision = Decisions.keepOrDiscardCard(that, targetPlayer, cards[0]);
+                choosingPlayer.decider.promptForChoice(that, decision, function(choice) {
                     if (choice === Decisions.Options.Discard) {
-                        this.discardCardsFromDeck(targetPlayer, 1);
+                        targetPlayer.discardCardsFromDeck(1);
                     }
 
-                    this.advanceGameState();
-                }, this));
+                    that.advanceGameState();
+                });
             } else {
-                this.advanceGameState();
+                that.advanceGameState();
             }
-        }, this));
-    }, this));
+        });
+    });
 
     this.advanceGameState();
 };
+
+Game.prototype.trashAndMaybeGainCardsEffect = function(attackingPlayer, targetPlayers, cardOrType, numCards) {
+    var that = this;
+    var trashedCards = [];
+
+    this.eventStack.push(function() {
+        _.each(_.reverse(trashedCards), function(card) {
+             var decision = Decisions.gainCard(that, card);
+             attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                if (choice === Decisions.Options.Yes) {
+                    attackingPlayer.addCardToDiscard(card);
+                } else {
+                    that.addCardToTrash(card);
+                }
+
+                that.advanceGameState();
+             });
+        });
+
+        that.advanceGameState();
+    });
+
+    _.each(_.reverse(targetPlayers), function(targetPlayer) {
+        that.eventStack.push(function() {
+            var allCards = targetPlayer.takeCardsFromDeck(numCards);
+            var matchingCards = _.filter(allCards, function(c) { return c.matchesCardOrType(cardOrType) });
+            var nonMatchingCards = _.difference(allCards, matchingCards);
+
+            if (matchingCards.length > 0) {
+                var decision = Decisions.chooseCardToTrash(that, targetPlayer, matchingCards);
+                attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                    matchingCards.forEach(function(c, i) {
+                        // TODO: remove indexOf when card instances are unique
+                        if (c === choice && i === matchingCards.indexOf(c)) {
+                            trashedCards.push(c);
+                        } else {
+                            targetPlayer.addCardToDiscard(c);
+                        }
+                    });
+
+                    targetPlayer.addCardsToDiscard(nonMatchingCards);
+                    that.advanceGameState();
+                });
+            } else {
+                targetPlayer.addCardsToDiscard(nonMatchingCards);
+                that.advanceGameState();
+            }
+        });
+    });
+
+
+
+    this.advanceGameState();
+}
+
