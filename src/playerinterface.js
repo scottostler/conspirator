@@ -14,19 +14,18 @@ PlayerInterface.prototype.setGameView = function(gameView) {
 PlayerInterface.prototype.promptForAction = function(game, playableActions) {
     this.gameView.showStatusMessage('Play an action');
 
-    this.gameView.offerOptionalSingleHandSelection(playableActions, function(action) {
+    this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
         if (action) {
             game.playAction(action);
         } else {
             game.skipActions();
         }
-
     });
 };
 
 PlayerInterface.prototype.promptForHandSelection = function(game, cards, label, onSelect) {
     this.gameView.showStatusMessage(label);
-    this.gameView.offerSingleHandSelection(cards, onSelect);
+    this.gameView.offerSingleHandSelection(this.player, cards, onSelect);
 };
 
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
@@ -34,9 +33,9 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
 
     this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
         if (pile) {
-            _.each(this.player.getTreasuresInHand(), _.bind(function(card) {
+            _.each(this.player.getTreasuresInHand(), function(card) {
                 game.playTreasure(card);
-            }, this));
+            });
             game.buyFromPile(pile);
         } else {
             game.skipBuys();
@@ -58,7 +57,7 @@ PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard)
         this.gameView.showStatusMessage('Discard ' + min + ' to ' + max + ' cards');
     }
     
-    this.gameView.offerMultipleHandSelection(min, max, onDiscard);
+    this.gameView.offerMultipleHandSelection(this.player, min, max, onDiscard);
 };
 
 PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
@@ -70,9 +69,12 @@ PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, on
         this.gameView.showStatusMessage('Trash ' + min + ' to ' + max + ' cards');
     }
 
-
-    this.gameView.offerMultipleHandSelection(min, max, cards, onTrash);
+    this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onTrash);
 }
+
+PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
+    this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
+};
 
 PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
     var $modal = $('.choice');

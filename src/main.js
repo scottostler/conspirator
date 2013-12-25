@@ -1,5 +1,9 @@
 $(function() {
 
+    window.dominion = {
+        debug: false
+    };
+
     function makeComputerPlayers(numPlayers) {
         var computerNames = ['Alice', 'Bob', 'Carlos'];
         return _.take(computerNames, numPlayers).map(function(name) {
@@ -14,7 +18,7 @@ $(function() {
         var numPlayers = 2;
         var $canvas = $('#canvas');
 
-        var forcedCards = [Cards.Gardens, Cards.Thief, Cards.ThroneRoom];
+        var forcedCards = [Cards.Moat, Cards.Militia, Cards.Bureaucrat, Cards.Spy];
         var randomCards = _.sample(
             _.difference(Cards.BaseSet, forcedCards),
             NumKingdomCards - forcedCards.length);
@@ -31,11 +35,11 @@ $(function() {
         playerInterface.setGameView(gameView);
         game.start();
 
-        window.dominion = {
+        _.extend(window.dominion, {
             g: game,
             gv: gameView,
-            beginGame: beginGame
-        };
+            beginGame: beginGame,
+        });
     }
 
     $('.new-game').click(beginGame);

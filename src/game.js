@@ -37,6 +37,8 @@ function Game(kingdomCards, players) {
     this.trash = [];
 };
 
+Game.HandSize = 5;
+
 Game.TurnState = {
     Action: 'action',
     Buy: 'buy',
@@ -58,7 +60,7 @@ Game.prototype = new EventEmitter();
 
 Game.prototype.drawInitialHands = function() {
     this.players.forEach(_.bind(function(player) {
-        this.drawCards(player, 5);
+        this.drawCards(player, Game.HandSize);
     }, this));
 };
 
@@ -210,6 +212,7 @@ Game.prototype.currentlyBuyablePiles = function() {
 // Game-state changes
 
 Game.prototype.playTreasure = function(card) {
+    console.log(this.activePlayer.name, 'played', card.name);
     this.discardCards(this.activePlayer, [card]);
     this.activePlayerMoneyCount += card.money;
     this.emit(Game.GameUpdate,
@@ -220,6 +223,8 @@ Game.prototype.playTreasure = function(card) {
 }
 
 Game.prototype.buyFromPile = function(pile) {
+    console.log(this.activePlayer.name, 'bought', pile.card.name);
+
     var cost = this.computeEffectiveCardCost(pile.card);
 
     if (this.activePlayerBuyCount == 0) {
@@ -264,6 +269,8 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
 };
 
 Game.prototype.playAction = function(card) {
+    console.log(this.activePlayer.name, 'played', card.name);
+
     this.activePlayerActionCount--;
     this.activePlayer.hand = removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
@@ -280,6 +287,32 @@ Game.prototype.playAction = function(card) {
         card);
 
     this.advanceGameState();
+};
+
+Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSkipAttack) {
+    var that = this;
+    var processAttack = function() {
+        if (shouldSkipAttack) {
+            that.advanceGameState();
+        } else {
+            attackEffect();
+        }
+    };
+
+    var reactions = player.getReactionsInHand();
+    if (reactions.length > 0) {
+        player.decider.promptForReaction(this, reactions, function(reactionCard) {
+            if (reactionCard) {
+                console.log(player.name, 'revealed', reactionCard.name);
+                var shouldSkipAttack = reactionCard.reaction(that, player) || shouldSkipAttack;
+                that.allowReactionsToAttack(player, attackEffect, shouldSkipAttack);
+            } else {
+                processAttack();
+            }
+        });
+    } else {
+        processAttack();
+    }
 };
 
 Game.prototype.discardCards = function(player, cards, ontoDeck) {

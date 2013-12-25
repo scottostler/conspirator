@@ -37,6 +37,10 @@ function pluralize(noun, n) {
     return n == 1 ? noun : noun + 's';
 }
 
+function possessive(noun) {
+    return noun + "'s";
+}
+
 // Adapts a function which accepts an object or null to accept
 // an empty or single element array.
 function adaptListToOption(f) {

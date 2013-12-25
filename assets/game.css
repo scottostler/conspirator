@@ -2,7 +2,6 @@
 
 html, body {
     font-family: Helvetica, Verdana, Tahoma;
-
 }
 
 .hidden {
@@ -13,6 +12,7 @@ html body {
     background: lightgray;
     height: 100%;
     width: 100%;
+    min-width: 1200px;
 }
 
 .game-buttons {
@@ -27,7 +27,7 @@ html body {
 }
 
 .game-area {
-    width: 1000px;
+    width: 1000;
     height: 700px;
     border: 1px solid #BBB;
     position: relative;
@@ -117,6 +117,11 @@ html body {
     display: inline-block;
 }
 
+.player-area {
+    border: 1px solid black;
+    padding: 10px;
+}
+
 .player-area.north {
     position: absolute;
     left: 15px;
@@ -147,6 +152,24 @@ html body {
 
 .player-area .discard {
     margin-right: 25px;
+}
+
+/* Remote player */
+
+.player-area.remote-player .hand {
+    display: inline-block;
+    position: relative;
+    margin-left: 75px;
+    width: 100px;
+}
+
+.player-area.remote-player .hand .card {
+    position: absolute;
+    margin: auto;
+    transition: -webkit-transform 0.25s ease;
+    -webkit-transform-origin: 10px bottom;
+    top: -65px;
+
 }
 
 /* Selection states */

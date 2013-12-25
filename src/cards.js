@@ -40,7 +40,7 @@ function trashCards(min, max) {
 
 function otherPlayersDiscardTo(to) {
     return function(game, activePlayer, otherPlayers) {
-        game.inactivePlayersDiscardToEffect(to);
+        game.inactivePlayersDiscardToAttack(to);
     };
 }
 
@@ -58,7 +58,7 @@ function discardAndDraw() {
 
 function otherPlayersGainCards(cards) {
     return function(game, activePlayer, otherPlayers) {
-        game.playersGainCardsEffect(otherPlayers, cards);
+        game.playersGainCardsAttack(otherPlayers, cards);
     };
 }
 
@@ -116,21 +116,21 @@ function drawCardType(num, cardOrType) {
     };
 }
 
-function otherPlayersDiscardCardOntoDeck(cardOrType) {
+function otherPlayersDiscardCardOntoDeckAttack(cardOrType) {
     return function(game, activePlayer, otherPlayers) {
-        game.playersDiscardCardOntoDeckEffect(otherPlayers, cardOrType);
+        game.playersDiscardCardOntoDeckAttack(otherPlayers, cardOrType);
     };
 }
 
-function trashAndMaybeGainCardFromOtherPlayersDeck(cardOrType, number) {
+function thiefAttack(cardOrType, number) {
     return function(game, activePlayer, otherPlayers) {
-        game.trashAndMaybeGainCardsEffect(activePlayer, otherPlayers, cardOrType, number);
+        game.trashAndMaybeGainCardsAttack(activePlayer, otherPlayers, cardOrType, number);
     };
 }
 
 function chooseToKeepOrDiscardTopCardForAllPlayers() {
     return function(game, activePlayer, otherPlayers) {
-        game.keepOrDiscardTopCardOption(activePlayer, [activePlayer].concat(otherPlayers));
+        game.keepOrDiscardTopCardOptionAttack(activePlayer, [activePlayer].concat(otherPlayers));
     };
 }
 
@@ -139,6 +139,14 @@ function playActionMultipleTimes(num) {
         game.playActionMultipleTimesEffect(activePlayer, num);
     };
 };
+
+// Reactions
+
+function revealToAvoidAttack() {
+    return function(game, reactingPlayer) {
+        return true;
+    };
+}
 
 // VP counts
 
@@ -163,6 +171,7 @@ Card.Type = {
     Action: 'action',
     Treasure: 'treasure',
     Victory: 'victory',
+    Reaction: 'reaction',
     All: 'all'
 };
 
@@ -171,15 +180,19 @@ Card.prototype.toString = function() {
 };
 
 Card.prototype.isAction = function() {
-    return this.effects != null;
+    return this.effects !== undefined;
+};
+
+Card.prototype.isReaction = function() {
+    return this.reaction !== undefined;
 };
 
 Card.prototype.isTreasure = function() {
-    return this.money != null;
+    return this.money !== undefined;
 };
 
 Card.prototype.isVictory = function() {
-    return this.vp != null;
+    return this.vp !== undefined;
 };
 
 Card.prototype.matchesCardOrType = function(cardOrType) {
@@ -189,6 +202,8 @@ Card.prototype.matchesCardOrType = function(cardOrType) {
                 return true;
             case Card.Type.Action:
                 return this.isAction();
+            case Card.Type.Reaction:
+                return this.isReaction();
             case Card.Type.Treasure:
                 return this.isTreasure();
             case Card.Type.Victory:
@@ -268,7 +283,7 @@ Cards.Adventurer = new Card({
 Cards.Bureaucrat = new Card({
     name: 'Bureaucrat',
     cost: 4,
-    effects: [gainCardOntoDeck(Cards.Silver), otherPlayersDiscardCardOntoDeck(Card.Type.Victory)]
+    effects: [gainCardOntoDeck(Cards.Silver), otherPlayersDiscardCardOntoDeckAttack(Card.Type.Victory)]
 });
 
 Cards.Cellar = new Card({
@@ -343,8 +358,15 @@ Cards.Militia = new Card({
     effects: [gainCoins(2), otherPlayersDiscardTo(3)]
 });
 
+Cards.Moat = new Card({
+    name: 'Moat',
+    cost: 2,
+    effects: [drawCards(2)],
+    reaction: revealToAvoidAttack()
+});
+
 Cards.Moneylender = new Card({
-    name: "Moneylender",
+    name: 'Moneylender',
     cost: 4,
     effects: [trashCardForEffect(Cards.Copper, gainCoins(3))]
 });
@@ -370,7 +392,7 @@ Cards.Spy = new Card({
 Cards.Thief = new Card({
     name: 'Thief',
     cost: 4,
-    effects: [trashAndMaybeGainCardFromOtherPlayersDeck(Card.Type.Treasure, 2)]
+    effects: [thiefAttack(Card.Type.Treasure, 2)]
 });
 
 Cards.ThroneRoom = new Card({
@@ -417,7 +439,7 @@ Cards.BaseSet = [
     Cards.Laboratory,
     Cards.Library,
     Cards.Mine,
-    // Cards.Moat,
+    Cards.Moat,
     Cards.Moneylender,
     Cards.Militia,
     Cards.Remodel,

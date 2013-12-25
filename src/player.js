@@ -108,6 +108,10 @@ Player.prototype.getActionsInHand = function() {
     return this.getMatchingCardsInHand(Card.Type.Action);
 };
 
+Player.prototype.getReactionsInHand = function() {
+    return this.getMatchingCardsInHand(Card.Type.Reaction);
+};
+
 Player.prototype.getFullDeck = function() {
     return this.hand.concat(this.deck, this.discard);
 };

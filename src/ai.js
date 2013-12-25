@@ -1,20 +1,32 @@
 /**
  * @constructor
  */
-function ComputerAI (player) { 
+function ComputerAI(player) { 
     this.player = player;
+    this.buyList = [Cards.Witch, Cards.Spy, Cards.Bureaucrat, Cards.Militia];
+    this.trashList = [Cards.Curse, Cards.Copper];
 }
 
 ComputerAI.prototype.promptForAction = function(game, playableActions) {
-    game.skipActions();
+    game.playAction(_.sample(playableActions));
 };
 
 ComputerAI.prototype.promptForBuy = function(game, buyablePiles) {
-    game.skipBuys();
+    _.each(this.player.getTreasuresInHand(), function(card) {
+        game.playTreasure(card);
+    });
+
+    var that = this;
+    var sortedPiles = _.sortBy(buyablePiles, function(p) {
+        var index = that.buyList.indexOf(p.card);
+        return index === -1 ? Infinity : index;
+    });
+
+    game.buyFromPile(_.head(sortedPiles));
 }
 
 ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
-    onGain(_.pick(gainablePiles));
+    onGain(_.sample(gainablePiles));
 };
 
 ComputerAI.prototype.promptForDiscard = function(game, min, max, onDiscard) {
@@ -31,3 +43,7 @@ ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash
 ComputerAI.prototype.promptForChoice = function(game, decision, onDecide) {
     onDecide(_.sample(decision.options));
 }
+
+ComputerAI.prototype.promptForReaction = function(game, reactions, onReact) {
+    onReact(null);
+};
