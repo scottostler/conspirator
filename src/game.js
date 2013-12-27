@@ -28,7 +28,7 @@ function Game(kingdomCards, players) {
         { card: Cards.Duchy,    count: victoryCardCount },
         { card: Cards.Province, count: victoryCardCount },
         { card: Cards.Copper,   count: 99, hideBadge: true },
-        { card: Cards.Silver,   count: 99, hideBadge: true},
+        { card: Cards.Silver,   count: 99, hideBadge: true },
         { card: Cards.Gold,     count: 99, hideBadge: true }
     ]);
 
