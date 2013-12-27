@@ -5,7 +5,7 @@ var NumKingdomCards = 10;
  */
 function Game(kingdomCards, players) {
     this.activePlayerIndex = -1;
-    this.turnIndex = -1;
+    this.turnCount = 0;
     this.players = players;
 
     this.playArea = [];
@@ -49,6 +49,7 @@ Game.GameUpdate = 'game-update';
 
 Game.GameUpdates = {
     NextTurn: 'next-turn',
+    NextPhase: 'next-phase',
     PlayedCard: 'played-card',
     BoughtCard: 'bought-card',
     GainedCard: 'gained-card',
@@ -57,6 +58,11 @@ Game.GameUpdates = {
 };
 
 Game.prototype = new EventEmitter();
+
+Game.prototype.log = function() {
+    var args = Array.prototype.slice.call(arguments);
+    this.emit('log', args.join(' '));
+};
 
 Game.prototype.drawInitialHands = function() {
     this.players.forEach(_.bind(function(player) {
@@ -99,12 +105,14 @@ Game.prototype.advanceTurn = function() {
     this.activePlayerMoneyCount = 0;
 
     if (this.activePlayerIndex == 0) {
-        this.turnIndex++;
+        this.turnCount++;
     }
+
+    this.log(this.activePlayer.name + ' begins turn ' + this.turnCount);
 
     this.emit(Game.GameUpdate,
         Game.GameUpdates.NextTurn,
-        this.activePlayer.name + ' begins their turn ' + this.turnIndex);
+        this.activePlayer.name + ' begins their turn ' + this.turnCount);
 
     return false;
 };
@@ -120,6 +128,9 @@ Game.prototype.advanceGameState = function() {
         var playableActions = this.currentlyPlayableActions();
         if (playableActions.length == 0) {
             this.turnState = Game.TurnState.Buy;
+            this.emit(Game.GameUpdate,
+                Game.GameUpdates.NextPhase);
+
             this.advanceGameState();
         } else {
             this.activePlayer.decider.promptForAction(this, playableActions);
@@ -128,6 +139,9 @@ Game.prototype.advanceGameState = function() {
         var buyablePiles = this.currentlyBuyablePiles();
         if (buyablePiles.length == 0) {
             this.turnState = Game.TurnState.Cleanup;
+            this.emit(Game.GameUpdate,
+                Game.GameUpdates.NextPhase);
+
             this.advanceGameState();
         } else {
             this.activePlayer.decider.promptForBuy(this, buyablePiles);
@@ -153,8 +167,8 @@ Game.prototype.advanceGameState = function() {
 };
 
 Game.prototype.revealPlayerHand = function(player) {
-    // TODO
-    console.log('Player is revealing hand', player.name, player.hand);
+    var cardNames = _.pluck(player.hand, 'name').join(', ');
+    this.log(player.name, 'reveals hand: ', cardNames);
 };
 
 Game.prototype.pushGameEvent = function(e) {
@@ -212,7 +226,7 @@ Game.prototype.currentlyBuyablePiles = function() {
 // Game-state changes
 
 Game.prototype.playTreasure = function(card) {
-    console.log(this.activePlayer.name, 'played', card.name);
+    this.log(this.activePlayer.name, 'played', card.name);
     this.discardCards(this.activePlayer, [card]);
     this.activePlayerMoneyCount += card.money;
     this.emit(Game.GameUpdate,
@@ -223,7 +237,7 @@ Game.prototype.playTreasure = function(card) {
 }
 
 Game.prototype.buyFromPile = function(pile) {
-    console.log(this.activePlayer.name, 'bought', pile.card.name);
+    this.log(this.activePlayer.name, 'bought', pile.card.name);
 
     var cost = this.computeEffectiveCardCost(pile.card);
 
@@ -261,6 +275,8 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
         player.discard.push(pile.card);
     }
 
+    this.log(player.name + ' gained ' + pile.card.name);
+
     this.emit(Game.GameUpdate,
         Game.GameUpdates.GainedCard,
         player.name + ' gained ' + pile.card.name,
@@ -269,7 +285,7 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
 };
 
 Game.prototype.playAction = function(card) {
-    console.log(this.activePlayer.name, 'played', card.name);
+    this.log(this.activePlayer.name, 'played', card.name);
 
     this.activePlayerActionCount--;
     this.activePlayer.hand = removeFirst(this.activePlayer.hand, card);
@@ -303,7 +319,7 @@ Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSki
     if (reactions.length > 0) {
         player.decider.promptForReaction(this, reactions, function(reactionCard) {
             if (reactionCard) {
-                console.log(player.name, 'revealed', reactionCard.name);
+                that.log(player.name, 'revealed', reactionCard.name);
                 var shouldSkipAttack = reactionCard.reaction(that, player) || shouldSkipAttack;
                 that.allowReactionsToAttack(player, attackEffect, shouldSkipAttack);
             } else {

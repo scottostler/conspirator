@@ -169,6 +169,8 @@ Game.prototype.playersGainCardsAttack = function(players, cards) {
                     that.playerGainsFromPile(player, pile, false);
                 }
             });
+
+            that.advanceGameState();
         };
 
         that.eventStack.push(function() {
@@ -282,10 +284,10 @@ Game.prototype.keepOrDiscardTopCardOptionAttack = function(choosingPlayer, targe
                     var decision = Decisions.keepOrDiscardCard(that, targetPlayer, card);
                     choosingPlayer.decider.promptForChoice(that, decision, function(choice) {
                         if (choice === Decisions.Options.Discard) {
-                            console.log(choosingPlayer.name, 'chose to discard', possessive(targetPlayer.name), card.name);
+                            that.log(choosingPlayer.name, 'chose to discard', possessive(targetPlayer.name), card.name);
                             targetPlayer.discardCardsFromDeck(1);
                         } else {
-                            console.log(choosingPlayer.name, 'chose to keep', possessive(targetPlayer.name), card.name);
+                            that.log(choosingPlayer.name, 'chose to keep', possessive(targetPlayer.name), card.name);
                         }
 
                         that.advanceGameState();

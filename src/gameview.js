@@ -18,9 +18,15 @@ function CardView(card, useCardback) {
     this.card = card;
     this.$el = $('<div>').addClass('card');
     $('<img>').appendTo(this.$el);
+
+    this.$badge = $('<div>').addClass('badge badge-warning').hide();
+    this.$el.append(this.$badge);
+
     if (card) {
         this.setCardImage(useCardback ? Cards.Cardback : card);
     }
+
+    this.$el.data('view', this);
 }
 
 CardView.prototype = Object.create(View.prototype);
@@ -28,6 +34,14 @@ CardView.prototype = Object.create(View.prototype);
 CardView.prototype.setCardImage = function(card) {
     var $img = this.$el.find('img');
     $img.attr('src', card ? card.assetURL : '');
+};
+
+CardView.prototype.setBadgeCount = function(count) {
+    if (count === 0) {
+        this.$badge.hide();
+    } else {
+        this.$badge.show().text(count);
+    }
 };
 
 /**
@@ -45,6 +59,8 @@ function PileView(pile) {
         this.$el.append(this.$badge);
         this.updateCount();
     }
+
+    this.$el.data('view', this);
 }
 
 PileView.prototype = Object.create(View.prototype);
@@ -55,176 +71,25 @@ PileView.prototype.updateCount = function() {
     }
 };
 
-var PlayerLocations = ['south', 'north', 'west', 'east'];
-
-var PlayerColors = ['red', 'blue', 'yellow', 'green'];
-
-/**
- * @constructor
- */
-function PlayerView(gameView, player, index) {
-    console.log(this, this.divClass);
-    var that = this;
-    this.gameView = gameView;
-    this.player = player;
-    this.$el = $('<div>').addClass(this.divClass + ' player-area ' + PlayerLocations[index]);
-    this.$el.css('border-color', PlayerColors[index]);
-    this.deckView = new CardView(Cards.Cardback)
-    this.addViews([this.deckView]);
-
-    this.discardView = new CardView(null);
-    this.discardView.$el.addClass('discard');
-    this.$el.append(this.discardView.$el);
-
-    this.$handContainer = $('<div>').addClass('hand').appendTo(this.$el);
-    this.cardViewsInHand = [];
-
-    this.player.on(Player.PlayerUpdates.DrawCards, _.bind(this.drawCards, this));
-
-    this.player.on(Player.PlayerUpdates.Shuffle, _.bind(this.updateDeckAndDiscardViews, this));
-
-    this.player.on(Player.PlayerUpdates.DiscardCards, function(cards) {
-        cards.forEach(function(card) {
-            that.removeCardViewFromHand(that.viewForCard(card));
-        });
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.PlayCard, function(card) {
-        that.removeCardViewFromHand(that.viewForCard(card));
-        that.applyHandTransformations();
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.DiscardCardsFromDeck, function() {
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.TrashCards, function(cards) {
-        cards.forEach(function(card) {
-            that.removeCardViewFromHand(that.viewForCard(card));
-        });
-        that.applyHandTransformations();
-        that.gameView.updateTrashView();
-    });
-}
-
-PlayerView.prototype = Object.create(View.prototype);
-
-PlayerView.prototype.updateDeckAndDiscardViews = function() {
-    this.deckView.setCardImage(this.player.deck.length === 0 ? null : Cards.Cardback);
-    this.discardView.setCardImage(_.last(this.player.discard));
-};
-
-PlayerView.prototype.viewForCard = function(card) {
-    var view = _.find(this.cardViewsInHand, function(view) {
-        return view.card === card;
-    });
-
-    if (!view) {
-        console.error('Missing card view', this, card);
-    }
-
-    return view;
-}
-
-PlayerView.prototype.removeCardViewFromHand = function(cardView) {
-    this.cardViewsInHand = _.without(this.cardViewsInHand, cardView);
-    cardView.$el.remove();
-};
-
-PlayerView.prototype.clearSelectionMode = function() {
-    this.$el.find('.card').unbind('click').removeClass('selectable not-selectable selected');
-};
-
-// HumanPlayerView
-
-/**
- * @constructor
- */
-function HumanPlayerView(gameView, player, index) {
-    PlayerView.call(this, gameView, player, index);
-}
-
-HumanPlayerView.prototype = Object.create(PlayerView.prototype);
-HumanPlayerView.prototype.constructor = PlayerView;
-
-HumanPlayerView.prototype.divClass = 'human-player';
-
-HumanPlayerView.prototype.drawCards = function(cards) {
-    var that = this;
-    cards.forEach(function(card) {
-        var cardView = new CardView(card);
-        that.$handContainer.append(cardView.$el);
-        that.cardViewsInHand.push(cardView);
-    });
-    this.applyHandTransformations();
-    this.updateDeckAndDiscardViews();
-};
-
-HumanPlayerView.prototype.applyHandTransformations = function() {};
-
-// RemotePlayerView
-
-/**
- * @constructor
- */
-function RemotePlayerView(gameView, player, index) {
-    PlayerView.call(this, gameView, player, index);
-}
-
-RemotePlayerView.prototype = Object.create(PlayerView.prototype);
-RemotePlayerView.prototype.constructor = PlayerView;
-
-RemotePlayerView.prototype.divClass = 'remote-player';
-
-RemotePlayerView.prototype.updateDeckAndDiscardViews = function() {
-    this.deckView.setCardImage(this.player.deck.length === 0 ? null : Cards.Cardback);
-    this.discardView.setCardImage(_.last(this.player.discard));
-};
-
-RemotePlayerView.prototype.drawCards = function(cards) {
-    var that = this;
-    cards.forEach(function(card) {
-        var cardView = new CardView(card, !window.dominion.debug);
-        that.$handContainer.append(cardView.$el);
-        that.cardViewsInHand.push(cardView);
-    });
-    this.applyHandTransformations();
-    this.updateDeckAndDiscardViews();
-};
-
-RemotePlayerView.prototype.applyHandTransformations = function() {
-    var $cards = this.$handContainer.children();
-    var leftMargin = 5;
-    var degreeSpan = 60;
-    var degrees = _.range(-degreeSpan, degreeSpan, degreeSpan * 2 / $cards.length);
-    _.each($cards, function(cardView, i) {
-        $(cardView).css({ rotate: degrees[i] });
-    });
-};
-
-
 /**
  * @constructor
  */
 function GameStatusMessageLabel(game) {
     this.game = game;
-    this.$message = $('#status-message');
-    this.$counters = $('#status-counters');
+    this.$message = $('.status-message');
+    this.$counters = $('.status-counters');
 
-    game.on('game-update', _.bind(function(update, description, object) {
-        this.$message.text(description);
-        this.updateStatusCounter();
-    }, this));
-
-    game.on('stat-update', _.bind(function() {
-        this.updateStatusCounter();
-    }, this));
-
+    game.on('game-update', _.bind(this.updateStatusCounter, this))
+    game.on('stat-update', _.bind(this.updateStatusCounter, this));
 }
 
 GameStatusMessageLabel.prototype.updateStatusCounter = function() {
+    this.$counters.find('.turn-label').text(
+        possessive(this.game.activePlayer.name) + ' Turn ' + this.game.turnCount);
+
+    this.$counters.find('.phase-label').text(
+        capitalize(this.game.turnState) + ' Phase ');
+
     this.$counters.find('.action-count').text(this.game.activePlayerActionCount);
     this.$counters.find('.buy-count').text(this.game.activePlayerBuyCount);
     this.$counters.find('.coin-count').text(this.game.activePlayerMoneyCount);
@@ -248,7 +113,7 @@ function reorderKingdomPileGroups(pileGroups) {
  */
 function GameView(game, humanPlayerIndex) {
     var that = this;
-    this.$el = $('#game-container');
+    this.$el = $('.game-container');
     this.game = game;
 
     this.pileViews = [];
@@ -294,6 +159,26 @@ function GameView(game, humanPlayerIndex) {
     this.game.on('add-card-to-trash', function(card) {
         that.updateTrashView();
     });
+
+    this.game.on('log', function(msg) {
+        var $log = $('.message-log');
+        var $line = $('<div>').text(msg);
+        $log.append($line).scrollTop($log[0].scrollHeight);
+    });
+
+    $(document).on('mouseenter', '.card', function(e) {
+        var view = $(e.currentTarget).data('view');
+        var src = view.$el.find('img').attr('src');
+        if (src) {
+            $('.card-preview img').attr('src', src);
+        } else {
+            $('.card-preview img').attr('src', Cards.Cardback.assetURL);
+        }
+    });
+
+    $(document).on('mouseout', '.card', function(e) {
+        $('.card-preview img').attr('src', Cards.Cardback.assetURL);
+    });
 }
 
 GameView.prototype = new View();
@@ -315,6 +200,7 @@ GameView.prototype.handleGameUpdate = function(update, description, subject, obj
             this.showScoreSheet();
             break;
         case Game.GameUpdates.NextTurn:
+        case Game.GameUpdates.NextPhase:
             break;
         default:
             console.log('unhandled game update', update, description);

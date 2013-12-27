@@ -41,6 +41,10 @@ function possessive(noun) {
     return noun + "'s";
 }
 
+function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 // Adapts a function which accepts an object or null to accept
 // an empty or single element array.
 function adaptListToOption(f) {

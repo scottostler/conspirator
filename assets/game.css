@@ -2,6 +2,9 @@
 
 html, body {
     font-family: Helvetica, Verdana, Tahoma;
+    padding: 0px;
+    margin: 0px;
+    color: #333;
 }
 
 .hidden {
@@ -16,36 +19,78 @@ html body {
 }
 
 .game-buttons {
-    position: absolute;
-    top: 5px;
-    right: 5px;
 }
 
-#game-container {
+.game-container {
     height: 100%;
     width: 100%;
+    min-width: 1200px;
+    padding: 0px;
+    margin: 0px;
+    position: relative;
+    overflow: hidden;
 }
 
 .game-area {
-    width: 1000;
-    height: 700px;
-    border: 1px solid #BBB;
+    width: 735px;
+    height: 100%;
     position: relative;
     overflow: hidden;
     margin-left: auto;
     margin-right: auto;
+    float: left;
+    z-index: 2;
+}
+
+.sidebar {
+    height: 100%;
+    width: 225px;
+    float: left;
+    border-right: 2px solid #AAA;
+    background-color: #BBB;
+}
+
+.sidebar .card-preview {
+    width: 225px;
+    height: 347px;
+}
+
+.right-sidebar {
+    float: left;
+    height: 100%;
+    width: calc(100% - 965px);
+    position: relative;
+    border-left: 2px solid #333;
+}
+
+.message-log {
+    height: calc(100% - 32px);
+    width: 100%;
+    background-color: white;
+    overflow-y: scroll;
+    padding: 3px;
+}
+
+.message-input {
+    height: 20px;
+    border-top: 1px solid black;
+}
+
+.message-input input[type="text"] {
+    float: left;
+    width: calc(100% - 50px);
+    height: 24px;
+}
+
+.message-input button {
+    float: left;
+    width: 50px;
 }
 
 .in-play {
     position: absolute;
-    top: 433px;
-    left: 115px;
-}
-
-#message-log {
-    margin-top: 15px;
-    width: 100%;
-    height: 150px;
+    top: 420px;
+    left: 5px;
 }
 
 .card {
@@ -68,40 +113,57 @@ html body {
     right: -4px;
 }
 
-#status-area {
-    width: 1000px;
-    margin: 25px auto 25px auto;
+.status-area {
+    position: absolute;
+    bottom: 0px;
+    background-color: rgba(0,0,0,0.8);
+    color: #CCC;
+    padding: 18px 12px 12px 12px;
+    border-top: 1px solid #CCC;
+    overflow: hidden;
+    width: calc(100% - 24px);
 }
 
-#status-message {
+.status-area .button-container {
+    float: right;
+    margin-right: 20px;
+    vertical-align: text-bottom;
+}
+
+.status-message {
     font-size: 24pt;
 }
 
-#status-counters {
-    float: right;
-    font-size: 18pt;
+.status-counters {
+    margin: 5px;
 }
 
-#status-counters label, #status-counters span {
-    display: inline;
+.status-counters .turn-label,  .status-counters .phase-label {
+    font-size: 16pt;
+    margin-top: 10px;
 }
 
-.count-label {
-    font-size: 14pt;
-}
-
-#status-area .button-container {
+.status-counters .count-label label {
     display: inline-block;
-    margin-left: 20px;
-    vertical-align: text-bottom;
+    width: 60px;
+    line-height: 14px;
+}
+
+.status-counters .phase-label {
+    margin-bottom: 15px;
+}
+
+.status-counters .count-label {
+    font-size: 14pt;
 }
 
 /* Basic Layouts */
 
 .shared-piles {
     position: absolute;
-    left: 136px;
-    top: 190px;
+    top: 180px;
+    left: 5px;
+    z-index: 10; /* higher than .player-area */
 }
 
 .in-play .card {
@@ -118,20 +180,30 @@ html body {
 }
 
 .player-area {
-    border: 1px solid black;
-    padding: 10px;
+    padding: 5px;
+    z-index: 5;
+}
+
+.player-area.red {
+    border: 1px solid red;
+    background-color: rgba(255, 0, 0, 0.025);
+}
+
+.player-area.blue {
+    border: 1px solid blue;
+    background-color: rgba(0, 0, 255, 0.025);
 }
 
 .player-area.north {
     position: absolute;
-    left: 15px;
-    top: 15px;
+    left: 10px;
+    top: 10px;
 }
 
 .player-area.south {
     position: absolute;
-    left: 15px;
-    bottom: 15px;
+    left: 10px;
+    bottom: 80px;
 }
 
 .player-area.east {
@@ -142,12 +214,16 @@ html body {
 
 }
 
+.player-area .name-label {
+}
+
 .player-area .hand {
     display: inline-block;
 }
 
 .player-area .card {
-    margin: 5px;
+    margin: 3px;
+    background: lightgray;
 }
 
 .player-area .discard {
@@ -159,8 +235,8 @@ html body {
 .player-area.remote-player .hand {
     display: inline-block;
     position: relative;
-    margin-left: 75px;
-    width: 100px;
+    margin-left: 55px;
+    width: 80px;
 }
 
 .player-area.remote-player .hand .card {
@@ -168,7 +244,7 @@ html body {
     margin: auto;
     transition: -webkit-transform 0.25s ease;
     -webkit-transform-origin: 10px bottom;
-    top: -65px;
+    top: -70px;
 
 }
 
@@ -216,4 +292,3 @@ html body {
 .modal {
     display: none;
 }
-

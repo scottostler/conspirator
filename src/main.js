@@ -18,7 +18,7 @@ $(function() {
         var numPlayers = 2;
         var $canvas = $('#canvas');
 
-        var forcedCards = [Cards.Moat, Cards.Militia, Cards.Bureaucrat, Cards.Spy];
+        var forcedCards = [Cards.Moat, Cards.Militia, Cards.Bureaucrat, Cards.Spy, Cards.Witch];
         var randomCards = _.sample(
             _.difference(Cards.BaseSet, forcedCards),
             NumKingdomCards - forcedCards.length);
