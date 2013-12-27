@@ -22,6 +22,7 @@ html body {
 }
 
 .game-container {
+    min-height: 775px;
     height: 100%;
     width: 100%;
     min-width: 1200px;
@@ -39,7 +40,6 @@ html body {
     margin-left: auto;
     margin-right: auto;
     float: left;
-    z-index: 2;
 }
 
 .sidebar {
@@ -58,12 +58,14 @@ html body {
 .right-sidebar {
     float: left;
     height: 100%;
+    width: -webkit-calc(100% - 965px);
     width: calc(100% - 965px);
     position: relative;
     border-left: 2px solid #333;
 }
 
 .message-log {
+    height: -webkit-calc(100% - 32px);
     height: calc(100% - 32px);
     width: 100%;
     background-color: white;
@@ -78,6 +80,7 @@ html body {
 
 .message-input input[type="text"] {
     float: left;
+    width: -webkit-calc(100% - 50px);
     width: calc(100% - 50px);
     height: 24px;
 }

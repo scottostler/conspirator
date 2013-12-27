@@ -150,7 +150,7 @@ function GameView(game, humanPlayerIndex) {
     });
 
     this.game.on('trash-card-from-play', function(card) {
-        var cardView = this.viewForInPlayCard(card);
+        var cardView = that.viewForInPlayCard(card);
         that.inPlayViews = removeFirst(that.inPlayViews, cardView);
         cardView.$el.remove();
         that.updateTrashView();
