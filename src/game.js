@@ -12,17 +12,17 @@ function Game(kingdomCards, players) {
     this.eventStack = [];
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
-
+    var victoryCardCount = this.players.length == 2 ? 8 : 12;
+    var curseCount = (this.players.length - 1) * 10;
     var sortedKingdomCards = _.sortBy(kingdomCards, 'cost');
 
     this.kingdomPileGroups = [];
     this.kingdomPileGroups.push(sortedKingdomCards.map(function(card) {
+        if (typeof card.vp == 'function') {
+            return { card: card, count: victoryCardCount };
+        }
         return { card: card, count: NumKingdomCards };
     }));
-
-    var victoryCardCount = this.players.length == 2 ? 8 : 12;
-    var curseCount = (this.players.length - 1) * 10;
-
     this.kingdomPileGroups.push([
         { card: Cards.Estate,   count: victoryCardCount },
         { card: Cards.Duchy,    count: victoryCardCount },
