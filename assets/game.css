@@ -130,16 +130,18 @@ html body {
     overflow: hidden;
     width: -webkit-calc(100% - 24px);
     width: calc(100% - 24px);
+    height: 24px;
 }
 
 .status-area .button-container {
-    float: right;
-    margin-right: 20px;
-    vertical-align: text-bottom;
+    position: absolute;
+    right: 10px;
+    bottom: 12px;
 }
 
 .status-message {
     font-size: 24pt;
+    vertical-align: middle;
 }
 
 .status-counters {
