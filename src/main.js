@@ -16,6 +16,7 @@ $(function() {
 
     function beginGame() {
         var numPlayers = 2;
+        var NumKingdomCards = 10;
         var $canvas = $('#canvas');
 
         var forcedCards = [Cards.Moat, Cards.Militia, Cards.Bureaucrat, Cards.Spy, Cards.Witch];

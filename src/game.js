@@ -1,5 +1,3 @@
-var NumKingdomCards = 10;
-
 /**
  * @constructor
  */
@@ -19,10 +17,11 @@ function Game(kingdomCards, players) {
 
     this.kingdomPileGroups = [];
     this.kingdomPileGroups.push(sortedKingdomCards.map(function(card) {
-        if (typeof card.vp == 'function') {
+        if (card.isVictory()) {
             return { card: card, count: victoryCardCount };
+        } else {
+            return { card: card, count: kingdomCardCount };
         }
-        return { card: card, count: kingdomCardCount };
     }));
     this.kingdomPileGroups.push([
         { card: Cards.Estate,   count: victoryCardCount },
