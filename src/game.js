@@ -1,5 +1,3 @@
-var NumKingdomCards = 10;
-
 /**
  * @constructor
  */
@@ -12,17 +10,19 @@ function Game(kingdomCards, players) {
     this.eventStack = [];
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
-
+    var kingdomCardCount = 10;
+    var victoryCardCount = this.players.length == 2 ? 8 : 12;
+    var curseCount = (this.players.length - 1) * 10;
     var sortedKingdomCards = _.sortBy(kingdomCards, 'cost');
 
     this.kingdomPileGroups = [];
     this.kingdomPileGroups.push(sortedKingdomCards.map(function(card) {
-        return { card: card, count: NumKingdomCards };
+        if (card.isVictory()) {
+            return { card: card, count: victoryCardCount };
+        } else {
+            return { card: card, count: kingdomCardCount };
+        }
     }));
-
-    var victoryCardCount = this.players.length == 2 ? 8 : 12;
-    var curseCount = (this.players.length - 1) * 10;
-
     this.kingdomPileGroups.push([
         { card: Cards.Estate,   count: victoryCardCount },
         { card: Cards.Duchy,    count: victoryCardCount },
