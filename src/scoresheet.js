@@ -34,46 +34,39 @@ ScoreSheet.prototype.buildTitleView = function() {
 ScoreSheet.prototype.buildSummaryView = function() {
     var $summaryTable = $('<table>');
     var $summary = $('<div>').addClass('summary').append($summaryTable);
-    var $tr;
     _.each(this.sortedPlayers, _.bind(function(player) {
-        $tr = $('<tr>');
+        var $tr = $('<tr>');
+
         $tr.append($('<td>').text(player.name + ': '));
         $tr.append($('<td>').text(player.calculateScore() + 'VP'));
         
-        player.deckBreakdown = $('<div>');
-        player.sortedDeck = _.sortBy(player.deck.concat(player.discard).concat(player.hand), function(card) {
+        var sortedDeck = _.sortBy(player.getFullDeck(), function(card) {
+            var index = '';
+            if (card.isVictory()) {
+                index += 'A';
+            } else if (card.isTreasure()) {
+                index += 'B';
+            } else {
+                index += 'C';
+            }
+            index += (9 - card.cost).toString(); // assumes card costs range 0-9
+            index += card.name;
+            return index;
+        });
+
+        var deckBreakdownHTML = $('<div>');
+        var deckBreakdown = _.countBy(sortedDeck, function(card) {
             return card.name;
         });
-        player.sortedDeck = _.sortBy(player.sortedDeck, function(card) {
-            return -card.cost;
-        });
-        player.sortedDeck = _.sortBy(player.sortedDeck, function(card) {
-            if (card.isVictory()) {
-                return 0;
-            } else if (card.isTreasure()) {
-                return 1;
-            } else {
-                return 2;
-            }
-        });
-        var index;
-        var card;
-        var currentCardView;
-        var previousName = '';
-        for (index = 0; index < player.sortedDeck.length; index++) {
-            card = player.sortedDeck[index];
-            if (card.name != previousName) {
-                currentCardView = new CardView(card);
-                player.deckBreakdown.append(currentCardView.$el);
-                badgeCount = 1;
-                currentCardView.setBadgeCount(badgeCount);
-            } else {
-                badgeCount++;
-                currentCardView.setBadgeCount(badgeCount);
-            }
-            previousName = card.name;
-        }
-        $tr.append($('<td>').append(player.deckBreakdown));
+        _.each(_.keys(deckBreakdown), function(cardName) {
+            var currentCardView = new CardView(_.find(sortedDeck, function(card) {
+                return card.name == cardName;
+            }));
+            currentCardView.setBadgeCount(deckBreakdown[cardName]);
+            deckBreakdownHTML.append(currentCardView.$el);
+        }, this);
+        $tr.append($('<td>').append(deckBreakdownHTML));
+
         $summaryTable.append($tr);
     }, this));
 
