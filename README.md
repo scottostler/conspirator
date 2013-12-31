@@ -19,5 +19,4 @@ To get started:
 5) use watchify to automatically regenerate bundle.js as you edit  (Opt.) 
 
     npm install watchify -g
-    
     watchify src/main.js -o bundle.js
