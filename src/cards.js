@@ -1,6 +1,7 @@
-var Cards = [];
+var _ = require('underscore');
+var Cards = module.exports.Cards = [];
 
-var CardAssetRoot = 'assets/cards/';
+Cards.AssetRoot = 'assets/cards/';
 
 function gainCoins(num) {
     return function(game, activePlayer, otherPlayers) {
@@ -152,7 +153,9 @@ function revealToAvoidAttack() {
 
 function vpPerNCards(cardsPerVP, cardOrType) {
     return function(activePlayer) {
-        var matchingCards = activePlayer.getMatchingCardsInDeck(cardOrType);
+        var matchingCards = activePlayer.getFullDeck().filter(function(card) {
+            return card.matchesCardOrType(cardOrType);
+        });
         return Math.floor(matchingCards.length / cardsPerVP);
     };
 }
@@ -164,8 +167,10 @@ function Card(properties) {
     _.extend(this, properties);
 
     var filename = this.name.toLowerCase().replace(' ', '_') + '.jpg';
-    this.assetURL = CardAssetRoot + filename;
+    this.assetURL = Cards.AssetRoot + filename;
 }
+
+module.exports.Card = Card;
 
 Card.Type = {
     Action: 'action',

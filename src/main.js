@@ -1,49 +1,40 @@
+var _ = require('underscore');
+var game = require('./game.js');
+var Cards = require('./cards.js').Cards;
+var Player = require('./player.js');
+var PlayerInterface = require('./playerinterface.js');
+var ai = require('./ai.js');
+var GameView = require('./gameview.js').GameView;
+
+window.dominion = {
+    debug: false
+};
+
+function beginGame() {
+    var numPlayers = 2;
+    var $canvas = $('#canvas');
+
+    var kingdomCards = game.randomizedKingdomCards([Cards.Moat, Cards.Witch], game.NumKingdomCards);
+    var humanInterface = new PlayerInterface();
+    var humanPlayer = new Player('Player', humanInterface);
+    humanInterface.player = humanPlayer;
+
+    var players = [humanPlayer].concat(ai.makeComputerPlayers(numPlayers - 1));
+
+    var gameInstance = new game.Game(players, kingdomCards);
+    var gameView = new GameView(gameInstance, 0);
+
+    humanInterface.setGameView(gameView);
+    gameInstance.start();
+
+    _.extend(window.dominion, {
+        g: gameInstance,
+        gv: gameView,
+        beginGame: beginGame
+    });
+}
+
 $(function() {
-
-    window.dominion = {
-        debug: false
-    };
-
-    function makeComputerPlayers(numPlayers) {
-        var computerNames = ['Alice', 'Bob', 'Carlos'];
-        return _.take(computerNames, numPlayers).map(function(name) {
-            var AI = new ComputerAI(null);
-            var player = new Player(name, AI);
-            AI.player = player;
-            return player;
-        });
-    }
-
-    function beginGame() {
-        var numPlayers = 2;
-        var NumKingdomCards = 10;
-        var $canvas = $('#canvas');
-
-        var forcedCards = [Cards.Moat, Cards.Militia, Cards.Bureaucrat, Cards.Spy, Cards.Witch];
-        var randomCards = _.sample(
-            _.difference(Cards.BaseSet, forcedCards),
-            NumKingdomCards - forcedCards.length);
-        var kingdomCards = forcedCards.concat(randomCards);
-
-        var playerInterface = new PlayerInterface(null);
-        var humanPlayer = new Player('Player', playerInterface);
-        playerInterface.player = humanPlayer;
-        var players = [humanPlayer].concat(makeComputerPlayers(numPlayers - 1));
-
-        var game = new Game(kingdomCards, players);
-        var gameView = new GameView(game, 0);
-
-        playerInterface.setGameView(gameView);
-        game.start();
-
-        _.extend(window.dominion, {
-            g: game,
-            gv: gameView,
-            beginGame: beginGame,
-        });
-    }
-
     $('.new-game').click(beginGame);
-
     beginGame();
 });

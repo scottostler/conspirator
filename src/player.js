@@ -1,6 +1,12 @@
+var events = require('events');
+var _ = require('underscore');
+var Cards = require('./cards.js').Cards;
+var Card = require('./cards.js').Card;
+var util = require('./util.js');
+
 function startingDeck() {
     return _.flatten(
-        [repeat(Cards.Copper, 7), repeat(Cards.Estate, 3)],
+        [util.repeat(Cards.Copper, 7), util.repeat(Cards.Estate, 3)],
         true);
 }
 
@@ -10,6 +16,8 @@ function startingDeck() {
 function Player(name, decider) {
     this.name = name;
     this.decider = decider;
+    this.decider.setPlayer(this);
+
     this.hand = [];
 
     // Card stacks store their bottom-most card at index 0.
@@ -17,7 +25,9 @@ function Player(name, decider) {
     this.discard = [];
 }
 
-Player.prototype = new EventEmitter();
+module.exports = Player;
+
+Player.prototype.__proto__ = events.EventEmitter.prototype;
 
 Player.PlayerUpdates = {
     DiscardCards: 'discard-cards',
@@ -123,12 +133,13 @@ Player.prototype.getMatchingCardsInFullDeck = function(cardOrType) {
 };
 
 Player.prototype.calculateScore = function() {
-    var score = _.mapSum(this.getFullDeck(), _.bind(function(card) {
+    var that = this;
+    var score = _.mapSum(this.getFullDeck(), function(card) {
         if (_.has(card, 'vp')) {
-            return _.isFunction(card.vp) ? card.vp(this) : card.vp;
+            return _.isFunction(card.vp) ? card.vp(that) : card.vp;
         } else {
             return 0;
         }
-    }, this));
+    });
     return score;
 };

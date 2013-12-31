@@ -1,3 +1,10 @@
+var _ = require('underscore');
+var util = require('./util.js');
+var Player = require('./player.js');
+var Game = require('./game.js').Game;
+var Decisions = require('./decisions.js');
+var Cards = require('./cards.js').Cards;
+
 // Effects implement card effects, and when fully
 // processed advance the game state to the next effect or phase.
 // As effects may require player decisions and are thus
@@ -91,23 +98,32 @@ Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType,
 
     var that = this;
     var cards = player.getMatchingCardsInHand(cardOrType);
-    player.decider.promptForTrashing(this, min, max, cards, function(cards) {
-        if (cards.length > 0) {
-            that.trashCards(player, cards);
-        }
 
+    if (cards.length < min) {
         if (onTrash) {
             onTrash(cards);
         }
 
         that.advanceGameState();
-    });
+    } else {
+        player.decider.promptForTrashing(this, min, max, cards, function(cards) {
+            if (cards.length > 0) {
+                that.trashCards(player, cards);
+            }
+
+            if (onTrash) {
+                onTrash(cards);
+            }
+
+            that.advanceGameState();
+        });
+    }
 }
 
 Game.prototype.trashCardInPlayEffect = function(card) {
     // May not be true if a feast was throne-roomed, for example.
     if (_.contains(this.playArea, card)) {
-        this.playArea = removeFirst(this.playArea, card);
+        this.playArea = util.removeFirst(this.playArea, card);
         this.trash.push(card);
         this.emit('trash-card-from-play', card);        
     }
@@ -202,7 +218,7 @@ Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
             that.drawCards(player, cards.length);
         }
 
-        this.advanceGameState();
+        that.advanceGameState();
     });
 };
 
@@ -237,9 +253,9 @@ Game.prototype.shuffleDiscardIntoDeckOption = function(player) {
     var decision = Decisions.shuffleDiscardIntoDeck(this);
     var that = this;
     player.decider.promptForChoice(this, decision, function(choice) {
-
         if (choice === Decisions.Options.Yes) {
             player.shuffleCompletely();
+            that.log(player.name, 'shuffles discard into deck');
         }
 
         that.advanceGameState();
@@ -249,7 +265,7 @@ Game.prototype.shuffleDiscardIntoDeckOption = function(player) {
 Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) {
     var that = this;
 
-    _.each(reverseCopy(players), function(player) {
+    _.each(_.reverse(players), function(player) {
         that.eventStack.push(function() {
             var discardAttack = function() {
                 var cards = Cards.uniq(player.getMatchingCardsInHand(cardOrType));
@@ -284,10 +300,10 @@ Game.prototype.keepOrDiscardTopCardOptionAttack = function(choosingPlayer, targe
                     var decision = Decisions.keepOrDiscardCard(that, targetPlayer, card);
                     choosingPlayer.decider.promptForChoice(that, decision, function(choice) {
                         if (choice === Decisions.Options.Discard) {
-                            that.log(choosingPlayer.name, 'chose to discard', possessive(targetPlayer.name), card.name);
+                            that.log(choosingPlayer.name, 'discards', util.possessive(targetPlayer.name), card.name);
                             targetPlayer.discardCardsFromDeck(1);
                         } else {
-                            that.log(choosingPlayer.name, 'chose to keep', possessive(targetPlayer.name), card.name);
+                            that.log(choosingPlayer.name, 'keeps', util.possessive(targetPlayer.name), card.name);
                         }
 
                         that.advanceGameState();
@@ -312,17 +328,23 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
     var that = this;
     var trashedCards = [];
 
+    // TODO: this code is bananas
     this.eventStack.push(function() {
-        _.each(_.reverse(trashedCards), function(card) {
-             var decision = Decisions.gainCard(that, card);
-             attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
-                if (choice === Decisions.Options.Yes) {
-                    attackingPlayer.addCardToDiscard(card);
-                } else {
-                    that.addCardToTrash(card);
-                }
+        _.each(_.reverse(trashedCards), function(p) {
+            var targetPlayer = p[0], card = p[1];
+            that.eventStack.push(function() {
+                var decision = Decisions.gainCard(that, card);
+                attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                    if (choice === Decisions.Options.Yes) {
+                        attackingPlayer.addCardToDiscard(card);
+                        that.log(attackingPlayer.name, 'gains', util.possessive(targetPlayer.name), card.name);
+                    } else {
+                        that.addCardToTrash(card);
+                        that.log(attackingPlayer.name, 'trashes', util.possessive(targetPlayer.name), card.name);
+                    }
 
-                that.advanceGameState();
+                    that.advanceGameState();
+                });
              });
         });
 
@@ -342,22 +364,31 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
                         var firstChoice = matchingCards.indexOf(choice);
                         matchingCards.forEach(function(c, i) {
                             if (i === firstChoice) {
-                                trashedCards.push(c);
+                                trashedCards.push([targetPlayer, c]);
                             } else {
                                 targetPlayer.addCardToDiscard(c);
+                                that.log(attackingPlayer.name, 'discards', util.possessive(targetPlayer.name), c.name);
                             }
                         });
 
-                        targetPlayer.addCardsToDiscard(nonMatchingCards);
+                        if (nonMatchingCards.length > 0) {
+                            targetPlayer.addCardsToDiscard(nonMatchingCards);
+                            that.log(targetPlayer.name, 'discards', _.pluck(nonMatchingCards, 'name').join(', '));
+                        }
+
                         that.advanceGameState();
                     });
                 } else {
-                    targetPlayer.addCardsToDiscard(nonMatchingCards);
+                    if (nonMatchingCards.length > 0) {
+                        targetPlayer.addCardsToDiscard(nonMatchingCards);
+                        that.log(targetPlayer.name, 'discards', _.pluck(nonMatchingCards, 'name').join(', '));
+                    }
+
                     that.advanceGameState();
                 }
             };
 
-            that.allowReactionsToAttack(player, attack, false);
+            that.allowReactionsToAttack(targetPlayer, attack, false);
         });
     });
 
@@ -369,8 +400,10 @@ Game.prototype.playActionMultipleTimesEffect = function(player, num) {
     var actions = player.getActionsInHand();
     if (actions.length > 0) {
         this.activePlayer.decider.promptForHandSelection(this, actions, 'Select an action', function(card) {
-            player.hand = removeFirst(player.hand, card);
+            player.hand = util.removeFirst(player.hand, card);
             that.playArea.push(card);
+
+            that.log(player.name, 'plays', card.name, num + 'x');
 
             that.emit(Game.GameUpdate,
                 Game.GameUpdates.PlayedCard,
@@ -378,7 +411,7 @@ Game.prototype.playActionMultipleTimesEffect = function(player, num) {
                 player,
                 card);
 
-            var cardEvents = _.reverse(_.flatten(repeat(card.effects, num))); // in event stack order
+            var cardEvents = _.reverse(_.flatten(util.repeat(card.effects, num))); // in event stack order
             that.eventStack = that.eventStack.concat(cardEvents);
             that.activePlayer.emit(Player.PlayerUpdates.PlayCard, card);
 
@@ -388,4 +421,3 @@ Game.prototype.playActionMultipleTimesEffect = function(player, num) {
         this.advanceGameState();
     }
 };
-
