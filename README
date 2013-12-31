@@ -1,22 +1,23 @@
 To get started:
 
-1) install node.js
+1) install node.js, e.g. on a Mac:
 
-e.g. ```brew install node```
+    brew install node
 
-2) install node libraries for project
+2) install project's node dependencies
 
-```npm install```
+    npm install
 
 3) install browserify globally
-
-```npm install browserify -g```
+    
+    npm install browserify -g
 
 4) generate bundle.js
 
-```browserify src/main.js -o bundle.js```
+    browserify src/main.js -o bundle.js
 
-5) (optional) use watchify to automatically regenerate bundle.js as you edit
+5) use watchify to automatically regenerate bundle.js as you edit  (Opt.) 
 
-```npm install watchify -g```
-```watchify src/main.js -o bundle.js```
+    npm install watchify -g
+    
+    watchify src/main.js -o bundle.js
