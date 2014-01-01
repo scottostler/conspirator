@@ -1,17 +1,32 @@
+var _ = require('underscore');
+var util = require('./util.js');
+
 /**
  * @constructor
  */
-function PlayerInterface(player) {
+function PlayerInterface() {
+};
+
+module.exports = PlayerInterface;
+
+PlayerInterface.prototype.assertPlayer = function() {
+    if (!this.player) {
+        console.error('Missing valid player', this);
+    }
+};
+
+// Must be set before any prompting.
+PlayerInterface.prototype.setPlayer = function(player) {
     this.player = player;
 };
 
-// This method solves a circular dependency between this,
-// the game, and the gameView. Not ideal...
+// This method solves a circular dependency between this and the gameView :(
 PlayerInterface.prototype.setGameView = function(gameView) {
     this.gameView = gameView;
 };
 
 PlayerInterface.prototype.promptForAction = function(game, playableActions) {
+    this.assertPlayer();
     this.gameView.showStatusMessage('Play an action');
 
     this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
@@ -24,11 +39,14 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions) {
 };
 
 PlayerInterface.prototype.promptForHandSelection = function(game, cards, label, onSelect) {
+    this.assertPlayer();
+
     this.gameView.showStatusMessage(label);
     this.gameView.offerSingleHandSelection(this.player, cards, onSelect);
 };
 
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
+    this.assertPlayer();
     this.gameView.showStatusMessage('Buy a card');
 
     this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
@@ -44,15 +62,17 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
 };
 
 PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
+    this.assertPlayer();
     this.gameView.showStatusMessage('Gain a card');
     this.gameView.offerPileSelection(gainablePiles, true, onGain);
 };
 
 PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard) {
+    this.assertPlayer();
     if (min == max) {
-        this.gameView.showStatusMessage('Discard ' + min + ' ' + pluralize('card', min));
+        this.gameView.showStatusMessage('Discard ' + min + ' ' + util.pluralize('card', min));
     } else if (min == 0) {
-        this.gameView.showStatusMessage('Discard up to ' + max + ' ' + pluralize('card', max));
+        this.gameView.showStatusMessage('Discard up to ' + max + ' ' + util.pluralize('card', max));
     } else {
         this.gameView.showStatusMessage('Discard ' + min + ' to ' + max + ' cards');
     }
@@ -61,10 +81,11 @@ PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard)
 };
 
 PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
+    this.assertPlayer();
     if (min == max) {
-        this.gameView.showStatusMessage('Trash ' + min + ' ' + pluralize('card', min));
+        this.gameView.showStatusMessage('Trash ' + min + ' ' + util.pluralize('card', min));
     } else if (min == 0) {
-        this.gameView.showStatusMessage('Trash up to ' + max + ' ' + pluralize('card', max));
+        this.gameView.showStatusMessage('Trash up to ' + max + ' ' + util.pluralize('card', max));
     } else {
         this.gameView.showStatusMessage('Trash ' + min + ' to ' + max + ' cards');
     }
@@ -72,11 +93,8 @@ PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, on
     this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onTrash);
 }
 
-PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
-};
-
 PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
+    this.assertPlayer();
     var $modal = $('.choice');
     var $footer = $modal.find('.modal-footer');
 
@@ -92,4 +110,10 @@ PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
     });
 
     $modal.modal('show');
+};
+
+PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
+    this.assertPlayer();
+    this.gameView.showStatusMessage('Reveal a reaction card');
+    this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
 };
