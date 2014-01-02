@@ -197,7 +197,7 @@ Card.prototype.isTreasure = function() {
 };
 
 Card.prototype.isVictory = function() {
-    return this.vp !== undefined;
+    return this.vp !== undefined && this.vp !== -1;
 };
 
 Card.prototype.matchesCardOrType = function(cardOrType) {
