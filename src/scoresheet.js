@@ -10,9 +10,12 @@ function ScoreSheet(game, $el) {
 
     this.$el.on('hidden', _.bind(this.onClose, this));
 
-    this.$el.find('.modal-title').text('Game Over');
-
+    this.sortedPlayers = _.sortBy(this.game.players, function(player) {
+        return -player.calculateScore();
+    });
+    
     this.$el.find('.modal-body').empty();
+    this.buildTitleView();
     this.buildSummaryView();
     this.buildPlayerViews();
 
@@ -27,11 +30,51 @@ module.exports = ScoreSheet;
 
 ScoreSheet.prototype = new View();
 
-ScoreSheet.prototype.buildSummaryView = function() {
-    var $summary = $('<div>').addClass('summary');
+ScoreSheet.prototype.buildTitleView = function() {
+    if (this.sortedPlayers[0].calculateScore() == this.sortedPlayers[1].calculateScore()) {
+        this.$el.find('.modal-title').text('Tie Game!');
+    } else {
+        this.$el.find('.modal-title').text(this.sortedPlayers[0].name + ' wins!');
+    }
+};
 
-    _.each(this.game.players, _.bind(function(player) {
-        $summary.append($('<div>').text(player.name + ': ' + player.calculateScore() + ' VP'));
+ScoreSheet.prototype.buildSummaryView = function() {
+    var $summaryTable = $('<table>');
+    var $summary = $('<div>').addClass('summary').append($summaryTable);
+    _.each(this.sortedPlayers, _.bind(function(player) {
+        var $tr = $('<tr>');
+
+        $tr.append($('<td>').text(player.name + ': '));
+        $tr.append($('<td>').text(player.calculateScore() + 'VP'));
+        
+        var sortedDeck = _.sortBy(player.getFullDeck(), function(card) {
+            var index = '';
+            if (card.isVictory()) {
+                index += 'A';
+            } else if (card.isTreasure()) {
+                index += 'B';
+            } else {
+                index += 'C';
+            }
+            index += (9 - card.cost).toString(); // assumes card costs range 0-9
+            index += card.name;
+            return index;
+        });
+
+        var deckBreakdownHTML = $('<div>');
+        var deckBreakdown = _.countBy(sortedDeck, function(card) {
+            return card.name;
+        });
+        _.each(_.keys(deckBreakdown), function(cardName) {
+            var currentCardView = new CardView(_.find(sortedDeck, function(card) {
+                return card.name == cardName;
+            }));
+            currentCardView.setBadgeCount(deckBreakdown[cardName]);
+            deckBreakdownHTML.append(currentCardView.$el);
+        }, this);
+        $tr.append($('<td>').append(deckBreakdownHTML));
+
+        $summaryTable.append($tr);
     }, this));
 
     $summary.appendTo(this.$el.find('.modal-body'));
