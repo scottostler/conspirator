@@ -40,9 +40,9 @@ ScoreSheet.prototype.buildTitleView = function() {
 };
 
 ScoreSheet.prototype.buildSummaryView = function() {
-    var $summaryTable = $('<table>');
+    var $summaryTable = $('<table class="scoresheet">');
     var $summary = $('<div>').addClass('summary').append($summaryTable);
-    _.each(this.sortedPlayers, _.bind(function(player) {
+    _.each(this.sortedPlayers, function(player) {
         var $tr = $('<tr>');
 
         $tr.append($('<td>').text(player.name + ': '));
@@ -76,7 +76,7 @@ ScoreSheet.prototype.buildSummaryView = function() {
         $tr.append($('<td>').append(deckBreakdownHTML));
 
         $summaryTable.append($tr);
-    }, this));
+    }, this);
 
     $summary.appendTo(this.$el.find('.modal-body'));
 };

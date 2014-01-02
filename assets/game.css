@@ -302,3 +302,7 @@ html body {
 .modal {
     display: none;
 }
+
+table.scoresheet td {
+    border: 1px solid black;
+}
