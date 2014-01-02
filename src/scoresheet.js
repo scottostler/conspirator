@@ -1,5 +1,6 @@
 var _ = require('underscore');
 var View = require('./util.js').View;
+var cardview = require('./cardview.js');
 
 /**
  * @constructor
@@ -66,7 +67,7 @@ ScoreSheet.prototype.buildSummaryView = function() {
             return card.name;
         });
         _.each(_.keys(deckBreakdown), function(cardName) {
-            var currentCardView = new CardView(_.find(sortedDeck, function(card) {
+            var currentCardView = new cardview.CardView(_.find(sortedDeck, function(card) {
                 return card.name == cardName;
             }));
             currentCardView.setBadgeCount(deckBreakdown[cardName]);
