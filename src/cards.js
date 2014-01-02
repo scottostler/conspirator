@@ -200,6 +200,10 @@ Card.prototype.isVictory = function() {
     return this.vp !== undefined;
 };
 
+Card.prototype.isCurse = function() {
+    return this == Cards.Curse;
+};
+
 Card.prototype.matchesCardOrType = function(cardOrType) {
     if (_.isString(cardOrType)) {
         switch (cardOrType) {
@@ -463,3 +467,7 @@ Cards.uniq = function(cards) {
         return c.name;
     });
 };
+
+Cards.getCardByName = function(cardName) {
+	return Cards[cardName.replace(/\s+/g, '')];
+}

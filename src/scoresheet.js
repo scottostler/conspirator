@@ -1,5 +1,6 @@
 var _ = require('underscore');
 var View = require('./util.js').View;
+var cards = require('./cards.js');
 var cardview = require('./cardview.js');
 
 /**
@@ -52,10 +53,12 @@ ScoreSheet.prototype.buildSummaryView = function() {
             var index = '';
             if (card.isVictory()) {
                 index += 'A';
+            } else if (card.isCurse()) {
+            	index += 'B';
             } else if (card.isTreasure()) {
-                index += 'B';
-            } else {
                 index += 'C';
+            } else {
+                index += 'D';
             }
             index += (9 - card.cost).toString(); // assumes card costs range 0-9
             index += card.name;
@@ -67,9 +70,7 @@ ScoreSheet.prototype.buildSummaryView = function() {
             return card.name;
         });
         _.each(_.keys(deckBreakdown), function(cardName) {
-            var currentCardView = new cardview.CardView(_.find(sortedDeck, function(card) {
-                return card.name == cardName;
-            }));
+            var currentCardView = new cardview.CardView(cards.getCardByName(cardName);
             currentCardView.setBadgeCount(deckBreakdown[cardName]);
             deckBreakdownHTML.append(currentCardView.$el);
         }, this);
