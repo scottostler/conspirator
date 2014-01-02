@@ -70,7 +70,7 @@ ScoreSheet.prototype.buildSummaryView = function() {
             return card.name;
         });
         _.each(_.keys(deckBreakdown), function(cardName) {
-            var currentCardView = new cardview.CardView(cards.getCardByName(cardName);
+            var currentCardView = new cardview.CardView(cards.getCardByName(cardName));
             currentCardView.setBadgeCount(deckBreakdown[cardName]);
             deckBreakdownHTML.append(currentCardView.$el);
         }, this);
