@@ -1,4 +1,4 @@
-var Decisions = {};
+var Decisions = module.exports = {};
 
 Decisions.Options = {
     No: 'No',

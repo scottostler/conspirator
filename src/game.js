@@ -1,13 +1,33 @@
+var _ = require('underscore');
+var events = require('events');
+var util = require('./util.js');
+var Player = require('./player.js');
+var Cards = require('./cards.js').Cards;
+
+var NumKingdomCards = module.exports.NumKingdomCards = 10;
+
+var randomizedKingdomCards = module.exports.randomizedKingdomCards = function(forcedCards, numCards) {
+    var randomCards = _.sample(
+        _.difference(Cards.BaseSet, forcedCards),
+        numCards - forcedCards.length);
+    return forcedCards.concat(randomCards);
+};
+
 /**
  * @constructor
  */
-function Game(kingdomCards, players) {
+function Game(players, kingdomCards) {
+    if (!kingdomCards) {
+        kingdomCards = randomizedKingdomCards([Cards.ThroneRoom, Cards.Thief], NumKingdomCards);
+    }
+
     this.activePlayerIndex = -1;
     this.turnCount = 0;
     this.players = players;
 
     this.playArea = [];
     this.eventStack = [];
+    this.hasGameEnded = false;
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
     var kingdomCardCount = 10;
@@ -37,6 +57,8 @@ function Game(kingdomCards, players) {
     this.trash = [];
 };
 
+module.exports.Game = Game;
+
 Game.HandSize = 5;
 
 Game.TurnState = {
@@ -57,7 +79,7 @@ Game.GameUpdates = {
     GameOver: 'game-over'
 };
 
-Game.prototype = new EventEmitter();
+Game.prototype.__proto__ = events.EventEmitter.prototype;
 
 Game.prototype.log = function() {
     var args = Array.prototype.slice.call(arguments);
@@ -65,21 +87,21 @@ Game.prototype.log = function() {
 };
 
 Game.prototype.drawInitialHands = function() {
-    this.players.forEach(_.bind(function(player) {
+    this.players.forEach(function(player) {
         this.drawCards(player, Game.HandSize);
-    }, this));
+    }, this);
 };
 
 // Turn advancement and game state
 
 Game.prototype.isGameOver = function() {
     var provincePile = this.pileForCard(Cards.Province);
-    if (provincePile.count == 0) {
+    if (provincePile.count === 0) {
         return true;
     }
 
     var emptyCount = _.mapSum(this.kingdomPiles, function(pile) {
-        return pile.count == 0 ? 1 : 0;
+        return pile.count === 0 ? 1 : 0;
     });
 
     if (emptyCount >= this.emptyPilesToEndGame) {
@@ -91,7 +113,8 @@ Game.prototype.isGameOver = function() {
 
 Game.prototype.advanceTurn = function() {
     if (this.isGameOver()) {
-        return true;
+        this.hasGameEnded = true;
+        return;
     }
 
     this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
@@ -118,6 +141,10 @@ Game.prototype.advanceTurn = function() {
 };
 
 Game.prototype.advanceGameState = function() {
+    if (this.hasGameEnded) {
+        throw new Error('Game already ended');
+    }
+
     if (this.eventStack.length > 0) {
         var event = this.eventStack.pop();
         event(this, this.activePlayer, this.inactivePlayers);
@@ -153,10 +180,10 @@ Game.prototype.advanceGameState = function() {
         this.emit('empty-play-area');
 
         this.discardCards(this.activePlayer, this.activePlayer.hand);
-        this.drawCards(this.activePlayer, 5);
+        this.drawCards(this.activePlayer, Game.HandSize);
 
-        var isGameover = this.advanceTurn();
-        if (isGameover) {
+        this.advanceTurn();
+        if (this.hasGameEnded) {
             this.endGame();
         } else {
             this.advanceGameState();
@@ -275,7 +302,12 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
         player.discard.push(pile.card);
     }
 
-    this.log(player.name + ' gained ' + pile.card.name);
+    if (ontoDeck) {
+        this.log(player.name, 'gains', pile.card.name, 'onto deck');
+    } else {
+        this.log(player.name + ' gained ' + pile.card.name);
+    }
+
 
     this.emit(Game.GameUpdate,
         Game.GameUpdates.GainedCard,
@@ -288,10 +320,10 @@ Game.prototype.playAction = function(card) {
     this.log(this.activePlayer.name, 'played', card.name);
 
     this.activePlayerActionCount--;
-    this.activePlayer.hand = removeFirst(this.activePlayer.hand, card);
+    this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
 
-    var cardEvents = reverseCopy(card.effects); // in event stack order
+    var cardEvents = _.reverse(card.effects); // in event stack order
     this.eventStack = this.eventStack.concat(cardEvents);
 
     this.activePlayer.emit(Player.PlayerUpdates.PlayCard, card);
@@ -319,7 +351,7 @@ Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSki
     if (reactions.length > 0) {
         player.decider.promptForReaction(this, reactions, function(reactionCard) {
             if (reactionCard) {
-                that.log(player.name, 'revealed', reactionCard.name);
+                that.log(player.name, 'reveals', reactionCard.name);
                 var shouldSkipAttack = reactionCard.reaction(that, player) || shouldSkipAttack;
                 that.allowReactionsToAttack(player, attackEffect, shouldSkipAttack);
             } else {
@@ -337,7 +369,7 @@ Game.prototype.discardCards = function(player, cards, ontoDeck) {
             console.error('Player unable to discard', player, card);
             return;
         }
-        player.hand = removeFirst(player.hand, card);
+        player.hand = util.removeFirst(player.hand, card);
         if (ontoDeck) {
             player.deck.push(card);
         } else {
@@ -349,7 +381,7 @@ Game.prototype.discardCards = function(player, cards, ontoDeck) {
 
 Game.prototype.trashCards = function(player, cards) {
     _.each(cards, _.bind(function(card) {
-        player.hand = removeFirst(player.hand, card);
+        player.hand = util.removeFirst(player.hand, card);
         this.trash.push(card);
     }, this));
     player.emit(Player.PlayerUpdates.TrashCards, cards);
@@ -387,5 +419,20 @@ Game.prototype.start = function() {
 };
 
 Game.prototype.endGame = function() {
+    this.log('Game ends: ');
+
+    var that = this;
+    _.each(this.players, function(player) {
+        that.log('-', player.name, 'has', player.calculateScore(), 'VP');
+    });
+
+    var piles = _.map(this.kingdomPiles, function(p) {
+        return p.card.name + ' (' + p.count + ')';
+    });
+    that.log('- Piles:', piles.join(", "));
+
     this.emit(Game.GameUpdate, Game.GameUpdates.GameOver);
 };
+
+// cardeffects.js extends Game as a side-effect of being loaded.
+require('./cardeffects.js');

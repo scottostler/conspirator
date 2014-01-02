@@ -1,5 +1,10 @@
-var PlayerLocations = ['south', 'north', 'west', 'east'];
+var _ = require('underscore');
+var View = require('./util.js').View;
+var cardview = require('./cardview.js');
+var Cards = require('./cards.js').Cards;
+var Player = require('./player.js');
 
+var PlayerLocations = ['south', 'north', 'west', 'east'];
 var PlayerColors = ['blue', 'red', 'green', 'yellow'];
 
 /**
@@ -16,10 +21,10 @@ function PlayerView(gameView, player, index) {
     this.$nameLabel = $('<div>').text(player.name).addClass('name-label');
     this.$el.append(this.$nameLabel);
 
-    this.deckView = new CardView(Cards.Cardback)
+    this.deckView = new cardview.CardView(Cards.Cardback)
     this.addViews([this.deckView]);
 
-    this.discardView = new CardView(null);
+    this.discardView = new cardview.CardView(null);
     this.discardView.$el.addClass('discard');
     this.$el.append(this.discardView.$el);
 
@@ -97,6 +102,8 @@ function HumanPlayerView(gameView, player, index) {
     PlayerView.call(this, gameView, player, index);
 }
 
+module.exports.HumanPlayerView = HumanPlayerView;
+
 HumanPlayerView.prototype = Object.create(PlayerView.prototype);
 HumanPlayerView.prototype.constructor = PlayerView;
 
@@ -105,9 +112,9 @@ HumanPlayerView.prototype.divClass = 'human-player';
 HumanPlayerView.prototype.drawCards = function(cards) {
     var that = this;
     cards.forEach(function(card) {
-        var cardView = new CardView(card);
-        that.$handContainer.append(cardView.$el);
-        that.cardViewsInHand.push(cardView);
+        var cv = new cardview.CardView(card, false);
+        that.$handContainer.append(cv.$el);
+        that.cardViewsInHand.push(cv);
     });
     this.applyHandTransformations();
     this.updateDeckAndDiscardViews();
@@ -132,9 +139,9 @@ RemotePlayerView.prototype.divClass = 'remote-player';
 RemotePlayerView.prototype.drawCards = function(cards) {
     var that = this;
     cards.forEach(function(card) {
-        var cardView = new CardView(card, !window.dominion.debug);
-        that.$handContainer.append(cardView.$el);
-        that.cardViewsInHand.push(cardView);
+        var cv = new cardview.CardView(card, !window.dominion.debug);
+        that.$handContainer.append(cv.$el);
+        that.cardViewsInHand.push(cv);
     });
     this.applyHandTransformations();
     this.updateDeckAndDiscardViews();
@@ -149,3 +156,5 @@ RemotePlayerView.prototype.applyHandTransformations = function() {
         $(cardView).css({ rotate: degrees[i] });
     });
 };
+
+module.exports.RemotePlayerView = RemotePlayerView;
