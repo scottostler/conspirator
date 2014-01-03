@@ -585,7 +585,7 @@ Cards.Fortuneteller = new Card({
 
 Cards.Fairgrounds = new Card({
     name: 'Fairgrounds',
-    cost: 2,
+    cost: 6,
     vp: vpPerNDistinctCards(2, 5),
     set: 'cornucopia'
 });
