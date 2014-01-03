@@ -288,6 +288,15 @@ Game.prototype.playerDiscardCardOntoDeckEffect = function(player) {
     }
 };
 
+
+Game.prototype.playerDiscardsUniqueCardsForCoins = function(player, num) {
+    var cards = player.revealCardsFromDeck(num);
+    var coins = Cards.uniq(cards).length;
+    this.log(player.name, 'discards', cards.join(', '));
+    player.discardCardsFromDeck(num);
+    this.activePlayerGainsCoinsEffect(coins);
+};
+
 Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) {
     var that = this;
 

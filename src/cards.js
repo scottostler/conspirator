@@ -161,6 +161,12 @@ function drawCardType(num, cardOrType) {
     };
 }
 
+function revealUniqueCardsForCoins(num) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDiscardsUniqueCardsForCoins(activePlayer, num);
+    };
+}
+
 function discardOntoDeck() {
     return function(game, activePlayer, otherPlayers) {
         game.playerDiscardCardOntoDeckEffect(activePlayer);
@@ -620,6 +626,13 @@ Cards.Hamlet = new Card({
     set: 'cornucopia'
 });
 
+Cards.Harvest = new Card({
+    name: 'Harvest',
+    cost: 5,
+    effects: [revealUniqueCardsForCoins(4)],
+    set: 'cornucopia'
+});
+
 Cards.Menagerie = new Card({
     name: 'Menagerie',
     cost: 3,
@@ -639,7 +652,8 @@ Cards.Cornucopia = [
     Cards.Hamlet,
     Cards.Menagerie,
     Cards.Remake,
-    Cards.Fortuneteller
+    Cards.Fortuneteller,
+    Cards.Harvest
 ];
 
 Cards.AllSets = [].concat(
