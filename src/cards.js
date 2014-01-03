@@ -198,6 +198,13 @@ function vpPerNCards(cardsPerVP, cardOrType) {
     };
 }
 
+function vpPerNDistinctCards(vpPerIncrement, cardsPerIncrement) {
+    return function(activePlayer) {
+        var uniqueCards = Cards.uniq(activePlayer.getFullDeck());
+        return Math.floor(uniqueCards.length / cardsPerIncrement) * vpPerIncrement;
+    };
+}
+
 /**
  * @constructor
  */
@@ -533,6 +540,13 @@ Cards.BaseSet = [
     Cards.Woodcutter,
     Cards.Workshop
 ];
+
+Cards.Fairgrounds = new Card({
+    name: 'Fairgrounds',
+    cost: 2,
+    vp: vpPerNDistinctCards(2, 5),
+    set: 'cornucopia'
+});
 
 Cards.Hamlet = new Card({
     name: 'Hamlet',
