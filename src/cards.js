@@ -571,9 +571,18 @@ Cards.GreatHall = new Card({
     set: 'intrigue'
 });
 
+Cards.Harem = new Card({
+    name: 'Harem',
+    cost: 6,
+    money: 2,
+    vp: 2,
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
     Cards.Courtyard,
-    Cards.GreatHall
+    Cards.GreatHall,
+    Cards.Harem
 ];
 
 Cards.Fortuneteller = new Card({

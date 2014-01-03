@@ -254,7 +254,12 @@ Game.prototype.currentlyBuyablePiles = function() {
 
 Game.prototype.playTreasure = function(card) {
     this.log(this.activePlayer.name, 'played', card.name);
-    this.discardCards(this.activePlayer, [card]);
+
+    this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
+    this.playArea.push(card);
+
+    this.activePlayer.emit(Player.PlayerUpdates.PlayCard, card);
+
     this.activePlayerMoneyCount += card.money;
     this.emit(Game.GameUpdate,
         Game.GameUpdates.PlayedCard,
