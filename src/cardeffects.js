@@ -314,6 +314,36 @@ Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) 
     this.advanceGameState();
 };
 
+Game.prototype.playersDiscardExceptCurseOrVictoryAttack = function(players) {
+    var that = this;
+
+    _.each(_.reverse(players), function(player) {
+        that.eventStack.push(function() {
+            var revealEffect = function() {
+                var numToDiscard = 0;
+                var numCardsExpected = 1;
+                var cards = player.revealCardsFromDeck(numCardsExpected);
+                if (cards.length === numCardsExpected) {
+                    that.log(player.name, 'reveals', cards[0].name);
+                    while (!(cards[0].isVictory() || cards[0].isCurse())) {
+                        numToDiscard++;
+                        numCardsExpected++;
+                        cards = player.revealCardsFromDeck(numCardsExpected);
+                        if(cards.length !== numCardsExpected) break;
+                        that.log(player.name, 'reveals', cards[0].name);
+                    }
+                    player.discardCardsFromDeck(numToDiscard);
+                }
+                that.advanceGameState();
+            };
+
+            revealEffect();
+        });
+    });
+    this.advanceGameState();
+};
+
+
 Game.prototype.keepOrDiscardTopCardOptionAttack = function(choosingPlayer, targetPlayers) {
     var that = this;
 

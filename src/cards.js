@@ -83,6 +83,12 @@ function otherPlayersGainCards(cards) {
     };
 }
 
+function otherPlayersDiscardUntilCurseOrVictory() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersDiscardExceptCurseOrVictoryAttack(otherPlayers);
+    };
+}
+
 function gainCardOntoDeck(card) {
     return function(game, activePlayer, otherPlayers) {
         game.playersGainCardsEffect([activePlayer], [card], true);
@@ -228,6 +234,7 @@ Card.Type = {
     Treasure: 'treasure',
     Victory: 'victory',
     Reaction: 'reaction',
+    Curse: 'curse',
     All: 'all'
 };
 
@@ -268,6 +275,8 @@ Card.prototype.matchesCardOrType = function(cardOrType) {
                 return this.isTreasure();
             case Card.Type.Victory:
                 return this.isVictory();
+            case Card.Type.Curse:
+                return this.isCurse();
         }
     } else if (cardOrType instanceof Card) {
         return this === cardOrType;
@@ -558,6 +567,13 @@ Cards.Intrigue = [
     Cards.Courtyard
 ];
 
+Cards.Fortuneteller = new Card({
+    name: 'Fortuneteller',
+    cost: 3,
+    effects: [gainCoins(2), otherPlayersDiscardUntilCurseOrVictory()],
+    set: 'cornucopia'
+});
+
 Cards.Fairgrounds = new Card({
     name: 'Fairgrounds',
     cost: 2,
@@ -587,9 +603,11 @@ Cards.Remake = new Card({
 });
 
 Cards.Cornucopia = [
+    Cards.Fairgrounds,
     Cards.Hamlet,
     Cards.Menagerie,
-    Cards.Remake
+    Cards.Remake,
+    Cards.Fortuneteller
 ];
 
 Cards.AllSets = [].concat(
