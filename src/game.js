@@ -376,6 +376,11 @@ Game.prototype.discardCards = function(player, cards, ontoDeck) {
             player.discard.push(card);
         }
     }, this));
+    if (ontoDeck) {
+        this.log(player.name, 'discards', cards.length, util.pluralize('card', cards.length), 'onto deck');
+    } else {
+        this.log(player.name, 'discards', cards.join(', '));
+    }
     player.emit(Player.PlayerUpdates.DiscardCards, cards);
 };
 

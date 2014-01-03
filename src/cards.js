@@ -149,6 +149,12 @@ function drawCardType(num, cardOrType) {
     };
 }
 
+function discardOntoDeck() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDiscardCardOntoDeckEffect(activePlayer);
+    };
+}
+
 function otherPlayersDiscardCardOntoDeckAttack(cardOrType) {
     return function(game, activePlayer, otherPlayers) {
         game.playersDiscardCardOntoDeckAttack(otherPlayers, cardOrType);
@@ -541,6 +547,17 @@ Cards.BaseSet = [
     Cards.Workshop
 ];
 
+Cards.Courtyard = new Card({
+    name: 'Courtyard',
+    cost: 2,
+    effects: [drawCards(3), discardOntoDeck(1)],
+    set: 'intrigue'
+});
+
+Cards.Intrigue = [
+    Cards.Courtyard
+];
+
 Cards.Fairgrounds = new Card({
     name: 'Fairgrounds',
     cost: 2,
@@ -576,4 +593,4 @@ Cards.Cornucopia = [
 ];
 
 Cards.AllSets = [].concat(
-    Cards.BaseSet, Cards.Cornucopia);
+    Cards.BaseSet, Cards.Intrigue, Cards.Cornucopia);

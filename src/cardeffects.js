@@ -275,6 +275,19 @@ Game.prototype.shuffleDiscardIntoDeckOption = function(player) {
     });
 };
 
+Game.prototype.playerDiscardCardOntoDeckEffect = function(player) {
+    var that = this;
+    if (player.hand.length > 0) {
+        var decision = Decisions.discardCardOntoDeck(that, Cards.uniq(player.hand));
+        player.decider.promptForChoice(that, decision, function(card) {
+            that.discardCards(player, [card], true);
+            that.advanceGameState();
+        });
+    } else {
+        that.advanceGameState();
+    }
+};
+
 Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) {
     var that = this;
 
