@@ -52,8 +52,8 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
     var setAsideCards = [];
     var drawCard = _.bind(function() {
         if (isDone()) {
-            this.advanceGameState();
             player.addCardsToDiscard(setAsideCards);
+            this.advanceGameState();
             return;
         }
 
