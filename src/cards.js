@@ -595,7 +595,8 @@ Cards.ShantyTown = new Card({
 Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
-    Cards.Harem
+    Cards.Harem,
+    Cards.ShantyTown
 ];
 
 Cards.Fortuneteller = new Card({
