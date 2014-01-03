@@ -13,6 +13,12 @@ Cards.areUnique = function(cards) {
     return cards.length === Cards.uniq(cards).length;
 };
 
+Cards.matchNone = function(cardOrType) {
+    return function(cards) {
+        return !_.some(cards, function(c) { return c.matchesCardOrType(cardOrType) });
+    };
+};
+
 Cards.getCardByName = function(cardName) {
     return Cards[cardName.replace(/\s+/g, '')];
 }
@@ -576,6 +582,13 @@ Cards.Harem = new Card({
     cost: 6,
     money: 2,
     vp: 2,
+    set: 'intrigue'
+});
+
+Cards.ShantyTown = new Card({
+    name: 'Shanty Town',
+    cost: 3,
+    effects: [gainActions(2), revealAndTestHand(Cards.matchNone(Card.Type.Action), drawCards(2))],
     set: 'intrigue'
 });
 

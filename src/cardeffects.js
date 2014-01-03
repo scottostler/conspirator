@@ -481,7 +481,9 @@ Game.prototype.playActionMultipleTimesEffect = function(player, num) {
 Game.prototype.revealAndTestHandEffect = function(test, trueEffect, falseEffect) {
     if (test(this.activePlayer.hand)) {
         trueEffect(this, this.activePlayer, this.inactivePlayers);
-    } else {
+    } else if (falseEffect) {
         falseEffect(this, this.activePlayer, this.inactivePlayers);
+    } else {
+        this.advanceGameState();
     }
 };
