@@ -384,7 +384,7 @@ Game.prototype.playersDiscardExceptCurseOrVictoryAttack = function(players) {
                 that.advanceGameState();
             };
 
-            revealEffect();
+            that.allowReactionsToAttack(player, revealEffect, false);
         });
     });
     this.advanceGameState();
