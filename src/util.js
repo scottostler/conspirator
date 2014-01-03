@@ -69,6 +69,16 @@ exports.adaptListToOption = function(f) {
     }
 }
 
+exports.onEnter = function($input, f) {
+    $input.keypress(function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            f();
+            return false;
+        }
+    });
+}
+
 /**
  * @constructor
  */
@@ -76,7 +86,7 @@ function View() {
     // All views expect this.$el.
 }
 
-module.exports.View = View;
+exports.View = View;
 
 View.prototype.addViews = function(views) {
     views.forEach(_.bind(function(v) {

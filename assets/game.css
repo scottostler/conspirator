@@ -77,9 +77,17 @@ html body {
     padding: 3px;
 }
 
+.right-sidebar.local-game .message-log {
+    height: 100%;
+}
+
 .message-input {
     height: 20px;
     border-top: 1px solid black;
+}
+
+.right-sidebar.local-game .message-input {
+    display: none;
 }
 
 .message-input input[type="text"] {

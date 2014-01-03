@@ -35,10 +35,32 @@ function beginLocalGame() {
     });
 }
 
+function beginRemoteGame() {
+    var socket = io.connect('http://localhost');
+    socket.on('message', function(data) {
+        console.log('message', data);
+    });
+
+    var $input = $('.message-input input');
+
+    var sendMessage = function() {
+        var msg = $input.val();
+        $input.val('').blur();
+        socket.emit('chat', {
+            text: msg
+        });
+    };
+
+    $('.message-input button').click(sendMessage);
+    util.onEnter($input, sendMessage);
+}
+
 $(function() {
     if (util.isClient()) {
         $('.game-buttons').hide();
+        beginRemoteGame();
     } else {
+        $('.right-sidebar').addClass('local-game');
         $('.new-game').click(beginLocalGame);
         beginLocalGame();
     }
