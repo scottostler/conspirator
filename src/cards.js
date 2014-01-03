@@ -563,8 +563,17 @@ Cards.Courtyard = new Card({
     set: 'intrigue'
 });
 
+Cards.GreatHall = new Card({
+    name: 'Great Hall',
+    cost: 3,
+    effects: [drawCards(1), gainActions(1)],
+    vp: 1,
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
-    Cards.Courtyard
+    Cards.Courtyard,
+    Cards.GreatHall
 ];
 
 Cards.Fortuneteller = new Card({
