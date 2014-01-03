@@ -71,6 +71,12 @@ function discardAndDraw() {
     };
 }
 
+function discardForEffect(effect) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDiscardsForEffect(activePlayer, effect);
+    };
+}
+
 function otherPlayersGainCards(cards) {
     return function(game, activePlayer, otherPlayers) {
         game.playersGainCardsAttack(otherPlayers, cards);
@@ -217,11 +223,11 @@ Card.prototype.isTreasure = function() {
 };
 
 Card.prototype.isVictory = function() {
-    return this.vp !== undefined && this.vp !== -1;
+    return this.vp !== undefined && !this.isCurse();
 };
 
 Card.prototype.isCurse = function() {
-    return this == Cards.Curse;
+    return this === Cards.Curse;
 };
 
 Card.prototype.matchesCardOrType = function(cardOrType) {
@@ -516,6 +522,13 @@ Cards.BaseSet = [
     Cards.Workshop
 ];
 
+Cards.Hamlet = new Card({
+    name: 'Hamlet',
+    cost: 2,
+    effects: [drawCards(1), gainActions(1), discardForEffect(gainActions(1)), discardForEffect(gainBuys(1))],
+    set: 'cornucopia'
+});
+
 Cards.Menagerie = new Card({
     name: 'Menagerie',
     cost: 3,
@@ -525,6 +538,7 @@ Cards.Menagerie = new Card({
 
 
 Cards.Cornucopia = [
+    Cards.Hamlet,
     Cards.Menagerie
 
 ];

@@ -222,6 +222,18 @@ Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
     });
 };
 
+Game.prototype.playerDiscardsForEffect = function(player, effect) {
+    var that = this;
+    player.decider.promptForDiscard(this, 0, 1, function(cards) {
+        if (cards.length > 0) {
+            that.discardCards(player, cards);
+            effect(that, that.activePlayer, that.inactivePlayers);
+        } else {
+            that.advanceGameState();
+        }
+    });
+};
+
 Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
     var selectedCards = [];
     var revealedCards = [];
