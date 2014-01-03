@@ -113,13 +113,25 @@ function trashThisCard() {
 
 // Note: type of card trashed is assumed to match type of card gained.
 //       e.g. All -> All, or Treasure -> Treasure
-function trashCardToGainCostingUpToPlusCost(plusCost, cardOrType) {
+function trashCardToGainUpToPlusCost(plusCost, cardOrType) {
     return function(game, activePlayer, otherPlayers) {
         game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
             if (cards.length === 1) {
                 var card = cards[0];
                 var maxCost = game.computeEffectiveCardCost(card) + plusCost;
                 game.pushGameEvent(gainCardCosting(0, maxCost, cardOrType));
+            }
+        });
+    };
+};
+
+function trashCardToGainExactlyPlusCost(plusCost, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
+            if (cards.length === 1) {
+                var card = cards[0];
+                var maxCost = game.computeEffectiveCardCost(card) + plusCost;
+                game.pushGameEvent(gainCardCosting(maxCost, maxCost, cardOrType));
             }
         });
     };
@@ -405,7 +417,7 @@ Cards.Market = new Card({
 Cards.Mine = new Card({
     name: 'Mine',
     cost: 5,
-    effects: [trashCardToGainCostingUpToPlusCost(3, Card.Type.Treasure)],
+    effects: [trashCardToGainUpToPlusCost(3, Card.Type.Treasure)],
     set: 'base'
 });
 
@@ -434,7 +446,7 @@ Cards.Moneylender = new Card({
 Cards.Remodel = new Card({
     name: 'Remodel',
     cost: 4,
-    effects: [trashCardToGainCostingUpToPlusCost(2, Card.Type.All)],
+    effects: [trashCardToGainUpToPlusCost(2, Card.Type.All)],
     set: 'base'
 });
 
@@ -536,11 +548,17 @@ Cards.Menagerie = new Card({
     set: 'cornucopia'
 });
 
+Cards.Remake = new Card({
+    name: 'Remake',
+    cost: 4,
+    effects: [trashCardToGainExactlyPlusCost(1, Card.Type.All), trashCardToGainExactlyPlusCost(1, Card.Type.All)],
+    set: 'cornucopia'
+});
 
 Cards.Cornucopia = [
     Cards.Hamlet,
-    Cards.Menagerie
-
+    Cards.Menagerie,
+    Cards.Remake
 ];
 
 Cards.AllSets = [].concat(

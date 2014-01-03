@@ -305,7 +305,7 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck) {
     if (ontoDeck) {
         this.log(player.name, 'gains', pile.card.name, 'onto deck');
     } else {
-        this.log(player.name + ' gained ' + pile.card.name);
+        this.log(player.name + ' gains ' + pile.card.name);
     }
 
 

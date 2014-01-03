@@ -108,6 +108,7 @@ Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType,
     } else {
         player.decider.promptForTrashing(this, min, max, cards, function(cards) {
             if (cards.length > 0) {
+                that.log(player.name, 'trashes', cards.join(', '));
                 that.trashCards(player, cards);
             }
 
