@@ -1,4 +1,5 @@
 var _ = require('underscore');
+var util = require('./util.js');
 var game = require('./game.js');
 var Cards = require('./cards.js').Cards;
 var Player = require('./player.js');
@@ -10,11 +11,11 @@ window.dominion = {
     debug: false
 };
 
-function beginGame() {
+function beginLocalGame() {
     var numPlayers = 2;
     var $canvas = $('#canvas');
 
-    var kingdomCards = game.randomizedKingdomCards([Cards.Moat, Cards.Witch], game.NumKingdomCards);
+    var kingdomCards = game.randomizedKingdomCards([Cards.Menagerie, Cards.Witch], game.NumKingdomCards);
     var humanInterface = new PlayerInterface();
     var humanPlayer = new Player('Player', humanInterface);
     humanInterface.player = humanPlayer;
@@ -30,11 +31,15 @@ function beginGame() {
     _.extend(window.dominion, {
         g: gameInstance,
         gv: gameView,
-        beginGame: beginGame
+        beginLocalGame: beginLocalGame
     });
 }
 
 $(function() {
-    $('.new-game').click(beginGame);
-    beginGame();
+    if (util.isClient()) {
+        $('.game-buttons').hide();
+    } else {
+        $('.new-game').click(beginLocalGame);
+        beginLocalGame();
+    }
 });

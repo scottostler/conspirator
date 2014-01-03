@@ -14,7 +14,7 @@ _.mixin({
     }
 });
 
-exports.usingServer = function() {
+exports.isClient = function() {
     return window.location.href.match('^http');
 }
 

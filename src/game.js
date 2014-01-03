@@ -8,7 +8,7 @@ var NumKingdomCards = module.exports.NumKingdomCards = 10;
 
 var randomizedKingdomCards = module.exports.randomizedKingdomCards = function(forcedCards, numCards) {
     var randomCards = _.sample(
-        _.difference(Cards.BaseSet, forcedCards),
+        _.difference(Cards.AllSets, forcedCards),
         numCards - forcedCards.length);
     return forcedCards.concat(randomCards);
 };

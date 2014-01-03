@@ -1,7 +1,21 @@
 var _ = require('underscore');
 var Cards = module.exports.Cards = [];
 
-Cards.AssetRoot = 'assets/cards/';
+Cards.AssetRoot = 'assets/cards';
+
+Cards.uniq = function(cards) {
+    return _.uniq(cards, function(c) {
+        return c.name;
+    });
+};
+
+Cards.areUnique = function(cards) {
+    return cards.length === Cards.uniq(cards).length;
+};
+
+Cards.getCardByName = function(cardName) {
+    return Cards[cardName.replace(/\s+/g, '')];
+}
 
 function gainCoins(num) {
     return function(game, activePlayer, otherPlayers) {
@@ -141,6 +155,12 @@ function playActionMultipleTimes(num) {
     };
 };
 
+function revealAndTestHand(test, trueEffect, falseEffect) {
+    return function(game, activePlayer, otherPlayers) {
+        game.revealAndTestHandEffect(test, trueEffect, falseEffect);
+    };
+};
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -167,7 +187,7 @@ function Card(properties) {
     _.extend(this, properties);
 
     var filename = this.name.toLowerCase().replace(' ', '_') + '.jpg';
-    this.assetURL = Cards.AssetRoot + filename;
+    this.assetURL = [Cards.AssetRoot, this.set, filename].join('/');
 }
 
 module.exports.Card = Card;
@@ -230,11 +250,13 @@ Card.prototype.matchesCardOrType = function(cardOrType) {
 // TODO: make views instead of cards.
 
 Cards.Trash = new Card({
-    name: 'Trash'
+    name: 'Trash',
+    set: 'base'
 });
 
 Cards.Cardback = new Card({
-    name: 'Cardback'
+    name: 'Cardback',
+    set: 'base'
 });
 
 // Basic Cards
@@ -242,43 +264,50 @@ Cards.Cardback = new Card({
 Cards.Copper = new Card({
     name: 'Copper',
     cost: 0,
-    money: 1
+    money: 1,
+    set: 'base'
 });
 
 Cards.Silver = new Card({
     name: 'Silver',
     cost: 3,
-    money: 2
+    money: 2,
+    set: 'base'
 });
 
 Cards.Gold = new Card({
     name: 'Gold',
     cost: 6,
-    money: 3
+    money: 3,
+    set: 'base'
 });
 
 Cards.Estate = new Card({
     name: 'Estate',
     cost: 2,
-    vp: 1
+    vp: 1,
+    set: 'base'
 });
 
 Cards.Duchy = new Card({
     name: 'Duchy',
     cost: 5,
-    vp: 3
+    vp: 3,
+    set: 'base'
 });
 
 Cards.Province = new Card({
     name: 'Province',
     cost: 8,
-    vp: 6
+    vp: 6,
+    set: 'base'
 });
 
 Cards.Curse = new Card({
     name: 'Curse',
     cost: 0,
-    vp: -1
+    vp: -1,
+    set: 'base'
 });
 
 // Base Set
@@ -286,152 +315,177 @@ Cards.Curse = new Card({
 Cards.Adventurer = new Card({
     name: 'Adventurer',
     cost: 6,
-    effects: [drawCardType(2, Card.Type.Treasure)]
+    effects: [drawCardType(2, Card.Type.Treasure)],
+    set: 'base'
 });
 
 Cards.Bureaucrat = new Card({
     name: 'Bureaucrat',
     cost: 4,
-    effects: [gainCardOntoDeck(Cards.Silver), otherPlayersDiscardCardOntoDeckAttack(Card.Type.Victory)]
+    effects: [gainCardOntoDeck(Cards.Silver), otherPlayersDiscardCardOntoDeckAttack(Card.Type.Victory)],
+    set: 'base'
 });
 
 Cards.Cellar = new Card({
     name: 'Cellar',
     cost: 2,
-    effects: [gainActions(1), discardAndDraw()]
+    effects: [gainActions(1), discardAndDraw()],
+    set: 'base'
 });
 
 Cards.Chancellor = new Card({
     name: 'Chancellor',
     cost: 3,
-    effects: [gainCoins(2), offerToShuffleDiscardIntoDeck()]
+    effects: [gainCoins(2), offerToShuffleDiscardIntoDeck()],
+    set: 'base'
 });
 
 Cards.Chapel = new Card({
     name: 'Chapel',
     cost: 2,
-    effects: [trashCards(0, 4)]
+    effects: [trashCards(0, 4)],
+    set: 'base'
 });
 
 Cards.CouncilRoom = new Card({
     name: 'Council Room',
     cost: 5,
-    effects: [drawCards(4), gainBuys(1), otherPlayersDraw(1)]
+    effects: [drawCards(4), gainBuys(1), otherPlayersDraw(1)],
+    set: 'base'
 });
 
 Cards.Feast = new Card({
     name: 'Feast',
     cost: 4,
-    effects: [trashThisCard(), gainCardCosting(0, 5, Card.Type.All)]
+    effects: [trashThisCard(), gainCardCosting(0, 5, Card.Type.All)],
+    set: 'base'
 });
 
 Cards.Festival = new Card({
     name: 'Festival',
     cost: 5,
-    effects: [gainActions(2), gainBuys(1), gainCoins(2)]
+    effects: [gainActions(2), gainBuys(1), gainCoins(2)],
+    set: 'base'
 });
 
 Cards.Gardens = new Card({
     name: 'Gardens',
     cost: 4,
-    vp: vpPerNCards(10, Card.Type.All)
+    vp: vpPerNCards(10, Card.Type.All),
+    set: 'base'
 });
 
 Cards.Laboratory = new Card({
     name: 'Laboratory',
     cost: 5,
-    effects: [drawCards(2), gainActions(1)]
+    effects: [drawCards(2), gainActions(1)],
+    set: 'base'
 });
 
 Cards.Library = new Card({
     name: 'Library',
     cost: 5,
-    effects: [drawToNCardsAllowingDiscardsOfType(7, Card.Type.Action)]
+    effects: [drawToNCardsAllowingDiscardsOfType(7, Card.Type.Action)],
+    set: 'base'
 });
 
 Cards.Market = new Card({
     name: 'Market',
     cost: 5,
-    effects: [drawCards(1), gainActions(1), gainBuys(1), gainCoins(1)]
+    effects: [drawCards(1), gainActions(1), gainBuys(1), gainCoins(1)],
+    set: 'base'
 });
 
 Cards.Mine = new Card({
     name: 'Mine',
     cost: 5,
-    effects: [trashCardToGainCostingUpToPlusCost(3, Card.Type.Treasure)]
+    effects: [trashCardToGainCostingUpToPlusCost(3, Card.Type.Treasure)],
+    set: 'base'
 });
 
 Cards.Militia = new Card({
     name: 'Militia',
     cost: 4,
-    effects: [gainCoins(2), otherPlayersDiscardTo(3)]
+    effects: [gainCoins(2), otherPlayersDiscardTo(3)],
+    set: 'base'
 });
 
 Cards.Moat = new Card({
     name: 'Moat',
     cost: 2,
     effects: [drawCards(2)],
-    reaction: revealToAvoidAttack()
+    reaction: revealToAvoidAttack(),
+    set: 'base'
 });
 
 Cards.Moneylender = new Card({
     name: 'Moneylender',
     cost: 4,
-    effects: [trashCardForEffect(Cards.Copper, gainCoins(3))]
+    effects: [trashCardForEffect(Cards.Copper, gainCoins(3))],
+    set: 'base'
 });
 
 Cards.Remodel = new Card({
     name: 'Remodel',
     cost: 4,
-    effects: [trashCardToGainCostingUpToPlusCost(2, Card.Type.All)]
+    effects: [trashCardToGainCostingUpToPlusCost(2, Card.Type.All)],
+    set: 'base'
 });
 
 Cards.Smithy = new Card({
     name: 'Smithy',
     cost: 4,
-    effects: [drawCards(3)]
+    effects: [drawCards(3)],
+    set: 'base'
 });
 
 Cards.Spy = new Card({
     name: 'Spy',
     cost: 4,
-    effects: [drawCards(1), gainActions(1), chooseToKeepOrDiscardTopCardForAllPlayers()]
+    effects: [drawCards(1), gainActions(1), chooseToKeepOrDiscardTopCardForAllPlayers()],
+    set: 'base'
 });
 
 Cards.Thief = new Card({
     name: 'Thief',
     cost: 4,
-    effects: [thiefAttack(Card.Type.Treasure, 2)]
+    effects: [thiefAttack(Card.Type.Treasure, 2)],
+    set: 'base'
 });
 
 Cards.ThroneRoom = new Card({
     name: 'Throne Room',
     cost: 4,
-    effects: [playActionMultipleTimes(2)]
+    effects: [playActionMultipleTimes(2)],
+    set: 'base'
 });
 
 Cards.Village = new Card({
     name: 'Village',
     cost: 3,
-    effects: [drawCards(1), gainActions(2)]
+    effects: [drawCards(1), gainActions(2)],
+    set: 'base'
 });
 
 Cards.Witch = new Card({
     name: 'Witch',
     cost: 5,
-    effects: [drawCards(2), otherPlayersGainCards([Cards.Curse])]
+    effects: [drawCards(2), otherPlayersGainCards([Cards.Curse])],
+    set: 'base'
 });
 
 Cards.Woodcutter = new Card({
     name: 'Woodcutter',
     cost: 3,
-    effects: [gainCoins(2), gainBuys(1)]
+    effects: [gainCoins(2), gainBuys(1)],
+    set: 'base'
 });
 
 Cards.Workshop = new Card({
     name: 'Workshop',
     cost: 3,
-    effects: [gainCardCosting(0, 4, Card.Type.All)]
+    effects: [gainCardCosting(0, 4, Card.Type.All)],
+    set: 'base'
 });
 
 Cards.BaseSet = [
@@ -462,12 +516,18 @@ Cards.BaseSet = [
     Cards.Workshop
 ];
 
-Cards.uniq = function(cards) {
-    return _.uniq(cards, function(c) {
-        return c.name;
-    });
-};
+Cards.Menagerie = new Card({
+    name: 'Menagerie',
+    cost: 3,
+    effects: [gainActions(1), revealAndTestHand(Cards.areUnique, drawCards(3), drawCards(1))],
+    set: 'cornucopia'
+});
 
-Cards.getCardByName = function(cardName) {
-	return Cards[cardName.replace(/\s+/g, '')];
-}
+
+Cards.Cornucopia = [
+    Cards.Menagerie
+
+];
+
+Cards.AllSets = [].concat(
+    Cards.BaseSet, Cards.Cornucopia);
