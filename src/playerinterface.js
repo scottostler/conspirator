@@ -64,7 +64,7 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
 PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.assertPlayer();
     this.gameView.showStatusMessage('Gain a card');
-    this.gameView.offerPileSelection(gainablePiles, true, onGain);
+    this.gameView.offerPileSelection(gainablePiles, false, onGain);
 };
 
 PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard) {
