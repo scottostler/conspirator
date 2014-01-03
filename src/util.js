@@ -35,6 +35,14 @@ exports.removeFirst = function(array, o) {
     }
 }
 
+exports.labelRange = function(l, r) {
+    if (l == r) {
+        return l;
+    } else {
+        return l + '-' + r;
+    }
+};
+
 exports.pluralize = function(noun, n) {
     return n == 1 ? noun : noun + 's';
 }

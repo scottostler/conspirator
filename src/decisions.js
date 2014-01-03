@@ -49,3 +49,10 @@ Decisions.chooseCardToTrash = function(game, player, cards) {
         options: cards
     };
 };
+
+Decisions.chooseEffect = function(game, player, effects) {
+    return {
+        title: 'Choose effect',
+        options: effects
+    };
+};

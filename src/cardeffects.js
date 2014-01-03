@@ -534,3 +534,12 @@ Game.prototype.revealAndTestHandEffect = function(test, trueEffect, falseEffect)
         this.advanceGameState();
     }
 };
+
+Game.prototype.playerChoosesEffect = function(player, effects) {
+    var that = this;
+    var decision = Decisions.chooseEffect(this, this.activePlayer, effects);
+    player.decider.promptForChoice(this, decision, function(effect) {
+        that.log(player.name, 'chooses', effect._optionString);
+        effect(that, that.activePlayer, that.inactivePlayers);
+    });
+};

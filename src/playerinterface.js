@@ -102,7 +102,8 @@ PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
     $footer.empty();
 
     _.each(decision.options, function(option) {
-        var $button = $('<button>').addClass('btn btn-primary').text(option.toString()).click(function() {
+        var label = option._optionString ? option._optionString : option.toString();
+        var $button = $('<button>').addClass('btn btn-primary').text(label).click(function() {
             $modal.modal('hide');
             onDecide(option);
         });

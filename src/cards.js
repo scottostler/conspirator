@@ -1,7 +1,13 @@
 var _ = require('underscore');
+var util = require('./util.js');
 var Cards = module.exports.Cards = [];
 
 Cards.AssetRoot = 'assets/cards-296x473';
+
+Function.prototype.label = function(string) {
+    this._optionString = string;
+    return this;
+};
 
 Cards.uniq = function(cards) {
     return _.uniq(cards, function(c) {
@@ -26,36 +32,37 @@ Cards.getCardByName = function(cardName) {
 function gainCoins(num) {
     return function(game, activePlayer, otherPlayers) {
         game.activePlayerGainsCoinsEffect(num);
-    };
+    }.label('+' + num + ' ' + util.pluralize('coin', num));
 }
 
 function gainActions(num) {
     return function(game, activePlayer, otherPlayers) {
        game.activePlayerGainsActionsEffect(num);
-    };
+    }.label('+' + num + ' ' + util.pluralize('action', num));
 }
 
 function gainBuys(num) {
     return function(game, activePlayer, otherPlayers) {
        game.activePlayerGainsBuysEffect(num);
-    };
+    }.label('+' + num + ' ' + util.pluralize('buy', num));
 }
 
 function drawCards(num) {
     return function(game, activePlayer, otherPlayers) {
         game.playerDrawsCardsEffect(activePlayer, num);
-    };
+    }.label('+' + num + ' ' + util.pluralize('card', num));
+}
+
+function trashCards(min, max) {
+    if (max === undefined) { max = min; }
+    return function(game, activePlayer, otherPlayers) {
+        game.playerTrashesCardsEffect(activePlayer, min, max, Card.Type.All);
+    }.label('Trash ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
 }
 
 function drawToNCardsAllowingDiscardsOfType(num, cardOrType) {
     return function(game, activePlayer, otherPlayers) {
         game.playerDrawsToNCardsAllowingDiscardsEffect(activePlayer, num, cardOrType);
-    };
-}
-
-function trashCards(min, max) {
-    return function(game, activePlayer, otherPlayers) {
-        game.playerTrashesCardsEffect(activePlayer, min, max, Card.Type.All);
     };
 }
 
@@ -114,6 +121,12 @@ function trashCardForEffect(cardOrType, effect) {
                 game.pushGameEvent(effect);
             }
         });
+    };
+}
+
+function chooseEffect(effects) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerChoosesEffect(activePlayer, effects);
     };
 }
 
@@ -605,11 +618,19 @@ Cards.ShantyTown = new Card({
     set: 'intrigue'
 });
 
+Cards.Steward = new Card({
+    name: 'Steward',
+    cost: 3,
+    effects: [chooseEffect([drawCards(2), gainCoins(2), trashCards(2)])],
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
-    Cards.ShantyTown
+    Cards.ShantyTown,
+    Cards.Steward
 ];
 
 Cards.Fortuneteller = new Card({
