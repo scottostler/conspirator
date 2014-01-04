@@ -1,7 +1,7 @@
 var _ = require('underscore');
 var Cards = module.exports.Cards = [];
 
-Cards.AssetRoot = 'assets/cards';
+Cards.AssetRoot = 'assets/cards-diehrstraits';
 
 Cards.uniq = function(cards) {
     return _.uniq(cards, function(c) {
