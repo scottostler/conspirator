@@ -178,7 +178,7 @@ Game.prototype.playersGainCardsEffect = function(players, cards, ontoDeck) {
 Game.prototype.playersGainCardsAttack = function(players, cards) {
     var that = this;
 
-    _.each(_.reverse(this.inactivePlayers), function(player) {
+    _.each(_.reverse(players), function(player) {
         var gainAttack = function() {
             _.each(cards, function(card) {
                 var pile = that.pileForCard(card);
@@ -192,6 +192,50 @@ Game.prototype.playersGainCardsAttack = function(players, cards) {
 
         that.eventStack.push(function() {
             that.allowReactionsToAttack(player, gainAttack, false);
+        });
+    });
+
+    this.advanceGameState();
+};
+
+Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, targetPlayers) {
+    var that = this;
+
+    _.each(_.reverse(targetPlayers), function(targetPlayer) {
+        var gainAttack = function() {
+            var pile = that.pileForCard(Cards.Curse);
+            if (pile.count > 0) {
+                that.playerGainsFromPile(targetPlayer, pile, false);
+            }
+            that.advanceGameState();
+        };
+
+        var chooseEffect = function() {
+            var card = targetPlayer.discardCardFromDeck();
+            var pile = that.pileForCard(card);
+
+            if (card) {
+                that.log(targetPlayer.name, 'discards', card.name);
+            }
+
+            if (card && card.isVictory()) {
+                gainAttack();
+            } else if (card && pile.count > 0) {
+                var decision = Decisions.gainCard(that, card);
+                attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                    if (choice === Decisions.Options.Yes) {
+                        that.playerGainsFromPile(attackingPlayer, pile, false);
+                    } else {
+                        that.playerGainsFromPile(targetPlayer, pile, false);
+                    }
+                    that.advanceGameState();
+                });
+            } else {
+                this.advanceGameState();
+            }
+        };
+        that.eventStack.push(function() {
+            that.allowReactionsToAttack(targetPlayer, chooseEffect, false);
         });
     });
 
@@ -240,13 +284,7 @@ Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
     var revealedCards = [];
 
     while (selectedCards.length < num && player.canDraw()) {
-
-        if (player.deck.length == 0) {
-            player.deck = _.shuffle(player.discard);
-            player.discard = [];
-        }
-
-        var card = player.deck.pop();
+        var card = player.takeCardFromDeck();
         if (card.matchesCardOrType(cardOrType)) {
             selectedCards.push(card);
         } else {

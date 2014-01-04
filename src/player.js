@@ -72,7 +72,7 @@ Player.prototype.shuffleKeepingDeckOnTop = function() {
     this.emit(Player.PlayerUpdates.Shuffle);
 };
 
-Player.prototype.takeCardFromDeck = function(num) {
+Player.prototype.takeCardFromDeck = function() {
     return _.head(this.takeCardsFromDeck(1));
 };
 
@@ -94,6 +94,11 @@ Player.prototype.discardCardsFromDeck = function(num) {
     var cards = this.takeCardsFromDeck(num);
     this.discard = this.discard.concat(cards);
     this.emit(Player.PlayerUpdates.DiscardCardsFromDeck);
+    return cards;
+};
+
+Player.prototype.discardCardFromDeck = function() {
+    return _.head(this.discardCardsFromDeck(1));
 };
 
 Player.prototype.revealCardsFromDeck = function(n) {
@@ -102,6 +107,10 @@ Player.prototype.revealCardsFromDeck = function(n) {
     }
 
     return _.last(this.deck, n);
+};
+
+Player.prototype.revealCardFromDeck = function() {
+    return _.head(this.revealCardsFromDeck(1));
 };
 
 Player.prototype.getMatchingCardsInHand = function(cardOrType) {

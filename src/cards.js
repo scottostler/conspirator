@@ -179,6 +179,12 @@ function otherPlayersDiscardCardOntoDeckAttack(cardOrType) {
     };
 }
 
+function jesterAttack() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersDiscardCardJesterAttack(activePlayer, otherPlayers);
+    };
+}
+
 function thiefAttack(cardOrType, number) {
     return function(game, activePlayer, otherPlayers) {
         game.trashAndMaybeGainCardsAttack(activePlayer, otherPlayers, cardOrType, number);
@@ -246,7 +252,6 @@ Card.Type = {
     Treasure: 'treasure',
     Victory: 'victory',
     Reaction: 'reaction',
-    Curse: 'curse',
     All: 'all'
 };
 
@@ -287,11 +292,13 @@ Card.prototype.matchesCardOrType = function(cardOrType) {
                 return this.isTreasure();
             case Card.Type.Victory:
                 return this.isVictory();
-            case Card.Type.Curse:
-                return this.isCurse();
         }
     } else if (cardOrType instanceof Card) {
         return this === cardOrType;
+    } else if (_.isArray(cardOrType)) {
+        return _.some(cardOrType, function(cardOrType) {
+            return this.matchesCardOrType(cardOrType);
+        }, this);
     }
 
     console.error('Unknown card or card type', cardOrType);
@@ -619,6 +626,13 @@ Cards.Fairgrounds = new Card({
     set: 'cornucopia'
 });
 
+Cards.FarmingVillage = new Card({
+    name: 'FarmingVillage',
+    cost: 4,
+    effects: [gainActions(2), drawCardType(1, [Card.Type.Treasure, Card.Type.Action])],
+    set: 'cornucopia'
+});
+
 Cards.Hamlet = new Card({
     name: 'Hamlet',
     cost: 2,
@@ -630,6 +644,13 @@ Cards.Harvest = new Card({
     name: 'Harvest',
     cost: 5,
     effects: [revealUniqueCardsForCoins(4)],
+    set: 'cornucopia'
+});
+
+Cards.Jester = new Card({
+    name: 'Jester',
+    cost: 3,
+    effects: [gainCoins(2), jesterAttack()],
     set: 'cornucopia'
 });
 
@@ -653,7 +674,9 @@ Cards.Cornucopia = [
     Cards.Menagerie,
     Cards.Remake,
     Cards.Fortuneteller,
-    Cards.Harvest
+    Cards.Harvest,
+    Cards.FarmingVillage,
+    Cards.Jester
 ];
 
 Cards.AllSets = [].concat(
