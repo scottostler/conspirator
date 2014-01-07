@@ -1,7 +1,7 @@
 var _ = require('underscore');
 var Cards = module.exports.Cards = [];
 
-Cards.AssetRoot = 'assets/cards';
+Cards.AssetRoot = 'assets/cards-296x473';
 
 Cards.uniq = function(cards) {
     return _.uniq(cards, function(c) {
@@ -241,7 +241,7 @@ function vpPerNDistinctCards(vpPerIncrement, cardsPerIncrement) {
 function Card(properties) {
     _.extend(this, properties);
 
-    var filename = this.name.toLowerCase().replace(' ', '_') + '.jpg';
+    var filename = this.name.toLowerCase().replace(' ', '') + '.jpg';
     this.assetURL = [Cards.AssetRoot, this.set, filename].join('/');
 }
 
@@ -310,12 +310,12 @@ Card.prototype.matchesCardOrType = function(cardOrType) {
 
 Cards.Trash = new Card({
     name: 'Trash',
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Cardback = new Card({
     name: 'Cardback',
-    set: 'base'
+    set: 'basecards'
 });
 
 // Basic Cards
@@ -324,49 +324,49 @@ Cards.Copper = new Card({
     name: 'Copper',
     cost: 0,
     money: 1,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Silver = new Card({
     name: 'Silver',
     cost: 3,
     money: 2,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Gold = new Card({
     name: 'Gold',
     cost: 6,
     money: 3,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Estate = new Card({
     name: 'Estate',
     cost: 2,
     vp: 1,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Duchy = new Card({
     name: 'Duchy',
     cost: 5,
     vp: 3,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Province = new Card({
     name: 'Province',
     cost: 8,
     vp: 6,
-    set: 'base'
+    set: 'basecards'
 });
 
 Cards.Curse = new Card({
     name: 'Curse',
     cost: 0,
     vp: -1,
-    set: 'base'
+    set: 'basecards'
 });
 
 // Base Set
