@@ -17,7 +17,6 @@ function beginLocalGame() {
     var numPlayers = 2;
     var $canvas = $('#canvas');
 
-    var kingdomCards = game.randomizedKingdomCards([], game.NumKingdomCards);
     var humanInterface = new PlayerInterface();
     var humanPlayer = new Player('Player', humanInterface);
     humanInterface.player = humanPlayer;
@@ -25,7 +24,7 @@ function beginLocalGame() {
     var computerPlayers = ComputerAI.makeComputerPlayers(numPlayers - 1);
     var players = [humanPlayer].concat(computerPlayers);
 
-    var gameInstance = new game.Game(players, kingdomCards);
+    var gameInstance = new game.Game(players, []);
     var gameView = new GameView(gameInstance, 0);
 
     humanInterface.setGameView(gameView);

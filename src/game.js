@@ -7,7 +7,7 @@ var Pile = require('./cards.js').Pile;
 
 var NumKingdomCards = module.exports.NumKingdomCards = 10;
 
-var randomizedKingdomCards = module.exports.randomizedKingdomCards = function(forcedCards, numCards) {
+var randomizedKingdomCards = function(forcedCards, numCards) {
     var randomCards = _.sample(
         _.difference(Cards.AllSets, forcedCards),
         numCards - forcedCards.length);
@@ -19,7 +19,9 @@ var randomizedKingdomCards = module.exports.randomizedKingdomCards = function(fo
  */
 function Game(players, kingdomCards) {
     if (!kingdomCards) {
-        kingdomCards = randomizedKingdomCards([Cards.ThroneRoom, Cards.Thief], NumKingdomCards);
+        kingdomCards = randomizedKingdomCards([], NumKingdomCards);
+    } else if (kingdomCards.length < NumKingdomCards) {
+        kingdomCards = randomizedKingdomCards(kingdomCards, NumKingdomCards);
     }
 
     this.activePlayerIndex = -1;
@@ -442,7 +444,7 @@ Game.prototype.playActionMultipleTimes = function(card, num) {
     this.eventStack = this.eventStack.concat(cardEvents);
 
     this.log(this.activePlayer.name, 'plays', card.name, num + 'x');
-    this.emit('play-card', player, card);
+    this.emit('play-card', this.activePlayer, card);
 };
 
 Game.prototype.filterGainablePiles = function(minCost, maxCost, cardOrType) {
