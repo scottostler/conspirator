@@ -75,8 +75,7 @@ Game.TurnState = {
 Game.prototype = Object.create(events.EventEmitter.prototype);
 
 Game.prototype.log = function() {
-    var args = Array.prototype.slice.call(arguments);
-    this.emit('log', args.join(' '));
+    this.emit('log', _.toArray(arguments).join(' '));
 };
 
 Game.prototype.drawInitialHands = function() {
@@ -442,7 +441,7 @@ Game.prototype.playActionMultipleTimes = function(card, num) {
     var cardEvents = _.reverse(_.flatten(util.repeat(card.effects, num))); // in event stack order
     this.eventStack = this.eventStack.concat(cardEvents);
 
-    this.log(player.name, 'plays', card.name, num + 'x');
+    this.log(this.activePlayer.name, 'plays', card.name, num + 'x');
     this.emit('play-card', player, card);
 };
 

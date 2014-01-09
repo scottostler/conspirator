@@ -20,8 +20,7 @@ function SocketDecider(socket, state) {
         }
 
         // Decisions don't return players, so no lookup func.
-        var callbackArgs = serialization.deserialize(
-            Array.prototype.slice.apply(arguments));
+        var callbackArgs = serialization.deserialize(_.toArray(arguments));
 
         // Clear before invoking.
         var callback = that.pendingRequestCallback;

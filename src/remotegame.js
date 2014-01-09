@@ -7,14 +7,11 @@ var Cards = require('./cards.js').Cards;
 var serialization = require('./serialization.js');
 
 function deserializeArguments(args, playerLookupFunc) {
-    return Array.prototype.slice.apply(args).map(function(o) {
-        return serialization.deserialize(o, playerLookupFunc);
-    });
+    return serialization.deserialize(_.toArray(args), playerLookupFunc);
 }
 
 function serializeArguments(args) {
-    return serialization.serialize(
-        Array.prototype.slice.apply(args));
+    return serialization.serialize(_.toArray(args));
 }
 
 function RemoteGame(socket, gameState, humanInterface) {

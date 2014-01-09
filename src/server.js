@@ -47,13 +47,12 @@ function startGame(players) {
     var gameInstance = new game.Game(players);
 
     gameInstance.emit = function(eventName, a, b) {
-        var args = Array.prototype.slice.apply(arguments);
+        var args = _.toArray(arguments);
 
         _.each(players, function(player) {
             if (player.decider instanceof SocketDecider) {
-                var serializedArgs = _.map(args, function(o) {
-                    return serialization.serialize(o, player);
-                });
+                // Each player will receive a different state.
+                var serializedArgs = serialization.serialize(args, player);
                 player.decider.socket.emit.apply(player.decider.socket, serializedArgs)
             }
         });
