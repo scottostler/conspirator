@@ -1,6 +1,6 @@
 var _ = require('underscore');
 var util = require('./util.js');
-var Cards = module.exports.Cards = [];
+var Cards = [];
 
 Cards.AssetRoot = 'assets/cards-296x473';
 
@@ -8,6 +8,8 @@ Function.prototype.label = function(string) {
     this._optionString = string;
     return this;
 };
+
+// Card utility functions
 
 Cards.uniq = function(cards) {
     return _.uniq(cards, function(c) {
@@ -26,8 +28,14 @@ Cards.matchNone = function(cardOrType) {
 };
 
 Cards.getCardByName = function(cardName) {
-    return Cards[cardName.replace(/\s+/g, '')];
+    var card = Cards[cardName.replace(/\s+/g, '')];
+    if (!card) {
+        console.error('Unable to find card for ' + cardName);
+    }
+    return card;
 }
+
+// Card effect definitions
 
 function gainCoins(num) {
     return function(game, activePlayer, otherPlayers) {
@@ -108,9 +116,9 @@ function gainCardOntoDeck(card) {
     };
 }
 
-function gainCardCosting(minCost, maxCost, cardOrType) {
+function gainCardCosting(minCost, maxCost, cardOrType, intoHand) {
     return function(game, activePlayer, otherPlayers) {
-        game.playerChoosesGainedCardEffect(activePlayer, minCost, maxCost, cardOrType);
+        game.playerChoosesGainedCardEffect(activePlayer, minCost, maxCost, cardOrType, intoHand);
     };
 }
 
@@ -138,25 +146,25 @@ function trashThisCard() {
 
 // Note: type of card trashed is assumed to match type of card gained.
 //       e.g. All -> All, or Treasure -> Treasure
-function trashCardToGainUpToPlusCost(plusCost, cardOrType) {
+function trashCardToGainUpToPlusCost(plusCost, cardOrType, intoHand) {
     return function(game, activePlayer, otherPlayers) {
         game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
             if (cards.length === 1) {
                 var card = cards[0];
                 var maxCost = game.computeEffectiveCardCost(card) + plusCost;
-                game.pushGameEvent(gainCardCosting(0, maxCost, cardOrType));
+                game.pushGameEvent(gainCardCosting(0, maxCost, cardOrType, intoHand));
             }
         });
     };
 };
 
-function trashCardToGainExactlyPlusCost(plusCost, cardOrType) {
+function trashCardToGainExactlyPlusCost(plusCost, cardOrType, intoHand) {
     return function(game, activePlayer, otherPlayers) {
         game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
             if (cards.length === 1) {
                 var card = cards[0];
                 var maxCost = game.computeEffectiveCardCost(card) + plusCost;
-                game.pushGameEvent(gainCardCosting(maxCost, maxCost, cardOrType));
+                game.pushGameEvent(gainCardCosting(maxCost, maxCost, cardOrType, intoHand));
             }
         });
     };
@@ -257,8 +265,6 @@ function Card(properties) {
     var filename = this.name.toLowerCase().replace(' ', '') + '.jpg';
     this.assetURL = [Cards.AssetRoot, this.set, filename].join('/');
 }
-
-module.exports.Card = Card;
 
 Card.Type = {
     Action: 'action',
@@ -471,7 +477,7 @@ Cards.Market = new Card({
 Cards.Mine = new Card({
     name: 'Mine',
     cost: 5,
-    effects: [trashCardToGainUpToPlusCost(3, Card.Type.Treasure)],
+    effects: [trashCardToGainUpToPlusCost(3, Card.Type.Treasure, true)],
     set: 'base'
 });
 
@@ -702,3 +708,12 @@ Cards.Cornucopia = [
 
 Cards.AllSets = [].concat(
     Cards.BaseSet, Cards.Intrigue, Cards.Cornucopia);
+
+function Pile(card, count) {
+    this.card = card;
+    this.count = count;
+}
+
+module.exports.Card = Card;
+module.exports.Cards = Cards;
+module.exports.Pile = Pile;

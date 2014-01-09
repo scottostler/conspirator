@@ -12,31 +12,31 @@ var Cards = require('./cards.js').Cards;
 
 Game.prototype.skipActions = function() {
     this.activePlayerActionCount = 0;
-    this.emit('stat-update');
+    this.stateUpdated();
     this.advanceGameState();
 };
 
 Game.prototype.skipBuys = function() {
     this.activePlayerBuyCount = 0;
-    this.emit('stat-update');
+    this.stateUpdated();
     this.advanceGameState();
 };
 
 Game.prototype.activePlayerGainsCoinsEffect = function(num) {
-    this.activePlayerMoneyCount += num;
-    this.emit('stat-update');
+    this.activePlayerCoinCount += num;
+    this.stateUpdated();
     this.advanceGameState();
 };
 
 Game.prototype.activePlayerGainsActionsEffect = function(num) {
     this.activePlayerActionCount += num;
-    this.emit('stat-update');
+    this.stateUpdated();
     this.advanceGameState();
 };
 
 Game.prototype.activePlayerGainsBuysEffect = function(num) {
     this.activePlayerBuyCount += num;
-    this.emit('stat-update');
+    this.stateUpdated();
     this.advanceGameState();
 };
 
@@ -60,7 +60,7 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
         var card = player.takeCardFromDeck();
         if (card.matchesCardOrType(discardableCardOrType)) {
             var decision = Decisions.drawOrDiscardCard(this, card);
-            player.decider.promptForChoice(this, decision, _.bind(function(choice) {
+            player.promptForDecision(this, decision, _.bind(function(choice) {
                 if (choice === Decisions.Options.Draw) {
                     player.addCardToHand(card);
                 } else {
@@ -82,12 +82,10 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
 };
 
 Game.prototype.playersDrawCardsEffect = function(players, num) {
-    var that = this;
     _.each(players, function(player) {
-        that.drawCards(player, num);
-    });
+        this.drawCards(player, num);
+    }, this);
 
-    this.emit('stat-update');
     this.advanceGameState();
 }
 
@@ -106,12 +104,7 @@ Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType,
 
         that.advanceGameState();
     } else {
-        player.decider.promptForTrashing(this, min, max, cards, function(cards) {
-            if (cards.length > 0) {
-                that.log(player.name, 'trashes', cards.join(', '));
-                that.trashCards(player, cards);
-            }
-
+        player.promptForTrashing(this, min, max, cards, function(cards) {
             if (onTrash) {
                 onTrash(cards);
             }
@@ -122,16 +115,9 @@ Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType,
 }
 
 Game.prototype.trashCardInPlayEffect = function(card) {
-    // May not be true if a feast was throne-roomed, for example.
-    if (_.contains(this.playArea, card)) {
-        this.playArea = util.removeFirst(this.playArea, card);
-        this.trash.push(card);
-        this.emit('trash-card-from-play', card);        
-    }
+    this.trashCardFromPlay(card);
     this.advanceGameState();
 };
-
-
 
 Game.prototype.inactivePlayersDiscardToAttack = function(num) {
     var that = this;
@@ -140,11 +126,7 @@ Game.prototype.inactivePlayersDiscardToAttack = function(num) {
         var discardAttack = function() {
             var numToDiscard = Math.max(0, player.hand.length - num);
             if (numToDiscard > 0) {
-                player.decider.promptForDiscard(that, numToDiscard, numToDiscard, function(cards) {
-                    if (cards.length > 0) {
-                        that.discardCards(player, cards);
-                    }
-
+                player.promptForDiscard(that, numToDiscard, numToDiscard, player.hand, function(cards) {
                     that.advanceGameState();
                 });
             } else {
@@ -222,7 +204,7 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
                 gainAttack();
             } else if (card && pile.count > 0) {
                 var decision = Decisions.gainCard(that, card);
-                attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                attackingPlayer.promptForDecision(that, decision, function(choice) {
                     if (choice === Decisions.Options.Yes) {
                         that.playerGainsFromPile(attackingPlayer, pile, false);
                     } else {
@@ -231,7 +213,7 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
                     that.advanceGameState();
                 });
             } else {
-                this.advanceGameState();
+                that.advanceGameState();
             }
         };
         that.eventStack.push(function() {
@@ -242,12 +224,16 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
     this.advanceGameState();
 };
 
-Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost, cardOrType) {
+Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost, cardOrType, intoHand) {
     var that = this;
     var gainablePiles = this.filterGainablePiles(minCost, maxCost, cardOrType);
     if (gainablePiles.length > 0) {
-        player.decider.promptForGain(this, gainablePiles, function(pile) {
-            that.playerGainsFromPile(player, pile, false);
+        player.promptForGain(this, gainablePiles, function(pile) {
+            if (intoHand) {
+                that.playerGainsFromPile(player, pile, false, true);
+            } else {
+                that.playerGainsFromPile(player, pile, false, false);
+            }
             that.advanceGameState();
         });
     } else {
@@ -257,9 +243,8 @@ Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost
 
 Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
     var that = this;
-    player.decider.promptForDiscard(this, 0, player.hand.length, function(cards) {
+    player.promptForDiscard(this, 0, player.hand.length, player.hand, function(cards) {
         if (cards.length > 0) {
-            that.discardCards(player, cards);
             that.drawCards(player, cards.length);
         }
 
@@ -269,9 +254,8 @@ Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
 
 Game.prototype.playerDiscardsForEffect = function(player, effect) {
     var that = this;
-    player.decider.promptForDiscard(this, 0, 1, function(cards) {
+    player.promptForDiscard(this, 0, 1, player.hand, function(cards) {
         if (cards.length > 0) {
-            that.discardCards(player, cards);
             effect(that, that.activePlayer, that.inactivePlayers);
         } else {
             that.advanceGameState();
@@ -292,18 +276,14 @@ Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
         }
     }
 
-    player.hand = player.hand.concat(selectedCards);
-    player.discard = player.discard.concat(revealedCards);
-
-    player.emit(Player.PlayerUpdates.DrawCards, selectedCards);
-    player.emit(Player.PlayerUpdates.Shuffle);
+    this.drawAndDiscardFromDeck(player, selectedCards, discard);
     this.advanceGameState();
 };
 
 Game.prototype.shuffleDiscardIntoDeckOption = function(player) {
     var decision = Decisions.shuffleDiscardIntoDeck(this);
     var that = this;
-    player.decider.promptForChoice(this, decision, function(choice) {
+    player.promptForDecision(this, decision, function(choice) {
         if (choice === Decisions.Options.Yes) {
             player.shuffleCompletely();
             that.log(player.name, 'shuffles discard into deck');
@@ -317,7 +297,7 @@ Game.prototype.playerDiscardCardOntoDeckEffect = function(player) {
     var that = this;
     if (player.hand.length > 0) {
         var decision = Decisions.discardCardOntoDeck(that, Cards.uniq(player.hand));
-        player.decider.promptForChoice(that, decision, function(card) {
+        player.promptForDecision(that, decision, function(card) {
             that.discardCards(player, [card], true);
             that.advanceGameState();
         });
@@ -330,8 +310,7 @@ Game.prototype.playerDiscardCardOntoDeckEffect = function(player) {
 Game.prototype.playerDiscardsUniqueCardsForCoins = function(player, num) {
     var cards = player.revealCardsFromDeck(num);
     var coins = Cards.uniq(cards).length;
-    this.log(player.name, 'discards', cards.join(', '));
-    player.discardCardsFromDeck(num);
+    this.discardCardsFromDeck(player, num);
     this.activePlayerGainsCoinsEffect(coins);
 };
 
@@ -344,7 +323,7 @@ Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) 
                 var cards = Cards.uniq(player.getMatchingCardsInHand(cardOrType));
                 if (cards.length > 0) {
                     var decision = Decisions.discardCardOntoDeck(that, cards);
-                    player.decider.promptForChoice(that, decision, function(card) {
+                    player.promptForDecision(that, decision, function(card) {
                         that.discardCards(player, [card], true);
                         that.advanceGameState();
                     });
@@ -401,7 +380,7 @@ Game.prototype.keepOrDiscardTopCardOptionAttack = function(choosingPlayer, targe
                 if (cards.length > 0) {
                     var card = cards[0];
                     var decision = Decisions.keepOrDiscardCard(that, targetPlayer, card);
-                    choosingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                    choosingPlayer.promptForDecision(that, decision, function(choice) {
                         if (choice === Decisions.Options.Discard) {
                             that.log(choosingPlayer.name, 'discards', util.possessive(targetPlayer.name), card.name);
                             targetPlayer.discardCardsFromDeck(1);
@@ -431,13 +410,13 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
     var that = this;
     var trashedCards = [];
 
-    // TODO: this code is bananas
+    // TODO: this code is bananas – B-A-N-A-N-A-S
     this.eventStack.push(function() {
         _.each(_.reverse(trashedCards), function(p) {
             var targetPlayer = p[0], card = p[1];
             that.eventStack.push(function() {
                 var decision = Decisions.gainCard(that, card);
-                attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                attackingPlayer.promptForDecision(that, decision, function(choice) {
                     if (choice === Decisions.Options.Yes) {
                         attackingPlayer.addCardToDiscard(card);
                         that.log(attackingPlayer.name, 'gains', util.possessive(targetPlayer.name), card.name);
@@ -463,7 +442,7 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
 
                 if (matchingCards.length > 0) {
                     var decision = Decisions.chooseCardToTrash(that, targetPlayer, matchingCards);
-                    attackingPlayer.decider.promptForChoice(that, decision, function(choice) {
+                    attackingPlayer.promptForDecision(that, decision, function(choice) {
                         var firstChoice = matchingCards.indexOf(choice);
                         matchingCards.forEach(function(c, i) {
                             if (i === firstChoice) {
@@ -502,22 +481,9 @@ Game.prototype.playActionMultipleTimesEffect = function(player, num) {
     var that = this;
     var actions = player.getActionsInHand();
     if (actions.length > 0) {
-        this.activePlayer.decider.promptForHandSelection(this, actions, 'Select an action', function(card) {
-            player.hand = util.removeFirst(player.hand, card);
-            that.playArea.push(card);
-
-            that.log(player.name, 'plays', card.name, num + 'x');
-
-            that.emit(Game.GameUpdate,
-                Game.GameUpdates.PlayedCard,
-                player.name + ' played ' + card.name,
-                player,
-                card);
-
-            var cardEvents = _.reverse(_.flatten(util.repeat(card.effects, num))); // in event stack order
-            that.eventStack = that.eventStack.concat(cardEvents);
-            that.activePlayer.emit(Player.PlayerUpdates.PlayCard, card);
-
+        var decision = Decisions.playAction(this, player, actions);
+        player.promptForDecision(this, decision, function(card) {
+            that.playActionMultipleTimes(card, num);
             that.advanceGameState();
         });
     } else {
@@ -538,7 +504,7 @@ Game.prototype.revealAndTestHandEffect = function(test, trueEffect, falseEffect)
 Game.prototype.playerChoosesEffect = function(player, effects) {
     var that = this;
     var decision = Decisions.chooseEffect(this, this.activePlayer, effects);
-    player.decider.promptForChoice(this, decision, function(effect) {
+    player.decider.promptForDecision(this, decision, function(effect) {
         that.log(player.name, 'chooses', effect._optionString);
         effect(that, that.activePlayer, that.inactivePlayers);
     });

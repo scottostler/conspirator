@@ -1,10 +1,15 @@
 var View = require('./util.js').View;
+var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
 
 /**
  * @constructor
  */
 function CardView(card, useCardback) {
+    if (!card instanceof Card) {
+        throw new Error('invalid object' + card);
+    }
+
     this.card = card;
     this.$el = $('<div>').addClass('card');
     $('<img>').appendTo(this.$el);
@@ -46,11 +51,9 @@ function PileView(pile) {
     var $img = $('<img>').appendTo(this.$el);
     $img.attr('src', this.pile.card.assetURL);
 
-    if (!pile.hideBadge) {
-        this.$badge = $('<div>').text(this.pile.count).addClass('badge badge-warning');
-        this.$el.append(this.$badge);
-        this.updateCount();
-    }
+    this.$badge = $('<div>').text(this.pile.count).addClass('badge badge-warning');
+    this.$el.append(this.$badge);
+    this.updateCount();
 
     this.$el.data('view', this);
 }

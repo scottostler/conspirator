@@ -1,6 +1,7 @@
 var _ = require('underscore');
 var View = require('./util.js').View;
 var cardview = require('./cardview.js');
+var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
 var Player = require('./player.js');
 
@@ -31,48 +32,22 @@ function PlayerView(gameView, player, index) {
     this.$handContainer = $('<div>').addClass('hand').appendTo(this.$el);
     this.cardViewsInHand = [];
 
-    this.player.on(Player.PlayerUpdates.DrawCards, _.bind(this.drawCards, this));
-
-    this.player.on(Player.PlayerUpdates.Shuffle, _.bind(this.updateDeckAndDiscardViews, this));
-
-    this.player.on(Player.PlayerUpdates.DiscardCards, function(cards) {
-        cards.forEach(function(card) {
-            that.removeCardViewFromHand(that.viewForCard(card));
-        });
-        that.applyHandTransformations();
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.PlayCard, function(card) {
-        that.removeCardViewFromHand(that.viewForCard(card));
-        that.applyHandTransformations();
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.DiscardCardsFromDeck, function() {
-        that.updateDeckAndDiscardViews();
-    });
-
-    this.player.on(Player.PlayerUpdates.TrashCards, function(cards) {
-        cards.forEach(function(card) {
-            that.removeCardViewFromHand(that.viewForCard(card));
-        });
-        that.applyHandTransformations();
-        that.gameView.updateTrashView();
-    });
-
     this.updateDeckAndDiscardViews();
 }
 
 PlayerView.prototype = Object.create(View.prototype);
 
 PlayerView.prototype.updateDeckAndDiscardViews = function() {
-    this.deckView.setCardImage(this.player.deck.length === 0 ? null : Cards.Cardback);
-    this.deckView.setBadgeCount(this.player.deck.length);
-    this.discardView.setCardImage(_.last(this.player.discard));
+    this.deckView.setCardImage(this.player.deckCount() === 0 ? null : Cards.Cardback);
+    this.deckView.setBadgeCount(this.player.deckCount());
+    this.discardView.setCardImage(this.player.topDiscard());
 };
 
 PlayerView.prototype.viewForCard = function(card) {
+    if (!card instanceof Card) {
+        throw new Error('Illegal argument: ' + card);
+    }
+
     var view = _.find(this.cardViewsInHand, function(view) {
         return view.card === card;
     });
@@ -87,10 +62,36 @@ PlayerView.prototype.viewForCard = function(card) {
 PlayerView.prototype.removeCardViewFromHand = function(cardView) {
     this.cardViewsInHand = _.without(this.cardViewsInHand, cardView);
     cardView.$el.remove();
+    this.applyHandTransformations();
+};
+
+PlayerView.prototype.removeCardFromHand = function(card) {
+    var cardView = this.viewForCard(card);
+    this.removeCardViewFromHand(cardView);
 };
 
 PlayerView.prototype.clearSelectionMode = function() {
     this.$el.find('.card').unbind('click').removeClass('selectable not-selectable selected');
+};
+
+PlayerView.prototype.drawCards = function(cards) {
+    var that = this;
+    _.each(cards, function(card) {
+        var cv = new cardview.CardView(card, !this.isActivePlayer());
+        that.$handContainer.append(cv.$el);
+        that.cardViewsInHand.push(cv);
+    }, this);
+    this.applyHandTransformations();
+    this.updateDeckAndDiscardViews();
+};
+
+PlayerView.prototype.discardCards = function(cards) {
+    _.each(cards, function(card) {
+        this.removeCardViewFromHand(this.viewForCard(card));
+    }, this);
+
+    this.applyHandTransformations();
+    this.updateDeckAndDiscardViews();
 };
 
 // HumanPlayerView
@@ -109,18 +110,11 @@ HumanPlayerView.prototype.constructor = PlayerView;
 
 HumanPlayerView.prototype.divClass = 'human-player';
 
-HumanPlayerView.prototype.drawCards = function(cards) {
-    var that = this;
-    cards.forEach(function(card) {
-        var cv = new cardview.CardView(card, false);
-        that.$handContainer.append(cv.$el);
-        that.cardViewsInHand.push(cv);
-    });
-    this.applyHandTransformations();
-    this.updateDeckAndDiscardViews();
-};
-
 HumanPlayerView.prototype.applyHandTransformations = function() {};
+
+HumanPlayerView.prototype.isActivePlayer = function() {
+    return true;
+}
 
 // RemotePlayerView
 
@@ -136,17 +130,6 @@ RemotePlayerView.prototype.constructor = PlayerView;
 
 RemotePlayerView.prototype.divClass = 'remote-player';
 
-RemotePlayerView.prototype.drawCards = function(cards) {
-    var that = this;
-    cards.forEach(function(card) {
-        var cv = new cardview.CardView(card, !window.dominion.debug);
-        that.$handContainer.append(cv.$el);
-        that.cardViewsInHand.push(cv);
-    });
-    this.applyHandTransformations();
-    this.updateDeckAndDiscardViews();
-};
-
 RemotePlayerView.prototype.applyHandTransformations = function() {
     var $cards = this.$handContainer.children();
     var leftMargin = 5;
@@ -156,5 +139,9 @@ RemotePlayerView.prototype.applyHandTransformations = function() {
         $(cardView).css({ rotate: degrees[i] });
     });
 };
+
+RemotePlayerView.prototype.isActivePlayer = function() {
+    return false;
+}
 
 module.exports.RemotePlayerView = RemotePlayerView;

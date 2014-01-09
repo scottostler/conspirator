@@ -10,9 +10,7 @@ function ComputerAI() {
     this.trashList = [Cards.Curse, Cards.Copper];
 }
 
-module.exports.ComputerAI = ComputerAI;
-
-module.exports.makeComputerPlayers = function(numPlayers) {
+ComputerAI.makeComputerPlayers = function(numPlayers) {
     var computerNames = ['Scott', 'Bob', 'Carlos', 'Douglas'];
     return _.take(computerNames, numPlayers).map(function(name) {
         return new Player(name, new ComputerAI());
@@ -30,29 +28,22 @@ ComputerAI.prototype.setPlayer = function(player) {
     this.player = player;
 };
 
-ComputerAI.prototype.promptForAction = function(game, playableActions) {
+ComputerAI.prototype.promptForAction = function(game, playableActions, onAction) {
     this.assertPlayer();
-    game.playAction(_.sample(playableActions));
+    onAction(_.sample(playableActions));
 };
 
-ComputerAI.prototype.promptForHandSelection = function(game, cards, label, onSelect) {
+ComputerAI.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
     this.assertPlayer();
-    onSelect(_.sample(cards));
-};
 
-ComputerAI.prototype.promptForBuy = function(game, buyablePiles) {
-    this.assertPlayer();
-    _.each(this.player.getTreasuresInHand(), function(card) {
-        game.playTreasure(card);
-    });
-
+    var treasures = this.player.getTreasuresInHand();
     var that = this;
     var sortedPiles = _.sortBy(buyablePiles, function(p) {
         var index = that.buyList.indexOf(p.card);
         return index === -1 ? that.buyList.length + Math.random() : index;
     });
 
-    game.buyFromPile(_.head(sortedPiles));
+    onBuy(treasures, _.head(sortedPiles));
 }
 
 ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
@@ -60,9 +51,9 @@ ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
     onGain(_.sample(gainablePiles));
 };
 
-ComputerAI.prototype.promptForDiscard = function(game, min, max, onDiscard) {
+ComputerAI.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
     this.assertPlayer();
-    onDiscard(_.sample(this.player.hand, min));
+    onDiscard(_.sample(cards, min));
 };
 
 ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
@@ -70,7 +61,7 @@ ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash
     onTrash(_.sample(cards, min));
 };
 
-ComputerAI.prototype.promptForChoice = function(game, decision, onDecide) {
+ComputerAI.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
     onDecide(_.sample(decision.options));
 }
@@ -79,3 +70,5 @@ ComputerAI.prototype.promptForReaction = function(game, reactions, onReact) {
     this.assertPlayer();
     onReact(null);
 };
+
+module.exports = ComputerAI;

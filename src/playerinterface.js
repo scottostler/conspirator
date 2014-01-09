@@ -7,8 +7,6 @@ var util = require('./util.js');
 function PlayerInterface() {
 };
 
-module.exports = PlayerInterface;
-
 PlayerInterface.prototype.assertPlayer = function() {
     if (!this.player) {
         console.error('Missing valid player', this);
@@ -25,38 +23,32 @@ PlayerInterface.prototype.setGameView = function(gameView) {
     this.gameView = gameView;
 };
 
-PlayerInterface.prototype.promptForAction = function(game, playableActions) {
+PlayerInterface.prototype.getGameView = function() {
+    return this.gameView;
+};
+
+PlayerInterface.prototype.promptForAction = function(game, playableActions, onAction) {
     this.assertPlayer();
     this.gameView.showStatusMessage('Play an action');
 
     this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
-        if (action) {
-            game.playAction(action);
-        } else {
-            game.skipActions();
-        }
+        onAction(action);
     });
 };
 
-PlayerInterface.prototype.promptForHandSelection = function(game, cards, label, onSelect) {
-    this.assertPlayer();
-
-    this.gameView.showStatusMessage(label);
-    this.gameView.offerSingleHandSelection(this.player, cards, onSelect);
-};
-
-PlayerInterface.prototype.promptForBuy = function(game, buyablePiles) {
+PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
     this.assertPlayer();
     this.gameView.showStatusMessage('Buy a card');
 
     this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
         if (pile) {
-            _.each(this.player.getTreasuresInHand(), function(card) {
-                game.playTreasure(card);
+            // Player could be a RemotePlayer, with no getTreasuresInHand.
+            var treasures = _.filter(this.player.hand, function(c) {
+                return c.isTreasure();
             });
-            game.buyFromPile(pile);
+            onBuy(treasures, pile);
         } else {
-            game.skipBuys();
+            onBuy([], null);
         }
     }, this));
 };
@@ -67,33 +59,22 @@ PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) 
     this.gameView.offerPileSelection(gainablePiles, false, onGain);
 };
 
-PlayerInterface.prototype.promptForDiscard = function(game, min, max, onDiscard) {
+PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, verb, onSelect) {
     this.assertPlayer();
-    if (min == max) {
-        this.gameView.showStatusMessage('Discard ' + min + ' ' + util.pluralize('card', min));
-    } else if (min == 0) {
-        this.gameView.showStatusMessage('Discard up to ' + max + ' ' + util.pluralize('card', max));
-    } else {
-        this.gameView.showStatusMessage('Discard ' + min + ' to ' + max + ' cards');
-    }
-    
-    this.gameView.offerMultipleHandSelection(this.player, min, max, onDiscard);
+    this.gameView.showStatusMessage(
+        verb + ' ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
+    this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onSelect);
+};
+
+PlayerInterface.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
+    this.promptForHandSelection(game, min, max, cards, 'Discard', onDiscard);
 };
 
 PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
-    this.assertPlayer();
-    if (min == max) {
-        this.gameView.showStatusMessage('Trash ' + min + ' ' + util.pluralize('card', min));
-    } else if (min == 0) {
-        this.gameView.showStatusMessage('Trash up to ' + max + ' ' + util.pluralize('card', max));
-    } else {
-        this.gameView.showStatusMessage('Trash ' + min + ' to ' + max + ' cards');
-    }
-
-    this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onTrash);
+    this.promptForHandSelection(game, min, max, cards, 'Trash', onTrash);
 }
 
-PlayerInterface.prototype.promptForChoice = function(game, decision, onDecide) {
+PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
     var $modal = $('.choice');
     var $footer = $modal.find('.modal-footer');
@@ -118,3 +99,5 @@ PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact)
     this.gameView.showStatusMessage('Reveal a reaction card');
     this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
 };
+
+module.exports = PlayerInterface;

@@ -2,34 +2,27 @@ var _ = require('underscore');
 var util = require('./util.js');
 var playerview = require('./playerview.js');
 var cardview = require('./cardview.js');
+var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
-var Game = require('./game.js').Game;
 var ScoreSheet = require('./scoresheet.js');
 
 /**
  * @constructor
  */
-function GameStatusMessageLabel(game) {
-    this.game = game;
-    this.$message = $('.status-message');
+function GameStateView(game) {
     this.$counters = $('.status-counters');
-
-    $('.message-log').empty();
-
-    game.on('game-update', _.bind(this.updateStatusCounter, this))
-    game.on('stat-update', _.bind(this.updateStatusCounter, this));
 }
 
-GameStatusMessageLabel.prototype.updateStatusCounter = function() {
+GameStateView.prototype.updateStatusCounter = function(update) {
     this.$counters.find('.turn-label').text(
-        util.possessive(this.game.activePlayer.name) + ' Turn ' + this.game.turnCount);
+        util.possessive(update.activePlayer) + ' Turn ' + update.turnCount);
 
     this.$counters.find('.phase-label').text(
-        util.capitalize(this.game.turnState) + ' Phase ');
+        util.capitalize(update.turnState) + ' Phase ');
 
-    this.$counters.find('.action-count').text(this.game.activePlayerActionCount);
-    this.$counters.find('.buy-count').text(this.game.activePlayerBuyCount);
-    this.$counters.find('.coin-count').text(this.game.activePlayerMoneyCount);
+    this.$counters.find('.action-count').text(update.actionCount);
+    this.$counters.find('.buy-count').text(update.buyCount);
+    this.$counters.find('.coin-count').text(update.coinCount);
 };
 
 function reorderKingdomPileGroups(pileGroups) {
@@ -77,11 +70,20 @@ function GameView(game, humanPlayerIndex) {
     this.trashView = new cardview.CardView(Cards.Trash);
     this.$kingdomPiles.append(this.trashView.$el);
 
-    this.statusMessageLabel = new GameStatusMessageLabel(this.game);
+    this.gameStateView = new GameStateView(this.game);
+    this.$statusMessageLabel = $('.status-message');
 
     this.$doneButton = $('.done-button');
 
-    this.game.on(Game.GameUpdate, _.bind(this.handleGameUpdate, this));
+    this.game.on('log', function(msg) {
+        var $log = $('.message-log');
+        var $line = $('<div>').text(msg);
+        $log.append($line).scrollTop($log[0].scrollHeight);
+    });
+
+    this.game.on('state-update', function(update) {
+        that.gameStateView.updateStatusCounter(update);
+    });
 
     this.game.on('empty-play-area', function() {
         that.$inPlay.empty();
@@ -92,17 +94,70 @@ function GameView(game, humanPlayerIndex) {
         var cardView = that.viewForInPlayCard(card);
         that.inPlayViews = util.removeFirst(that.inPlayViews, cardView);
         cardView.$el.remove();
-        that.updateTrashView();
+        that.setTrashViewCard(card);
+    });
+
+    this.game.on('trash-cards-from-hand', function(player, cards) {
+        var playerView = that.viewForPlayer(player);
+        _.each(cards, function(card) {
+            playerView.removeCardFromHand(card);
+        }, this);
+        that.setTrashViewCard(_.last(cards));
     });
 
     this.game.on('add-card-to-trash', function(card) {
-        that.updateTrashView();
+        that.setTrashViewCard(card);
     });
 
-    this.game.on('log', function(msg) {
-        var $log = $('.message-log');
-        var $line = $('<div>').text(msg);
-        $log.append($line).scrollTop($log[0].scrollHeight);
+
+    this.game.on('game-over', function() {
+        that.showStatusMessage('Game over');
+        that.showScoreSheet();
+    });
+
+    this.game.on('play-card', function(player, card) {
+        var cardView = new cardview.CardView(card, false);
+        that.inPlayViews.push(cardView);
+        that.$inPlay.append(cardView.$el);
+
+        var playerView = that.viewForPlayer(player);
+        playerView.removeCardFromHand(card);
+    });
+
+    this.game.on('gain-card', function(player, card) {
+        var pileView = that.pileViewForCard(card);
+        if (pileView) {
+            pileView.updateCount();
+        }
+
+        that.viewForPlayer(player).updateDeckAndDiscardViews();
+    });
+
+    this.game.on('gain-card-into-hand', function(player, card) {
+        var pileView = that.pileViewForCard(card);
+        if (pileView) {
+            pileView.updateCount();
+        }
+
+        that.viewForPlayer(player).drawCards([card]);
+    });
+
+    this.game.on('draw-cards', function(player, cards) {
+        that.viewForPlayer(player).drawCards(cards);
+    });
+
+    this.game.on('discard-cards', function(player, cards) {
+        var playerView = that.viewForPlayer(player);
+        playerView.discardCards(cards);
+    });
+
+    this.game.on('draw-and-discard-cards', function(player, draw, discard) {
+        var playerView = that.viewForPlayer(player);
+        playerView.drawCards(draw);
+    });
+
+    this.game.on('discard-cards-from-deck', function(player, num) {
+        that.viewForPlayer(player).updateDeckAndDiscardViews();
     });
 
     $(document).on('mouseenter', '.card', function(e) {
@@ -124,30 +179,6 @@ module.exports.GameView = GameView;
 
 GameView.prototype = new util.View();
 
-GameView.prototype.handleGameUpdate = function(update, description, subject, object) {
-    switch(update) {
-        case Game.GameUpdates.BoughtCard:
-        case Game.GameUpdates.GainedCard:
-            this.viewForPile(object).updateCount();
-            this.viewForPlayer(subject).updateDeckAndDiscardViews();
-            break;
-        case Game.GameUpdates.PlayedCard:
-            var cardView = new cardview.CardView(object, false);
-            this.inPlayViews.push(cardView);
-            this.$inPlay.append(cardView.$el);
-            break;
-        case Game.GameUpdates.GameOver:
-            this.showStatusMessage('Game over');
-            this.showScoreSheet();
-            break;
-        case Game.GameUpdates.NextTurn:
-        case Game.GameUpdates.NextPhase:
-            break;
-        default:
-            console.log('unhandled game update', update, description);
-    }
-};
-
 GameView.prototype.viewForInPlayCard = function(card) {
     var cardView = _.find(this.inPlayViews, function(v) {
         return v.card === card;
@@ -160,16 +191,11 @@ GameView.prototype.viewForInPlayCard = function(card) {
     return cardView;
 };
 
-GameView.prototype.viewForPile = function(pile) {
-    var pileView = _.find(this.pileViews, function(p) {
-        return p.pile === pile;
+// Will return null if no pile exist, e.g. for prizes
+GameView.prototype.pileViewForCard = function(card) {
+    return _.find(this.pileViews, function(p) {
+        return p.pile.card === card;
     });
-
-    if (!pileView) {
-        console.error('Missing view for pile', pile);
-    }
-
-    return pileView;
 };
 
 GameView.prototype.viewForPlayer = function(player) {
@@ -185,13 +211,14 @@ GameView.prototype.viewForPlayer = function(player) {
 };
 
 GameView.prototype.showStatusMessage = function(message) {
-    this.statusMessageLabel.$message.text(message);
+    this.$statusMessageLabel.text(message);
 };
 
-GameView.prototype.updateTrashView = function() {
-    var topCard = _.last(this.game.trash);
-    this.trashView.setCardImage(topCard || Cards.Trash);
+GameView.prototype.setTrashViewCard = function(card) {
+    this.trashView.setCardImage(card || Cards.Trash);
 };
+
+// Player Interface Interaction
 
 GameView.prototype.clearSelectionMode = function() {
     this.$kingdomPiles.find('.card')
@@ -214,7 +241,10 @@ GameView.prototype.offerPileSelection = function(selectablePiles, allowCancel, o
     }, this);
 
     _.each(this.pileViews, _.bind(function(pileView) {
-        if (_.contains(selectablePiles, pileView.pile)) {
+        var isSelectable = _.some(selectablePiles, function(p) {
+            return p.card === pileView.pile.card;
+        });
+        if (isSelectable) {
             pileView.$el.addClass('selectable').click(_.bind(function() {
                 endSelection(pileView.pile);
             }, this));
@@ -287,16 +317,6 @@ GameView.prototype.offerOptionalSingleHandSelection = function(player, selectabl
     }
 
     this.offerHandSelection(player, 0, 1, true, selectableCards, util.adaptListToOption(onSelect));
-};
-
-// Prompt user to select one card.
-GameView.prototype.offerSingleHandSelection = function(player, selectableCards, onSelect) {
-    if (arguments.length == 2) {
-        onSelect = selectableCards;
-        selectableCards = player.hand;
-    }
-
-    this.offerHandSelection(player, 1, 1, true, selectableCards, util.adaptListToOption(onSelect));
 };
 
 GameView.prototype.offerMultipleHandSelection = function(player, minCards, maxCards, selectableCards, onSelect) {

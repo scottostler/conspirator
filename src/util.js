@@ -39,7 +39,7 @@ exports.labelRange = function(l, r) {
     if (l == r) {
         return l;
     } else {
-        return l + '-' + r;
+        return l + ' to ' + r;
     }
 };
 
