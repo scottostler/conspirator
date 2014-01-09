@@ -415,8 +415,10 @@ Game.prototype.drawCards = function(player, num) {
 };
 
 Game.prototype.discardCardsFromDeck = function(player, num) {
-    player.discardCardsFromDeck(num);
-    this.log(player.name, 'discards', cards.join(', '));
+    var discarded = player.discardCardsFromDeck(num);
+    if (discarded.length > 0) {
+        this.log(player.name, 'discards', discarded.join(', '));
+    }
     this.emit('discard-cards-from-deck', player, num);
 };
 
