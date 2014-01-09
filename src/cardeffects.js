@@ -276,7 +276,7 @@ Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {
         }
     }
 
-    this.drawAndDiscardFromDeck(player, selectedCards, discard);
+    this.drawAndDiscardFromDeck(player, selectedCards, revealedCards);
     this.advanceGameState();
 };
 
