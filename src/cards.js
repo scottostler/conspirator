@@ -256,6 +256,18 @@ function vpPerNDistinctCards(vpPerIncrement, cardsPerIncrement) {
     };
 }
 
+function drawUniqueCard() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDrawForUniqueCard(activePlayer);
+    };
+}
+
+function gainAndTrashVP() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerGainCardTrashVP(activePlayer);
+    };
+}
+
 /**
  * @constructor
  */
@@ -635,6 +647,8 @@ Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
+    Cards.HornOfPlenty,
+    Cards.HuntingParty,
     Cards.ShantyTown,
     Cards.Steward
 ];
@@ -671,6 +685,20 @@ Cards.Harvest = new Card({
     name: 'Harvest',
     cost: 5,
     effects: [revealUniqueCardsForCoins(4)],
+    set: 'cornucopia'
+});
+
+Cards.HornOfPlenty = new Card({
+    name: 'Horn of Plenty',
+    cost: 5,
+    money: gainAndTrashVP(),
+    set: 'cornucopia'
+});
+
+Cards.HuntingParty = new Card({
+    name: 'Hunting Party',
+    cost: 5,
+    effects: [drawCards(1), gainActions(1), drawUniqueCard()],
     set: 'cornucopia'
 });
 

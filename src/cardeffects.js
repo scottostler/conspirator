@@ -509,3 +509,30 @@ Game.prototype.playerChoosesEffect = function(player, effects) {
         effect(that, that.activePlayer, that.inactivePlayers);
     });
 };
+
+Game.prototype.playerDrawForUniqueCard = function(player) {
+    this.revealPlayerHand(player);
+
+    var discardedCards = [];
+    var drawnCard = player.takeCardFromDeck();
+    while (drawnCard && _.contains(player.hand, drawnCard)) {
+        discardedCards.push(drawnCard);
+        drawnCard = player.takeCardFromDeck();
+    }
+
+    var drawnCardArray = drawnCard ? [drawnCard] : [];
+    this.drawAndDiscardFromDeck(player, drawnCardArray, discardedCards);
+
+    this.advanceGameState();
+};
+
+Game.prototype.playerGainCardTrashVP = function(player) {
+    var cards = this.playArea;
+    var minCost = 0;
+    var maxCost = Cards.uniq(cards).length;
+    this.playerChoosesGainedCardEffect(player, minCost, maxCost, Card.Type.All, function(pile) {
+        if (pile.card.isVictory()) {
+            that.trashCardFromPlay(Cards.HornOfPlenty);
+        }
+    });
+};
