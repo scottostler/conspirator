@@ -8,9 +8,10 @@ function ChatView(socket) {
     $('.message-input button').click(_.bind(this.sendMessage, this));
     util.onEnter($('.message-input input'), _.bind(this.sendMessage, this));
 
+    var that = this;
     socket.on('log', _.bind(this.addMessage, this));
     socket.on('chat', function(data) {
-        addMessage(data.name + ': ' + data.message);
+        that.addMessage(data.name + ': ' + data.message);
     });
 }
 
@@ -23,7 +24,7 @@ ChatView.prototype.addMessage = function(message) {
 ChatView.prototype.sendMessage = function() {
     var $input = $('.message-input input');
     var msg = $input.val();
-    addMessage('me: ' + msg);
+    this.addMessage('me: ' + msg);
     $input.val('');
 
     this.socket.emit('chat', {

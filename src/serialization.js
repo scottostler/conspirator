@@ -26,7 +26,9 @@ function serializePlayer(player, forPlayer) {
 
 
 function serialize(o, forPlayer) {
-    if (o === null) {
+    if (_.isFunction(o)) {
+        throw new Error('Unable to serialize function' + o.toString());
+    } else if (o === null) {
         return null;
     } else if (o instanceof Card) {
         return { _cType: 'card', name: o.name };

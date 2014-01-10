@@ -654,7 +654,7 @@ Cards.Fairgrounds = new Card({
 });
 
 Cards.FarmingVillage = new Card({
-    name: 'FarmingVillage',
+    name: 'Farming Village',
     cost: 4,
     effects: [gainActions(2), drawCardType(1, [Card.Type.Treasure, Card.Type.Action])],
     set: 'cornucopia'

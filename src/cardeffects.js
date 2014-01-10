@@ -504,7 +504,7 @@ Game.prototype.revealAndTestHandEffect = function(test, trueEffect, falseEffect)
 Game.prototype.playerChoosesEffect = function(player, effects) {
     var that = this;
     var decision = Decisions.chooseEffect(this, this.activePlayer, effects);
-    player.decider.promptForDecision(this, decision, function(effect) {
+    player.promptForDecision(this, decision, function(effect) {
         that.log(player.name, 'chooses', effect._optionString);
         effect(that, that.activePlayer, that.inactivePlayers);
     });
