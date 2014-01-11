@@ -647,8 +647,6 @@ Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
-    Cards.HornOfPlenty,
-    Cards.HuntingParty,
     Cards.ShantyTown,
     Cards.Steward
 ];
@@ -704,7 +702,7 @@ Cards.HuntingParty = new Card({
 
 Cards.Jester = new Card({
     name: 'Jester',
-    cost: 3,
+    cost: 5,
     effects: [gainCoins(2), jesterAttack()],
     set: 'cornucopia'
 });
@@ -726,6 +724,8 @@ Cards.Remake = new Card({
 Cards.Cornucopia = [
     Cards.Fairgrounds,
     Cards.Hamlet,
+    Cards.HornOfPlenty,
+    Cards.HuntingParty,
     Cards.Menagerie,
     Cards.Remake,
     Cards.Fortuneteller,
