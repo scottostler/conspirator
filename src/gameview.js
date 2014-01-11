@@ -230,28 +230,34 @@ GameView.prototype.clearSelectionMode = function() {
     });
 };
 
-GameView.prototype.offerPileSelection = function(selectablePiles, allowCancel, onSelect) {
+GameView.prototype.offerPileSelection = function(player, selectablePiles, allowCancel, allowPlayTreasures, onSelect) {
     this.clearSelectionMode();
     this.trashView.$el.addClass('not-selectable');
+    var that = this;
 
-    var endSelection = _.bind(function(pile) {
-        this.hideDoneButton();
-        this.clearSelectionMode();
-        onSelect(pile);
-    }, this);
+    var endSelection = function(pile) {
+        that.hideDoneButton();
+        that.clearSelectionMode();
+        onSelect(pile, null);
+    };
 
-    _.each(this.pileViews, _.bind(function(pileView) {
+    if (allowPlayTreasures) {
+        var treasures = player.
+        this.offerHandSelection(player, 1, 1, true, )
+    }
+
+    _.each(this.pileViews, function(pileView) {
         var isSelectable = _.some(selectablePiles, function(p) {
             return p.card === pileView.pile.card;
         });
         if (isSelectable) {
-            pileView.$el.addClass('selectable').click(_.bind(function() {
+            pileView.$el.addClass('selectable').click(function() {
                 endSelection(pileView.pile);
-            }, this));
+            });
         } else {
             pileView.$el.addClass('not-selectable');
         }
-    }, this));
+    });
 
     if (allowCancel) {
         this.offerDoneButton(endSelection);

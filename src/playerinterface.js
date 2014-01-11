@@ -36,27 +36,27 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions, onAc
     });
 };
 
-PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
+PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
     this.assertPlayer();
     this.gameView.showStatusMessage('Buy a card');
 
-    this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
+    var that = this;
+    this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(pile, treasure) {
         if (pile) {
-            // Player could be a RemotePlayer, with no getTreasuresInHand.
-            var treasures = _.filter(this.player.hand, function(c) {
-                return c.isTreasure();
-            });
+            var treasures = that.player.getTreasuresInHand();
             onBuy(treasures, pile);
+        } else if (treasure) {
+            onBuy([treasure], null);
         } else {
             onBuy([], null);
         }
-    }, this));
+    });
 };
 
 PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.assertPlayer();
     this.gameView.showStatusMessage('Gain a card');
-    this.gameView.offerPileSelection(gainablePiles, false, onGain);
+    this.gameView.offerPileSelection(this.player, gainablePiles, false, false, onGain);
 };
 
 PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, verb, onSelect) {

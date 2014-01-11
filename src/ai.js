@@ -33,7 +33,7 @@ ComputerAI.prototype.promptForAction = function(game, playableActions, onAction)
     onAction(_.sample(playableActions));
 };
 
-ComputerAI.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
+ComputerAI.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
     this.assertPlayer();
 
     var treasures = this.player.getTreasuresInHand();

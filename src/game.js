@@ -31,6 +31,7 @@ function Game(players, kingdomCards) {
     this.playArea = [];
     this.eventStack = [];
     this.hasGameEnded = false;
+    this.cardBought = false; // When true, no more treasures can be played.
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
     var kingdomCardCount = 10;
@@ -128,6 +129,8 @@ Game.prototype.advanceTurn = function() {
         this.players.slice(0, this.activePlayerIndex));
     this.turnState = Game.TurnState.Action;
 
+    this.cardBought = false;
+
     this.activePlayerActionCount = 1;
     this.activePlayerBuyCount = 1;
     this.activePlayerCoinCount = 0;
@@ -169,7 +172,7 @@ Game.prototype.advanceGameState = function() {
             this.stateUpdated();
             this.advanceGameState();
         } else {
-            this.activePlayer.promptForBuy(this, buyablePiles);
+            this.activePlayer.promptForBuy(this, buyablePiles, !this.cardBought);
         }
     } else if (this.turnState == Game.TurnState.Cleanup) {
         this.activePlayer.discard = this.activePlayer.discard.concat(this.playArea);
@@ -236,7 +239,7 @@ Game.prototype.computeEffectiveCardCost = function(card) {
 
 Game.prototype.computeMaximumPurchaseCost = function() {
     return this.activePlayerCoinCount + _.mapSum(this.activePlayer.hand, function(card) {
-        return card.money ? card.money : 0;
+        return card.money && _.isNumber(card.money) ? card.money : 0;
     });
 };
 
@@ -259,8 +262,13 @@ Game.prototype.playTreasure = function(card) {
     this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
 
-    this.activePlayerCoinCount += card.money;
+    if (_.isFunction(card.money)) {
+        this.pushGameEvent(card.money);
+    } else {
+        this.activePlayerCoinCount += card.money;
+    }
 
+    this.stateUpdated();
     this.emit('play-card', this.activePlayer, card);
 }
 
@@ -281,6 +289,7 @@ Game.prototype.buyFromPile = function(pile) {
     pile.count--;
     this.activePlayerCoinCount -= cost;
     this.activePlayer.discard.push(pile.card);
+    this.cardBought = true;
 
     this.stateUpdated();
     this.emit('gain-card', this.activePlayer, pile.card);

@@ -262,7 +262,7 @@ function drawUniqueCard() {
     };
 }
 
-function gainAndTrashVP() {
+function gainAndTrashIfVP() {
     return function(game, activePlayer, otherPlayers) {
         game.playerGainCardTrashVP(activePlayer);
     };
@@ -274,7 +274,7 @@ function gainAndTrashVP() {
 function Card(properties) {
     _.extend(this, properties);
 
-    var filename = this.name.toLowerCase().replace(' ', '') + '.jpg';
+    var filename = this.name.toLowerCase().replace(/\s+/g, '') + '.jpg';
     this.assetURL = [Cards.AssetRoot, this.set, filename].join('/');
 }
 
@@ -688,8 +688,8 @@ Cards.Harvest = new Card({
 
 Cards.HornOfPlenty = new Card({
     name: 'Horn of Plenty',
-    cost: 5,
-    money: gainAndTrashVP(),
+    cost: 3,
+    money: gainAndTrashIfVP(),
     set: 'cornucopia'
 });
 

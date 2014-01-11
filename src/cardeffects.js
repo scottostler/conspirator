@@ -3,6 +3,7 @@ var util = require('./util.js');
 var Player = require('./player.js');
 var Game = require('./game.js').Game;
 var Decisions = require('./decisions.js');
+var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
 
 // Effects implement card effects, and when fully

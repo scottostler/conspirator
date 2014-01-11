@@ -119,5 +119,10 @@ RemotePlayer.prototype.topDiscard = function() {
     return this.state.topDiscard;
 };
 
+RemotePlayer.prototype.getTreasuresInHand = {
+    return this.hand.filter(function(c) {
+        return c.isTreasure();
+    });
+};
 
 module.exports = RemoteGame;

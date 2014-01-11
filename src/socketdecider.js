@@ -59,11 +59,11 @@ SocketDecider.prototype.promptForAction = function(game, playableActions, onActi
     this.socket.emit('action-prompt', serialization.serialize(playableActions));
 };
 
-SocketDecider.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
+SocketDecider.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
     this.assertPlayer();
     this.assertNoCallback();
     this.pendingRequestCallback = onBuy;
-    this.socket.emit('buy-prompt', serialization.serialize(buyablePiles));
+    this.socket.emit('buy-prompt', serialization.serialize(buyablePiles), allowTreasures);
 };
 
 SocketDecider.prototype.promptForGain = function(game, gainablePiles, onGain) {

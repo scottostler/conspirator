@@ -172,8 +172,8 @@ Player.prototype.promptForAction = function(game, playableActions) {
     });
 };
 
-Player.prototype.promptForBuy = function(game, buyablePiles) {
-    this.decider.promptForBuy(game, buyablePiles, function(treasures, pileToBuy) {
+Player.prototype.promptForBuy = function(game, buyablePiles, allowTreasures) {
+    this.decider.promptForBuy(game, buyablePiles, allowTreasures, function(treasures, pileToBuy) {
         if (pileToBuy && !pileToBuy instanceof Pile) {
             throw new Error('Invalid pile to buy: ' + pileToBuy);
         }
@@ -187,8 +187,10 @@ Player.prototype.promptForBuy = function(game, buyablePiles) {
 
         if (pileToBuy) {
             game.buyFromPile(pileToBuy);
-        } else {
+        } else if (treasures.length === 0) {
             game.skipBuys();
+        } else {
+            game.advanceGameState();
         }
     });
 };
