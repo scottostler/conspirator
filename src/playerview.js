@@ -71,7 +71,9 @@ PlayerView.prototype.removeCardFromHand = function(card) {
 };
 
 PlayerView.prototype.clearSelectionMode = function() {
-    this.$el.find('.card').unbind('click').removeClass('selectable not-selectable selected');
+    this.$el.find('.card')
+        .off('click mouseenter mouseleave')
+        .removeClass('selectable not-selectable selected highlight not-highlight');
 };
 
 PlayerView.prototype.drawCards = function(cards) {
@@ -115,6 +117,22 @@ HumanPlayerView.prototype.applyHandTransformations = function() {};
 HumanPlayerView.prototype.isActivePlayer = function() {
     return true;
 }
+
+HumanPlayerView.prototype.highlightBasicTreasures = function() {
+    _.each(this.cardViewsInHand, function(cv) {
+        if (cv.card.isBasicTreasure()) {
+            cv.$el.addClass('highlight');
+        } else {
+             cv.$el.addClass('not-highlight');
+        }
+    });
+};
+
+HumanPlayerView.prototype.unhighlightCardViews = function() {
+    _.each(this.cardViewsInHand, function(cv) {
+        cv.$el.removeClass('highlight not-highlight');
+    });
+};
 
 // RemotePlayerView
 

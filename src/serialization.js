@@ -38,7 +38,7 @@ function serialize(o, forPlayer) {
         return { _cType: 'pile', card: o.card.name, count: o.count };
     } else if (_.isArray(o)) {
         return _.map(o, function(c) { return serialize(c, forPlayer); });
-    } else if (_.isObject(o) || _.isString(o) || _.isNumber(o)) {
+    } else if (_.isObject(o) || _.isString(o) || _.isNumber(o) || _.isBoolean(o)) {
         return o;
     } else {
         throw new Error('Unable to serialize ' + o);
@@ -65,7 +65,7 @@ function deserialize(o, playerLookupFunc) {
         return _.map(o, function(c) {
             return deserialize(c, playerLookupFunc);
         });
-    } else if (_.isObject(o) || _.isString(o) || _.isNumber(o)) {
+    } else if (_.isObject(o) || _.isString(o) || _.isNumber(o) || _.isBoolean(o)) {
         return o;
     } else {
         throw new Error('Unable to deserialize ' + o);

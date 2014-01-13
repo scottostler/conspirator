@@ -149,7 +149,7 @@ Game.prototype.playersGainCardsEffect = function(players, cards, ontoDeck) {
         _.each(cards, function(card) {
             var pile = that.pileForCard(card);
             if (pile.count > 0) {
-                that.playerGainsFromPile(player, pile, ontoDeck);
+                that.playerGainsCard(player, card, ontoDeck);
             }
         });
     });
@@ -165,7 +165,7 @@ Game.prototype.playersGainCardsAttack = function(players, cards) {
             _.each(cards, function(card) {
                 var pile = that.pileForCard(card);
                 if (pile.count > 0) {
-                    that.playerGainsFromPile(player, pile, false);
+                    that.playerGainsCard(player, card, false);
                 }
             });
 
@@ -187,7 +187,7 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
         var gainAttack = function() {
             var pile = that.pileForCard(Cards.Curse);
             if (pile.count > 0) {
-                that.playerGainsFromPile(targetPlayer, pile, false);
+                that.playerGainsCard(targetPlayer, Cards.Curse, false);
             }
             that.advanceGameState();
         };
@@ -206,9 +206,9 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
                 var decision = Decisions.gainCard(that, card);
                 attackingPlayer.promptForDecision(that, decision, function(choice) {
                     if (choice === Decisions.Options.Yes) {
-                        that.playerGainsFromPile(attackingPlayer, pile, false);
+                        that.playerGainsCard(attackingPlayer, card, false);
                     } else {
-                        that.playerGainsFromPile(targetPlayer, pile, false);
+                        that.playerGainsCard(targetPlayer, card, false);
                     }
                     that.advanceGameState();
                 });
@@ -224,16 +224,21 @@ Game.prototype.playersDiscardCardJesterAttack = function(attackingPlayer, target
     this.advanceGameState();
 };
 
-Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost, cardOrType, intoHand) {
+Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost, cardOrType, intoHand, onGain) {
     var that = this;
     var gainablePiles = this.filterGainablePiles(minCost, maxCost, cardOrType);
     if (gainablePiles.length > 0) {
-        player.promptForGain(this, gainablePiles, function(pile) {
+        player.promptForGain(this, gainablePiles, function(card) {
             if (intoHand) {
-                that.playerGainsFromPile(player, pile, false, true);
+                that.playerGainsCard(player, card, false, true);
             } else {
-                that.playerGainsFromPile(player, pile, false, false);
+                that.playerGainsCard(player, card, false, false);
             }
+
+            if (onGain) {
+                onGain(card);
+            }
+
             that.advanceGameState();
         });
     } else {
@@ -530,8 +535,10 @@ Game.prototype.playerGainCardTrashVP = function(player) {
     var cards = this.playArea;
     var minCost = 0;
     var maxCost = Cards.uniq(cards).length;
-    this.playerChoosesGainedCardEffect(player, minCost, maxCost, Card.Type.All, function(pile) {
-        if (pile.card.isVictory()) {
+    var that = this;
+
+    this.playerChoosesGainedCardEffect(player, minCost, maxCost, Card.Type.All, false, function(card) {
+        if (card.isVictory()) {
             that.trashCardFromPlay(Cards.HornOfPlenty);
         }
     });

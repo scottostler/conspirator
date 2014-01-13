@@ -2,6 +2,7 @@ var _ = require('underscore');
 var events = require('events');
 var util = require('./util.js');
 var Player = require('./player.js');
+var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
 var Pile = require('./cards.js').Pile;
 
@@ -254,7 +255,7 @@ Game.prototype.currentlyBuyablePiles = function() {
 // Game-state changes
 
 Game.prototype.playTreasure = function(card) {
-    this.log(this.activePlayer.name, 'played', card.name);
+    this.log(this.activePlayer.name, 'plays', card.name);
 
     this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
@@ -264,12 +265,19 @@ Game.prototype.playTreasure = function(card) {
     this.emit('play-card', this.activePlayer, card);
 }
 
-Game.prototype.buyFromPile = function(pile) {
-    this.log(this.activePlayer.name, 'buys', pile.card.name);
+Game.prototype.buyCard = function(card) {
+    if (!card instanceof Card) {
+        throw new Error('Invalid argument: ' + card);
+    }
 
-    var cost = this.computeEffectiveCardCost(pile.card);
+    this.log(this.activePlayer.name, 'buys', card.name);
 
-    if (this.activePlayerBuyCount == 0) {
+    var cost = this.computeEffectiveCardCost(card);
+    var pile = this.pileForCard(card);
+
+    if (!pile) {
+        throw new Error('No pile for card: ' + card.name);
+    } else if (this.activePlayerBuyCount == 0) {
         throw new Error('Unable to buy with zero buys');
     } else if (pile.count == 0) {
         throw new Error('Unable to buy from empty pile');
@@ -283,13 +291,15 @@ Game.prototype.buyFromPile = function(pile) {
     this.activePlayer.discard.push(pile.card);
 
     this.stateUpdated();
-    this.emit('gain-card', this.activePlayer, pile.card);
+    this.emit('gain-card', this.activePlayer, card, pile.count);
 
     this.advanceGameState();
 };
 
 
-Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck, intoHand) {
+Game.prototype.playerGainsCard = function(player, card, ontoDeck, intoHand) {
+    var pile = this.pileForCard(card);
+
     if (pile.count == 0) {
         throw new Error('Unable to buy from empty pile');
     }
@@ -299,27 +309,31 @@ Game.prototype.playerGainsFromPile = function(player, pile, ontoDeck, intoHand) 
     }
 
     if (ontoDeck) {
-        this.log(player.name, 'gains', pile.card.name, 'onto deck');
+        this.log(player.name, 'gains', card.name, 'onto deck');
     } else if (intoHand) {
-        this.log(player.name, 'gains', pile.card.name, 'into hand');
+        this.log(player.name, 'gains', card.name, 'into hand');
     } else {
-        this.log(player.name, 'gains', pile.card.name);
+        this.log(player.name, 'gains', card.name);
     }
 
     pile.count--;
     if (ontoDeck){
-        player.deck.push(pile.card);
-        this.emit('gain-card', player, pile.card);
+        player.deck.push(card);
+        this.emit('gain-card-onto-deck', player, card, pile.count);
     } else if (intoHand) {
-        player.hand.push(pile.card);
-        this.emit('gain-card-into-hand', player, pile.card);
+        player.hand.push(card);
+        this.emit('gain-card-into-hand', player, card, pile.count);
     } else {
-        player.discard.push(pile.card);
-        this.emit('gain-card', player, pile.card);
+        player.discard.push(card);
+        this.emit('gain-card', player, card, pile.count);
     }
 };
 
 Game.prototype.playAction = function(card) {
+    if (!card instanceof Card) {
+        throw new Error('Invalid argument: ' + card);
+    }
+
     this.log(this.activePlayer.name, 'played', card.name);
 
     this.activePlayerActionCount--;
@@ -404,6 +418,7 @@ Game.prototype.trashCardFromPlay = function(card) {
     if (_.contains(this.playArea, card)) {
         this.playArea = util.removeFirst(this.playArea, card);
         this.trash.push(card);
+        this.log(this.activePlayer.name, 'trashes', card.name);
         this.emit('trash-card-from-play', card);
     }
 };
@@ -483,7 +498,11 @@ Game.prototype.endGame = function() {
     });
     this.log('- Piles:', piles.join(", "));
 
-    this.emit('game-over');
+    var fullDecks = this.players.map(function(p) {
+        return p.getFullDeck();
+    });
+
+    this.emit('game-over', fullDecks);
 };
 
 // cardeffects.js extends Game as a side-effect of being loaded.

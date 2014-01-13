@@ -239,10 +239,11 @@ function revealToAvoidAttack() {
 }
 
 // VP counts
+// They take the user's full deck as their argument.
 
 function vpPerNCards(cardsPerVP, cardOrType) {
-    return function(activePlayer) {
-        var matchingCards = activePlayer.getFullDeck().filter(function(card) {
+    return function(deck) {
+        var matchingCards = deck.filter(function(card) {
             return card.matchesCardOrType(cardOrType);
         });
         return Math.floor(matchingCards.length / cardsPerVP);
@@ -250,8 +251,8 @@ function vpPerNCards(cardsPerVP, cardOrType) {
 }
 
 function vpPerNDistinctCards(vpPerIncrement, cardsPerIncrement) {
-    return function(activePlayer) {
-        var uniqueCards = Cards.uniq(activePlayer.getFullDeck());
+    return function(deck) {
+        var uniqueCards = Cards.uniq(deck);
         return Math.floor(uniqueCards.length / cardsPerIncrement) * vpPerIncrement;
     };
 }
@@ -300,6 +301,10 @@ Card.prototype.isReaction = function() {
 
 Card.prototype.isTreasure = function() {
     return this.money !== undefined;
+};
+
+Card.prototype.isBasicTreasure = function () {
+    return _.isNumber(this.money);
 };
 
 Card.prototype.isVictory = function() {
@@ -689,7 +694,7 @@ Cards.Harvest = new Card({
 Cards.HornOfPlenty = new Card({
     name: 'Horn of Plenty',
     cost: 5,
-    money: gainAndTrashVP(),
+    money: gainAndTrashIfVP(),
     set: 'cornucopia'
 });
 
