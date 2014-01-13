@@ -240,7 +240,7 @@ Game.prototype.computeEffectiveCardCost = function(card) {
 
 Game.prototype.computeMaximumPurchaseCost = function() {
     return this.activePlayerCoinCount + _.mapSum(this.activePlayer.hand, function(card) {
-        return card.money && _.isNumber(card.money) ? card.money : 0;
+            return card.isBasicTreasure() ? card.money : 0;
     });
 };
 
