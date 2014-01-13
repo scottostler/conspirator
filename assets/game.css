@@ -176,10 +176,6 @@ html body {
     font-size: 14pt;
 }
 
-.status-counters .extra-coins {
-    color: gold;
-}
-
 /* Basic Layouts */
 
 .shared-piles {
@@ -273,6 +269,7 @@ html body {
 
 /* Selection states */
 
+
 .kingdom-piles .card.not-selectable {
     opacity:0.6;
 }
@@ -306,13 +303,6 @@ html body {
     z-index: 5;
 
     outline: 2px solid yellow;
-}
-
-/* Note: cards are assumed to not be highlighted and selected at the same time!  */
-.hand .card.highlight:not(.selected) {
-    cursor: pointer;
-    -webkit-transform: translateY(-15px);
-    z-index: 5;
 }
 
 /* Modals */

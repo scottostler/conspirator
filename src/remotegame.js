@@ -4,7 +4,6 @@ var _ = require('underscore');
 var events = require('events');
 var util = require('./util.js');
 var Cards = require('./cards.js').Cards;
-var BasePlayer = require('./baseplayer.js');
 var serialization = require('./serialization.js');
 
 function deserializeArguments(args, playerLookupFunc) {
@@ -35,8 +34,8 @@ function RemoteGame(socket, gameState, humanInterface) {
 
     var forwardedEvents = [
         'state-update', 'draw-cards', 'empty-play-area', 'trash-card-from-play',
-        'trash-cards-from-hand', 'add-card-to-trash', 'play-card',
-        'gain-card', 'gain-card-onto-deck', 'gain-card-into-hand', 'discard-cards', 'draw-and-discard-cards',
+        'trash-cards-from-hand', 'add-card-to-trash', 'game-over', 'play-card',
+        'gain-card', 'gain-card-into-hand', 'discard-cards', 'draw-and-discard-cards',
         'discard-cards-from-deck'];
 
     _.each(forwardedEvents, function(eventName) {
@@ -46,16 +45,6 @@ function RemoteGame(socket, gameState, humanInterface) {
             that.emit.apply(that, emitArgs);
         });
     }, this);
-
-    socket.on('game-over', function(rawDecks) {
-        var fullDecks = serialization.deserialize(rawDecks);
-        _.each(_.zip(that.players, fullDecks), function(p) {
-            var player = p[0], deck = p[1];
-            player.fullDeck = deck;
-        });
-
-        that.emit('game-over');
-    });
 
     this.listenForPrompt('action-prompt', 'promptForAction');
     this.listenForPrompt('buy-prompt', 'promptForBuy');
@@ -112,10 +101,7 @@ function RemotePlayer(playerState) {
     this.id = playerState.id;
     this.name = playerState.name;
     this.updateLocalState(playerState);
-    this.fullDeck = null;
 };
-
-RemotePlayer.prototype = Object.create(BasePlayer.prototype);
 
 RemotePlayer.prototype.updateLocalState = function(playerState) {
     this.state = playerState;
@@ -125,20 +111,6 @@ RemotePlayer.prototype.updateLocalState = function(playerState) {
     this.hand = serialization.deserialize(playerState.hand);
 };
 
-// Abstract methods
-
-RemotePlayer.prototype.getHand = function() {
-    return this.hand;
-};
-
-RemotePlayer.prototype.getFullDeck = function() {
-    if (!this.fullDeck) {
-        throw new Error('getFullDeck can only be called when the game is over');
-    }
-
-    return this.fullDeck;
-};
-
 RemotePlayer.prototype.deckCount = function() {
     return this.state.deckCount;
 };
@@ -146,5 +118,6 @@ RemotePlayer.prototype.deckCount = function() {
 RemotePlayer.prototype.topDiscard = function() {
     return this.state.topDiscard;
 };
+
 
 module.exports = RemoteGame;

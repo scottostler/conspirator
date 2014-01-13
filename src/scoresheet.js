@@ -24,7 +24,7 @@ function ScoreSheet(game, $el) {
     var that = this;
     this.$el.find('.new-game').click(function() {
         that.close();
-        window.conspirator.beginLocalGame(); // TODO: adapt for server games
+        window.conspirator.beginLocalGame();
     });
 }
 

@@ -29,7 +29,7 @@ PlayerInterface.prototype.getGameView = function() {
 
 PlayerInterface.prototype.promptForAction = function(game, playableActions, onAction) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Play action');
+    this.gameView.showStatusMessage('Play an action');
 
     this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
         onAction(action);
@@ -38,10 +38,8 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions, onAc
 
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
     this.assertPlayer();
-    var message = allowTreasures ? 'Play treasure or buy card' : 'Buy card';
-    this.gameView.showStatusMessage(message);
+    this.gameView.showStatusMessage('Buy a card');
 
-<<<<<<< HEAD
     this.gameView.offerPileSelection(buyablePiles, true, _.bind(function(pile) {
         if (pile) {
             // Player could be a RemotePlayer, with no getTreasuresInHand.
@@ -49,16 +47,6 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
                 return c.isTreasure();
             });
             onBuy(treasures, pile);
-=======
-    var that = this;
-    this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(card, treasures) {
-        if (card) {
-            // Auto-play basic tresures when buying.
-            var treasures = that.player.getBasicTreasuresInHand();
-            onBuy(treasures, card);
-        } else if (treasures) {
-            onBuy(treasures, null);
->>>>>>> 7df4b20... Update for new treasure playing mode
         } else {
             onBuy([], null);
         }
@@ -67,13 +55,8 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
 
 PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.assertPlayer();
-<<<<<<< HEAD
     this.gameView.showStatusMessage('Gain a card');
     this.gameView.offerPileSelection(gainablePiles, false, onGain);
-=======
-    this.gameView.showStatusMessage('Gain card');
-    this.gameView.offerPileSelection(this.player, gainablePiles, false, false, onGain);
->>>>>>> 7df4b20... Update for new treasure playing mode
 };
 
 PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, verb, onSelect) {
@@ -113,7 +96,7 @@ PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide)
 
 PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Reveal reaction card');
+    this.gameView.showStatusMessage('Reveal a reaction card');
     this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
 };
 

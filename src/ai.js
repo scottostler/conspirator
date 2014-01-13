@@ -43,14 +43,12 @@ ComputerAI.prototype.promptForBuy = function(game, buyablePiles, onBuy) {
         return index === -1 ? that.buyList.length + Math.random() : index;
     });
 
-    var selection = _.head(sortedPiles);
-    onBuy(treasures, selection ? selection.card : null);
+    onBuy(treasures, _.head(sortedPiles));
 }
 
 ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.assertPlayer();
-    var selection = _.sample(gainablePiles);
-    onGain(selection ? selection.card : null);
+    onGain(_.sample(gainablePiles));
 };
 
 ComputerAI.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
