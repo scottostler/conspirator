@@ -1,8 +1,8 @@
 var _ = require('underscore');
-var events = require('events');
 var Cards = require('./cards.js').Cards;
 var Card = require('./cards.js').Card;
 var Pile = require('./cards.js').Pile;
+var BasePlayer = require('./baseplayer.js');
 var util = require('./util.js');
 
 function startingDeck() {
@@ -28,7 +28,7 @@ function Player(name, decider, id) {
     this.discard = [];
 }
 
-Player.prototype = Object.create(events.EventEmitter.prototype);
+Player.prototype = Object.create(BasePlayer.prototype);
 
 Player.prototype.setGameEmitter = function(gameEmitter) {
     this.gameEmitter = gameEmitter;
@@ -106,47 +106,15 @@ Player.prototype.shuffleCompletely = function() {
     this.gameEmitter.emit('shuffle', this);
 };
 
-Player.prototype.getMatchingCardsInHand = function(cardOrType) {
-    return _.filter(this.hand, function(c) {
-        return c.matchesCardOrType(cardOrType);
-    });
-};
+// Abstract methods
 
-Player.prototype.getTreasuresInHand = function() {
-    return this.getMatchingCardsInHand(Card.Type.Treasure);
-};
-
-Player.prototype.getActionsInHand = function() {
-    return this.getMatchingCardsInHand(Card.Type.Action);
-};
-
-Player.prototype.getReactionsInHand = function() {
-    return this.getMatchingCardsInHand(Card.Type.Reaction);
+Player.prototype.getHand = function() {
+    return this.hand;
 };
 
 Player.prototype.getFullDeck = function() {
     return this.hand.concat(this.deck, this.discard);
 };
-
-Player.prototype.getMatchingCardsInFullDeck = function(cardOrType) {
-    return this.getFullDeck().filter(function(c) {
-        return c.matchesCardOrType(cardOrType);
-    });
-};
-
-Player.prototype.calculateScore = function() {
-    var that = this;
-    var score = _.mapSum(this.getFullDeck(), function(card) {
-        if (_.has(card, 'vp')) {
-            return _.isFunction(card.vp) ? card.vp(that) : card.vp;
-        } else {
-            return 0;
-        }
-    });
-    return score;
-};
-
-// Client-side functions
 
 Player.prototype.deckCount = function() {
     return this.deck.length;
@@ -173,20 +141,20 @@ Player.prototype.promptForAction = function(game, playableActions) {
 };
 
 Player.prototype.promptForBuy = function(game, buyablePiles, allowTreasures) {
-    this.decider.promptForBuy(game, buyablePiles, allowTreasures, function(treasures, pileToBuy) {
-        if (pileToBuy && !pileToBuy instanceof Pile) {
-            throw new Error('Invalid pile to buy: ' + pileToBuy);
+    this.decider.promptForBuy(game, buyablePiles, allowTreasures, function(treasures, cardToBuy) {
+        if (cardToBuy && cardToBuy instanceof Card === false) {
+            throw new Error('Invalid card to buy: ' + cardToBuy);
         }
 
         _.each(treasures, function(treasure) {
-            if (!treasure instanceof Card) {
-                throw new Error('Invalid treasure to play: ' + treasure);
+            if (treasure instanceof Card === false) {
+                throw new Error('Invalid treasure to play: ' + JSON.stringify(treasure));
             }
             game.playTreasure(treasure);
         });
 
-        if (pileToBuy) {
-            game.buyFromPile(pileToBuy);
+        if (cardToBuy) {
+            game.buyCard(cardToBuy);
         } else if (treasures.length === 0) {
             game.skipBuys();
         } else {

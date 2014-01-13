@@ -11,9 +11,11 @@ var ScoreSheet = require('./scoresheet.js');
  */
 function GameStateView(game) {
     this.$counters = $('.status-counters');
+    this.lastUpdate = null;
 }
 
 GameStateView.prototype.updateStatusCounter = function(update) {
+    this.lastUpdate = update;
     this.$counters.find('.turn-label').text(
         util.possessive(update.activePlayer) + ' Turn ' + update.turnCount);
 
@@ -23,6 +25,15 @@ GameStateView.prototype.updateStatusCounter = function(update) {
     this.$counters.find('.action-count').text(update.actionCount);
     this.$counters.find('.buy-count').text(update.buyCount);
     this.$counters.find('.coin-count').text(update.coinCount);
+    this.$counters.find('.extra-coins').text('');
+};
+
+GameStateView.prototype.showExtraCoinIndicator = function(extraCoins) {
+    this.$counters.find('.extra-coins').text('+' + extraCoins);
+};
+
+GameStateView.prototype.hideExtraCoinIndicator = function() {
+    this.$counters.find('.extra-coins').text('');
 };
 
 function reorderKingdomPileGroups(pileGroups) {
@@ -124,19 +135,28 @@ function GameView(game, humanPlayerIndex) {
         playerView.removeCardFromHand(card);
     });
 
-    this.game.on('gain-card', function(player, card) {
+    this.game.on('gain-card', function(player, card, newCount) {
         var pileView = that.pileViewForCard(card);
         if (pileView) {
-            pileView.updateCount();
+            pileView.updateCount(newCount);
         }
 
         that.viewForPlayer(player).updateDeckAndDiscardViews();
     });
 
-    this.game.on('gain-card-into-hand', function(player, card) {
+    this.game.on('gain-card-onto-deck', function(player, card, newCount) {
         var pileView = that.pileViewForCard(card);
         if (pileView) {
-            pileView.updateCount();
+            pileView.updateCount(newCount);
+        }
+
+        that.viewForPlayer(player).updateDeckAndDiscardViews();
+    });
+
+    this.game.on('gain-card-into-hand', function(player, card, newCount) {
+        var pileView = that.pileViewForCard(card);
+        if (pileView) {
+            pileView.updateCount(newCount);
         }
 
         that.viewForPlayer(player).drawCards([card]);
@@ -221,8 +241,10 @@ GameView.prototype.setTrashViewCard = function(card) {
 // Player Interface Interaction
 
 GameView.prototype.clearSelectionMode = function() {
+    this.gameStateView.hideExtraCoinIndicator();
+
     this.$kingdomPiles.find('.card')
-        .removeClass('selectable not-selectable').unbind('click').unbind('hover');
+        .removeClass('selectable not-selectable').unbind('click mouseenter mouseleave');
     this.trashView.$el.removeClass('selectable not-selectable');
 
     this.playerViews.forEach(function(view) {
@@ -230,21 +252,27 @@ GameView.prototype.clearSelectionMode = function() {
     });
 };
 
+// Used for buying or gaining cards from piles.
+// Optionally allows treasures in be played while buying.
 GameView.prototype.offerPileSelection = function(player, selectablePiles, allowCancel, allowPlayTreasures, onSelect) {
     this.clearSelectionMode();
     this.trashView.$el.addClass('not-selectable');
     var that = this;
 
-    var endSelection = function(pile) {
+    var endSelection = function(card, treasure) {
         that.hideDoneButton();
         that.clearSelectionMode();
-        onSelect(pile, null);
+        onSelect(card, treasure);
     };
 
     if (allowPlayTreasures) {
-        var treasures = player.
-        this.offerHandSelection(player, 1, 1, true, )
+        var treasures = player.getTreasuresInHand();
+        this.offerHandSelection(player, 1, 1, true, treasures, util.adaptListToOption(function(card) {
+            endSelection(null, [card]);
+        }));
     }
+
+    var playerView = this.viewForPlayer(player);
 
     _.each(this.pileViews, function(pileView) {
         var isSelectable = _.some(selectablePiles, function(p) {
@@ -252,15 +280,29 @@ GameView.prototype.offerPileSelection = function(player, selectablePiles, allowC
         });
         if (isSelectable) {
             pileView.$el.addClass('selectable').click(function() {
-                endSelection(pileView.pile);
+                endSelection(pileView.pile.card, null);
             });
+
+            if (allowPlayTreasures) {
+                var basicCoinMoney = _.mapSum(player.getBasicTreasuresInHand(), function(c) {
+                    return c.money;
+                });
+
+                pileView.$el.hover(function() {
+                    playerView.highlightBasicTreasures();
+                    that.gameStateView.showExtraCoinIndicator(basicCoinMoney);
+                }, function() {
+                    playerView.unhighlightCardViews();
+                    that.gameStateView.hideExtraCoinIndicator();
+                });
+            }
         } else {
             pileView.$el.addClass('not-selectable');
         }
     });
 
     if (allowCancel) {
-        this.offerDoneButton(endSelection);
+        this.offerDoneButton(_.partial(endSelection, null, null));
     }
 };
 

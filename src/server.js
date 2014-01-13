@@ -44,7 +44,7 @@ function collectGameState(game, forPlayer) {
 }
 
 function startGame(players) {
-    var gameInstance = new game.Game(players);
+    var gameInstance = new game.Game(players, []);
 
     gameInstance.emit = function(eventName, a, b) {
         var args = _.toArray(arguments);
@@ -88,7 +88,9 @@ io.sockets.on('connection', function(socket) {
         });
     });
 
-    startGame(players);
+    if (players.length === 2) {
+        startGame(players);
+    }
 });
 
 var port = process.env.PORT || 3000;

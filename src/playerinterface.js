@@ -29,7 +29,7 @@ PlayerInterface.prototype.getGameView = function() {
 
 PlayerInterface.prototype.promptForAction = function(game, playableActions, onAction) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Play an action');
+    this.gameView.showStatusMessage('Play action');
 
     this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
         onAction(action);
@@ -38,15 +38,17 @@ PlayerInterface.prototype.promptForAction = function(game, playableActions, onAc
 
 PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Buy a card');
+    var message = allowTreasures ? 'Play treasure or buy card' : 'Buy card';
+    this.gameView.showStatusMessage(message);
 
     var that = this;
-    this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(pile, treasure) {
-        if (pile) {
-            var treasures = that.player.getTreasuresInHand();
-            onBuy(treasures, pile);
-        } else if (treasure) {
-            onBuy([treasure], null);
+    this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(card, treasures) {
+        if (card) {
+            // Auto-play basic tresures when buying.
+            var treasures = that.player.getBasicTreasuresInHand();
+            onBuy(treasures, card);
+        } else if (treasures) {
+            onBuy(treasures, null);
         } else {
             onBuy([], null);
         }
@@ -55,7 +57,7 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, allowTreas
 
 PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Gain a card');
+    this.gameView.showStatusMessage('Gain card');
     this.gameView.offerPileSelection(this.player, gainablePiles, false, false, onGain);
 };
 
@@ -96,7 +98,7 @@ PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide)
 
 PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
     this.assertPlayer();
-    this.gameView.showStatusMessage('Reveal a reaction card');
+    this.gameView.showStatusMessage('Reveal reaction card');
     this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
 };
 

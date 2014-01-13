@@ -53,16 +53,16 @@ function PileView(pile) {
 
     this.$badge = $('<div>').text(this.pile.count).addClass('badge badge-warning');
     this.$el.append(this.$badge);
-    this.updateCount();
+    this.updateCount(pile.count);
 
     this.$el.data('view', this);
 }
 
 PileView.prototype = Object.create(View.prototype);
 
-PileView.prototype.updateCount = function() {
+PileView.prototype.updateCount = function(newCount) {
     if (this.$badge) {
-        this.$badge.text(this.pile.count);
+        this.$badge.text(newCount);
     }
 };
 
