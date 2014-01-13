@@ -4,9 +4,9 @@ var Cards = [];
 
 Cards.AssetRoot = 'assets/cards-296x473';
 
-Function.prototype.label = function(string) {
-    this._optionString = string;
-    return this;
+function label(f, string) {
+    f._optionString = string;
+    return f;
 };
 
 // Card utility functions
@@ -38,34 +38,34 @@ Cards.getCardByName = function(cardName) {
 // Card effect definitions
 
 function gainCoins(num) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
         game.activePlayerGainsCoinsEffect(num);
-    }.label('+' + num + ' ' + util.pluralize('coin', num));
+    }, '+' + num + ' ' + util.pluralize('coin', num));
 }
 
 function gainActions(num) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
        game.activePlayerGainsActionsEffect(num);
-    }.label('+' + num + ' ' + util.pluralize('action', num));
+    }, '+' + num + ' ' + util.pluralize('action', num));
 }
 
 function gainBuys(num) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
        game.activePlayerGainsBuysEffect(num);
-    }.label('+' + num + ' ' + util.pluralize('buy', num));
+    }, '+' + num + ' ' + util.pluralize('buy', num));
 }
 
 function drawCards(num) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
         game.playerDrawsCardsEffect(activePlayer, num);
-    }.label('+' + num + ' ' + util.pluralize('card', num));
+    }, '+' + num + ' ' + util.pluralize('card', num));
 }
 
 function trashCards(min, max) {
     if (max === undefined) { max = min; }
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
         game.playerTrashesCardsEffect(activePlayer, min, max, Card.Type.All);
-    }.label('Trash ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
+    }, 'Trash ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
 }
 
 function drawToNCardsAllowingDiscardsOfType(num, cardOrType) {
@@ -634,6 +634,14 @@ Cards.Harem = new Card({
     set: 'intrigue'
 });
 
+Cards.Nobles = new Card({
+    name: 'Nobles',
+    cost: 6,
+    effects: [chooseEffect([gainActions(2), drawCards(3)])],
+    vp: 2,
+    set: 'intrigue'
+});
+
 Cards.ShantyTown = new Card({
     name: 'Shanty Town',
     cost: 3,
@@ -652,6 +660,7 @@ Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
+    Cards.Nobles,
     Cards.ShantyTown,
     Cards.Steward
 ];
