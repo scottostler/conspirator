@@ -45,9 +45,10 @@ Decisions.gainCard = function(game, card) {
 };
 
 Decisions.chooseCardToGain = function(choosingPlayer, gainingPlayer, cards) {
-    var playerNoun = choosingPlayer === gainingPlayer ? 'you' : gainingPlayer.name;
+    var gainPhrase = choosingPlayer === gainingPlayer
+            ? '' : 'for ' + gainingPlayer.name + ' ';
     return {
-        title: 'Choose card for ' + playerNoun + ' to gain',
+        title: 'Choose card ' + gainPhrase + 'to gain',
         options: cards
     };
 };

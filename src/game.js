@@ -33,6 +33,9 @@ function Game(players, kingdomCards) {
     this.eventStack = [];
     this.hasGameEnded = false;
     this.cardBought = false; // When true, no more treasures can be played.
+    this.activePlayerActionCount = 0;
+    this.activePlayerBuyCount = 0;
+    this.activePlayerCoinCount = 0;
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
     var kingdomCardCount = 10;
@@ -131,7 +134,6 @@ Game.prototype.advanceTurn = function() {
     this.turnState = Game.TurnState.Action;
 
     this.cardBought = false;
-
     this.activePlayerActionCount = 1;
     this.activePlayerBuyCount = 1;
     this.activePlayerCoinCount = 0;
@@ -395,6 +397,7 @@ Game.prototype.discardCards = function(player, cards, ontoDeck) {
             player.discard.push(card);
         }
     }, this));
+
     if (ontoDeck) {
         this.log(player.name, 'discards', cards.length, util.pluralize('card', cards.length), 'onto deck');
     } else {
@@ -440,6 +443,24 @@ Game.prototype.trashCardFromDeck = function(player) {
     }
     return card;
 };
+
+// Methods to increment player counts.
+// Caller is responsible for calling game.stateUpdated() to
+// send update to game listener.
+
+Game.prototype.incrementActionCount = function() {
+    this.activePlayerActionCount += 1;
+};
+
+Game.prototype.incrementBuyCount = function() {
+    this.activePlayerBuyCount += 1;
+};
+
+Game.prototype.incrementCoinCount = function() {
+    this.activePlayerCoinCount += 1;
+};
+
+// Card management methods
 
 Game.prototype.drawCards = function(player, num) {
     var cards = player.takeCardsFromDeck(num);

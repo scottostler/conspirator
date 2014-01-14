@@ -29,3 +29,34 @@ Game.prototype.swindlerAttack = function(attackingPlayer, targetPlayers) {
         that.allowReactionsToAttack(targetPlayer, attack);
     });
 };
+
+Game.prototype.ironworksEffect = function(player) {
+    var that = this;
+    var gainableCards = _.pluck(that.filterGainablePiles(0, 4, Card.Type.All), 'card');
+    var decision = Decisions.chooseCardToGain(player, player, gainableCards);
+
+    player.promptForDecision(that, decision, function(gainedCard) {
+        that.playerGainsCard(player, gainedCard);
+
+        var modified = false;
+        if (gainedCard.isAction()) {
+            that.incrementActionCount();
+            modified = true;
+        }
+
+        if (gainedCard.isTreasure()) {
+            that.incrementCoinCount();
+            modified = true;
+        }
+
+        if (gainedCard.isVictory()) {
+            that.drawCards(player, 1);
+        }
+
+        if (modified) {
+            that.stateUpdated();
+        }
+
+        that.advanceGameState();
+    });
+};

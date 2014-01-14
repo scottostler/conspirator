@@ -240,6 +240,12 @@ function revealAndTestHand(test, trueEffect, falseEffect) {
     };
 };
 
+function ironworksEffect() {
+    return function(game, activePlayer, otherPlayers) {
+        game.ironworksEffect(activePlayer);
+    };
+}
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -644,6 +650,13 @@ Cards.Harem = new Card({
     set: 'intrigue'
 });
 
+Cards.Ironworks = new Card({
+    name: 'Ironworks',
+    cost: 4,
+    effects: [ironworksEffect()],
+    set: 'intrigue'
+});
+
 Cards.Nobles = new Card({
     name: 'Nobles',
     cost: 6,
@@ -677,6 +690,7 @@ Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
+    Cards.Ironworks,
     Cards.Nobles,
     Cards.ShantyTown,
     Cards.Steward,
