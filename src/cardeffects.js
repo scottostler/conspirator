@@ -158,6 +158,10 @@ Game.prototype.playersGainCardsEffect = function(players, cards, ontoDeck) {
     this.advanceGameState();
 };
 
+Game.prototype.playerGainsCardEffect = function(player, card) {
+    this.playersGainCardsEffect([player], [card]);
+}
+
 Game.prototype.playersGainCardsAttack = function(players, cards) {
     var that = this;
 
@@ -258,15 +262,25 @@ Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
     });
 };
 
-Game.prototype.playerDiscardsForEffect = function(player, effect) {
+Game.prototype.playerDiscardCardForEffect = function(player, cardOrType, effect, altEffect) {
     var that = this;
-    player.promptForDiscard(this, 0, 1, player.hand, function(cards) {
-        if (cards.length > 0) {
-            effect(that, that.activePlayer, that.inactivePlayers);
-        } else {
-            that.advanceGameState();
-        }
-    });
+    var matchingCards = player.getMatchingCardsInHand(cardOrType);
+
+    if (matchingCards.length > 0) {
+        player.promptForDiscard(this, 0, 1, matchingCards, function(cards) {
+            if (cards.length > 0) {
+                effect(that, that.activePlayer, that.inactivePlayers);
+            } else if (altEffect) {
+                altEffect(that, that.activePlayer, that.inactivePlayers);
+            } else {
+                that.advanceGameState();
+            }
+        });
+    } else if (altEffect) {
+        altEffect(this, this.activePlayer, this.inactivePlayers);
+    } else {
+        this.advanceGameState();
+    }
 };
 
 Game.prototype.playerDrawsCardTypeEffect = function(player, num, cardOrType) {

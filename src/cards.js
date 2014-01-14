@@ -92,9 +92,15 @@ function discardAndDraw() {
     };
 }
 
-function discardForEffect(effect) {
+function discardForEffect(cardOrType, effect, altEffect) {
     return function(game, activePlayer, otherPlayers) {
-        game.playerDiscardsForEffect(activePlayer, effect);
+        game.playerDiscardCardForEffect(activePlayer, cardOrType, effect, altEffect);
+    };
+}
+
+function gainCard(card) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerGainsCardEffect(activePlayer, card);
     };
 }
 
@@ -627,6 +633,13 @@ Cards.BaseSet = [
     Cards.Workshop
 ];
 
+Cards.Baron = new Card({
+    name: 'Baron',
+    cost: 4,
+    effects: [discardForEffect(Cards.Estate, gainCoins(4), gainCard(Cards.Estate))],
+    set: 'intrigue'
+});
+
 Cards.Courtyard = new Card({
     name: 'Courtyard',
     cost: 2,
@@ -687,6 +700,7 @@ Cards.Swindler = new Card({
 });
 
 Cards.Intrigue = [
+    Cards.Baron,
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
@@ -721,7 +735,10 @@ Cards.FarmingVillage = new Card({
 Cards.Hamlet = new Card({
     name: 'Hamlet',
     cost: 2,
-    effects: [drawCards(1), gainActions(1), discardForEffect(gainActions(1)), discardForEffect(gainBuys(1))],
+    effects: [
+        drawCards(1), gainActions(1),
+        discardForEffect(Card.Type.All, gainActions(1)),
+        discardForEffect(Card.Type.All, gainBuys(1))],
     set: 'cornucopia'
 });
 
