@@ -252,6 +252,12 @@ function ironworksEffect() {
     };
 }
 
+function testPlayedActionCount(num, effects) {
+    return function(game, activePlayer, otherPlayers) {
+        game.testPlayedActionCount(num, effects);
+    };
+};
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -640,6 +646,15 @@ Cards.Baron = new Card({
     set: 'intrigue'
 });
 
+Cards.Conspirator = new Card({
+    name: 'Conspirator',
+    cost: 4,
+    effects: [
+        gainCoins(2),
+        testPlayedActionCount(3, [gainActions(1), drawCards(1)])],
+    set: 'intrigue'
+});
+
 Cards.Courtyard = new Card({
     name: 'Courtyard',
     cost: 2,
@@ -701,6 +716,7 @@ Cards.Swindler = new Card({
 
 Cards.Intrigue = [
     Cards.Baron,
+    Cards.Conspirator,
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,

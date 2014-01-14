@@ -24,7 +24,7 @@ function beginLocalGame() {
     var computerPlayers = ComputerAI.makeComputerPlayers(numPlayers - 1);
     var players = [humanPlayer].concat(computerPlayers);
 
-    var gameInstance = new game.Game(players, [Cards.Swindler]);
+    var gameInstance = new game.Game(players, [Cards.ThroneRoom, Cards.Conspirator]);
     var gameView = new GameView(gameInstance, 0);
 
     humanInterface.setGameView(gameView);

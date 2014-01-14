@@ -60,3 +60,11 @@ Game.prototype.ironworksEffect = function(player) {
         that.advanceGameState();
     });
 };
+
+Game.prototype.testPlayedActionCount = function(num, effects) {
+    if (this.playedActionCount >= num) {
+        this.pushGameEvents(effects);
+    }
+
+    this.advanceGameState();
+};

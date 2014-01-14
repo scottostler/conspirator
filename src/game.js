@@ -33,6 +33,7 @@ function Game(players, kingdomCards) {
     this.eventStack = [];
     this.hasGameEnded = false;
     this.cardBought = false; // When true, no more treasures can be played.
+    this.playedActionCount = 0;
     this.activePlayerActionCount = 0;
     this.activePlayerBuyCount = 0;
     this.activePlayerCoinCount = 0;
@@ -134,6 +135,7 @@ Game.prototype.advanceTurn = function() {
     this.turnState = Game.TurnState.Action;
 
     this.cardBought = false;
+    this.playedActionCount = 0;
     this.activePlayerActionCount = 1;
     this.activePlayerBuyCount = 1;
     this.activePlayerCoinCount = 0;
@@ -209,6 +211,11 @@ Game.prototype.pushGameEvent = function(e) {
     this.eventStack.push(e);
 };
 
+// Takes events in forward chronological order,
+// and adds them in event stack order (to end of stack).
+Game.prototype.pushGameEvents = function(events) {
+    this.eventStack = this.eventStack.concat(_.reverse(events));
+};
 
 Game.prototype.currentlyPlayableActions = function() {
     if (this.activePlayerActionCount == 0) {
@@ -347,6 +354,7 @@ Game.prototype.playAction = function(card) {
 
     this.log(this.activePlayer.name, 'played', card.name);
 
+    this.playedActionCount++;
     this.activePlayerActionCount--;
     this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
@@ -449,15 +457,15 @@ Game.prototype.trashCardFromDeck = function(player) {
 // send update to game listener.
 
 Game.prototype.incrementActionCount = function() {
-    this.activePlayerActionCount += 1;
+    this.activePlayerActionCount++;
 };
 
 Game.prototype.incrementBuyCount = function() {
-    this.activePlayerBuyCount += 1;
+    this.activePlayerBuyCount++;
 };
 
 Game.prototype.incrementCoinCount = function() {
-    this.activePlayerCoinCount += 1;
+    this.activePlayerCoinCount++;
 };
 
 // Card management methods
@@ -496,8 +504,14 @@ Game.prototype.playActionMultipleTimes = function(card, num) {
     this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
 
-    var cardEvents = _.reverse(_.flatten(util.repeat(card.effects, num))); // in event stack order
-    this.eventStack = this.eventStack.concat(cardEvents);
+    var that = this;
+    function incrementActionCount(game, activePlayer, otherPlayers) {
+        that.playedActionCount++;
+        that.advanceGameState();
+    }
+
+    var effects = [incrementActionCount].concat(card.effects);
+    this.pushGameEvents(_.flatten(util.repeat(effects, num)));
 
     this.log(this.activePlayer.name, 'plays', card.name, num + 'x');
     this.emit('play-card', this.activePlayer, card);
