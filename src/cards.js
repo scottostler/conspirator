@@ -133,6 +133,10 @@ function trashCardForEffect(cardOrType, effect) {
 }
 
 function chooseEffect(effects) {
+    if (!_.isArray(effects)) {
+        throw new Error('Must be array');
+    }
+
     return function(game, activePlayer, otherPlayers) {
         game.playerChoosesEffect(activePlayer, effects);
     };
@@ -211,6 +215,12 @@ function thiefAttack(cardOrType, number) {
         game.trashAndMaybeGainCardsAttack(activePlayer, otherPlayers, cardOrType, number);
     };
 }
+
+function swindlerAttack() {
+    return function(game, activePlayer, otherPlayers) {
+        game.swindlerAttack(activePlayer, otherPlayers);
+    };
+};
 
 function chooseToKeepOrDiscardTopCardForAllPlayers() {
     return function(game, activePlayer, otherPlayers) {
@@ -656,13 +666,21 @@ Cards.Steward = new Card({
     set: 'intrigue'
 });
 
+Cards.Swindler = new Card({
+    name: 'Swindler',
+    cost: 3,
+    effects: [gainCoins(2), swindlerAttack()],
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,
     Cards.Nobles,
     Cards.ShantyTown,
-    Cards.Steward
+    Cards.Steward,
+    Cards.Swindler
 ];
 
 Cards.Fortuneteller = new Card({

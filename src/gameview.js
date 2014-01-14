@@ -116,6 +116,12 @@ function GameView(game, humanPlayerIndex) {
         that.setTrashViewCard(_.last(cards));
     });
 
+    this.game.on('trash-card-from-deck', function(player, card) {
+        var playerView = that.viewForPlayer(player);
+        playerView.updateDeckAndDiscardViews();
+        that.setTrashViewCard(card);
+    });
+
     this.game.on('add-card-to-trash', function(card) {
         that.setTrashViewCard(card);
     });

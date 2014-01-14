@@ -389,7 +389,7 @@ Game.prototype.keepOrDiscardTopCardOptionAttack = function(choosingPlayer, targe
                     choosingPlayer.promptForDecision(that, decision, function(choice) {
                         if (choice === Decisions.Options.Discard) {
                             that.log(choosingPlayer.name, 'discards', util.possessive(targetPlayer.name), card.name);
-                            targetPlayer.discardCardsFromDeck(1);
+                            targetPlayer.discardCardFromDeck();
                         } else {
                             that.log(choosingPlayer.name, 'keeps', util.possessive(targetPlayer.name), card.name);
                         }

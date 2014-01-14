@@ -36,8 +36,8 @@ function RemoteGame(socket, gameState, humanInterface) {
     var forwardedEvents = [
         'state-update', 'draw-cards', 'empty-play-area', 'trash-card-from-play',
         'trash-cards-from-hand', 'add-card-to-trash', 'play-card',
-        'gain-card', 'gain-card-onto-deck', 'gain-card-into-hand', 'discard-cards', 'draw-and-discard-cards',
-        'discard-cards-from-deck'];
+        'gain-card', 'gain-card-onto-deck', 'gain-card-into-hand', 'discard-cards',
+        'draw-and-discard-cards', 'discard-cards-from-deck', 'trash-card-from-deck'];
 
     _.each(forwardedEvents, function(eventName) {
         socket.on(eventName, function() {

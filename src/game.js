@@ -432,6 +432,15 @@ Game.prototype.trashCardFromPlay = function(card) {
     }
 };
 
+Game.prototype.trashCardFromDeck = function(player) {
+    var card = player.takeCardFromDeck();
+    if (card) {
+        this.log(player.name, 'trashes', card.name, 'from their deck');
+        this.emit('trash-card-from-deck', player, card);
+    }
+    return card;
+};
+
 Game.prototype.drawCards = function(player, num) {
     var cards = player.takeCardsFromDeck(num);
     player.addCardsToHand(cards);
@@ -516,3 +525,4 @@ Game.prototype.endGame = function() {
 
 // cardeffects.js extends Game as a side-effect of being loaded.
 require('./cardeffects.js');
+require('./intriguecardeffects.js');
