@@ -359,8 +359,7 @@ Game.prototype.playAction = function(card) {
     this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
     this.playArea.push(card);
 
-    var cardEvents = _.reverse(card.effects); // in event stack order
-    this.eventStack = this.eventStack.concat(cardEvents);
+    this.pushGameEvents(card.effects);
 
     this.emit('play-card', this.activePlayer, card);
     this.advanceGameState();

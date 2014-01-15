@@ -331,6 +331,9 @@ Card.prototype.isTreasure = function() {
     return this.money !== undefined;
 };
 
+// A basic treasure is a treasure with a fixed number of coins
+// and no effects when played.
+// This terminology is only used in the UI.
 Card.prototype.isBasicTreasure = function () {
     return _.isNumber(this.money);
 };

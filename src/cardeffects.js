@@ -6,10 +6,16 @@ var Decisions = require('./decisions.js');
 var Card = require('./cards.js').Card;
 var Cards = require('./cards.js').Cards;
 
-// Effects implement card effects, and when fully
-// processed advance the game state to the next effect or phase.
+// Kingdom cards are modelled as a sequence of effects,
+// which modify the game state, process player decisions,
+// and potentially cause more effects to be processed by adding
+// more effects onto the stack of effects.
+// When an effect is resolved, it advances the game to
+// the process the next effect or phase by calling Game.advanceGameState.
+//
 // As effects may require player decisions and are thus
-// asynchronous, they don't neccessarily advance the game state.
+// asynchronous, many don't immediately advance the game state.
+// Instead, the game state is advanced when a callback is invoked.
 
 Game.prototype.skipActions = function() {
     this.activePlayerActionCount = 0;
@@ -51,7 +57,7 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
     };
 
     var setAsideCards = [];
-    var drawCard = _.bind(function() {
+    var drawCardEvent = _.bind(function() {
         if (isDone()) {
             player.addCardsToDiscard(setAsideCards);
             this.advanceGameState();
@@ -68,17 +74,17 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
                     setAsideCards.push(card);
                 }
 
-                this.eventStack.push(drawCard);
+                this.pushGameEvent(drawCardEvent);
                 this.advanceGameState();
             }, this));
         } else {
             player.addCardToHand(card);
-            this.eventStack.push(drawCard);
+            this.pushGameEvent(drawCardEvent);
             this.advanceGameState();
         }
     }, this);
 
-    this.eventStack.push(drawCard);
+    this.pushGameEvent(drawCardEvent);
     this.advanceGameState();
 };
 
@@ -431,7 +437,7 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
     var trashedCards = [];
 
     // TODO: this code is bananas – B-A-N-A-N-A-S
-    this.eventStack.push(function() {
+    this.pushGameEvent(function() {
         _.each(_.reverse(trashedCards), function(p) {
             var targetPlayer = p[0], card = p[1];
             that.eventStack.push(function() {
@@ -453,8 +459,8 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
         that.advanceGameState();
     });
 
-    _.each(_.reverse(targetPlayers), function(targetPlayer) {
-        that.eventStack.push(function() {
+    var events = _.map(targetPlayers, function(targetPlayer) {
+        return function() {
             var attack = function() {
                 var allCards = targetPlayer.takeCardsFromDeck(numCards);
                 var matchingCards = _.filter(allCards, function(c) { return c.matchesCardOrType(cardOrType) });
@@ -491,9 +497,10 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
             };
 
             that.allowReactionsToAttack(targetPlayer, attack, false);
-        });
+        };
     });
 
+    this.pushGameEvents(events);
     this.advanceGameState();
 }
 
