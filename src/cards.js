@@ -717,6 +717,13 @@ Cards.Swindler = new Card({
     set: 'intrigue'
 });
 
+Cards.Upgrade = new Card({
+    name: 'Upgrade',
+    cost: 5,
+    effects: [drawCards(1), gainActions(1), trashCardToGainExactlyPlusCost(1, Card.Type.All)],
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
     Cards.Baron,
     Cards.Conspirator,
@@ -727,7 +734,8 @@ Cards.Intrigue = [
     Cards.Nobles,
     Cards.ShantyTown,
     Cards.Steward,
-    Cards.Swindler
+    Cards.Swindler,
+    Cards.Upgrade
 ];
 
 Cards.Fortuneteller = new Card({
