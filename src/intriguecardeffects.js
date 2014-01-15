@@ -6,28 +6,33 @@ var Decisions = require('./decisions.js');
 
 Game.prototype.swindlerAttack = function(attackingPlayer, targetPlayers) {
     var that = this;
-    _.each(_.reverse(targetPlayers), function(targetPlayer) {
-        var attack = function() {
-            var card = that.trashCardFromDeck(targetPlayer);
-            if (card) {
-                var cost = that.computeEffectiveCardCost(card);
-                var gainableCards = _.pluck(that.filterGainablePiles(cost, cost, Card.Type.All), 'card');
-                if (gainableCards.length > 0) {
-                    var decision = Decisions.chooseCardToGain(attackingPlayer, targetPlayer, gainableCards);
-                    attackingPlayer.promptForDecision(that, decision, function(gainedCard) {
-                        that.playerGainsCard(targetPlayer, gainedCard);
+    var events = _.map(targetPlayers, function(targetPlayer) {
+        return function() {
+            var attack = function() {
+                var card = that.trashCardFromDeck(targetPlayer);
+                if (card) {
+                    var cost = that.computeEffectiveCardCost(card);
+                    var gainableCards = _.pluck(that.filterGainablePiles(cost, cost, Card.Type.All), 'card');
+                    if (gainableCards.length > 0) {
+                        var decision = Decisions.chooseCardToGain(attackingPlayer, targetPlayer, gainableCards);
+                        attackingPlayer.promptForDecision(that, decision, function(gainedCard) {
+                            that.playerGainsCard(targetPlayer, gainedCard);
+                            that.advanceGameState();
+                        });
+                    } else {
                         that.advanceGameState();
-                    });
+                    }
                 } else {
                     that.advanceGameState();
                 }
-            } else {
-                that.advanceGameState();
-            }
-        };
+            };
 
-        that.allowReactionsToAttack(targetPlayer, attack);
+            that.allowReactionsToAttack(targetPlayer, attack);
+        };
     });
+
+    this.pushGameEvents(events);
+    this.advanceGameState();
 };
 
 Game.prototype.ironworksEffect = function(player) {
