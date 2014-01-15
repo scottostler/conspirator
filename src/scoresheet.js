@@ -60,7 +60,13 @@ ScoreSheet.prototype.buildSummaryView = function() {
             } else {
                 index += 'D';
             }
-            index += (9 - card.cost).toString(); // assumes card costs range 0-9
+
+            // assumes card costs range 0-99
+            if (99 - card.cost < 10) {
+                index += "0";
+            }
+            index += (99 - card.cost).toString();
+
             index += card.name;
             return index;
         });
