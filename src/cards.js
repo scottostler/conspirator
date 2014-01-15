@@ -154,6 +154,12 @@ function trashThisCard() {
     };
 }
 
+function increaseCardDiscountBy(num) {
+    return function(game, activePlayer, otherPlayers) {
+        game.increaseCardDiscountBy(num);
+    };
+}
+
 // Note: type of card trashed is assumed to match type of card gained.
 //       e.g. All -> All, or Treasure -> Treasure
 function trashCardToGainUpToPlusCost(plusCost, cardOrType, intoHand) {
@@ -649,6 +655,13 @@ Cards.Baron = new Card({
     set: 'intrigue'
 });
 
+Cards.Bridge = new Card({
+    name: 'Bridge',
+    cost: 4,
+    effects: [gainBuys(1), gainCoins(1), increaseCardDiscountBy(1)],
+    set: 'intrigue'
+});
+
 Cards.Conspirator = new Card({
     name: 'Conspirator',
     cost: 4,
@@ -726,6 +739,7 @@ Cards.Upgrade = new Card({
 
 Cards.Intrigue = [
     Cards.Baron,
+    Cards.Bridge,
     Cards.Conspirator,
     Cards.Courtyard,
     Cards.GreatHall,

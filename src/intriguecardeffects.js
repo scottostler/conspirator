@@ -73,3 +73,9 @@ Game.prototype.testPlayedActionCount = function(num, effects) {
 
     this.advanceGameState();
 };
+
+Game.prototype.increaseCardDiscountBy = function(num) {
+    this.cardDiscount += num;
+
+    this.advanceGameState();
+};
