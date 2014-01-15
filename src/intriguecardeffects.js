@@ -79,3 +79,9 @@ Game.prototype.increaseCardDiscountBy = function(num) {
 
     this.advanceGameState();
 };
+
+Game.prototype.increaseCopperValueBy = function(num) {
+    this.copperValue += num;
+
+    this.advanceGameState();
+};

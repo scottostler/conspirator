@@ -160,6 +160,12 @@ function increaseCardDiscountBy(num) {
     };
 }
 
+function increaseCopperValueBy(num) {
+    return function(game, activePlayer, otherPlayers) {
+        game.increaseCopperValueBy(num);
+    };
+}
+
 // Note: type of card trashed is assumed to match type of card gained.
 //       e.g. All -> All, or Treasure -> Treasure
 function trashCardToGainUpToPlusCost(plusCost, cardOrType, intoHand) {
@@ -671,6 +677,13 @@ Cards.Conspirator = new Card({
     set: 'intrigue'
 });
 
+Cards.Coppersmith = new Card({
+    name: 'Coppersmith',
+    cost: 4,
+    effects: [increaseCopperValueBy(1)],
+    set: 'intrigue'
+});
+
 Cards.Courtyard = new Card({
     name: 'Courtyard',
     cost: 2,
@@ -741,6 +754,7 @@ Cards.Intrigue = [
     Cards.Baron,
     Cards.Bridge,
     Cards.Conspirator,
+    Cards.Coppersmith,
     Cards.Courtyard,
     Cards.GreatHall,
     Cards.Harem,

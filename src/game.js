@@ -38,6 +38,7 @@ function Game(players, kingdomCards) {
     this.activePlayerBuyCount = 0;
     this.activePlayerCoinCount = 0;
     this.cardDiscount = 0; // apparently if you Throne Room a Bridge it discounts twice, but not Highway, for which we may want a getMatchingCardsInPlayArea
+    this.copperValue = 1;
 
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
     var kingdomCardCount = 10;
@@ -141,6 +142,7 @@ Game.prototype.advanceTurn = function() {
     this.activePlayerBuyCount = 1;
     this.activePlayerCoinCount = 0;
     this.cardDiscount = 0;
+    this.copperValue = 1;
 
     if (this.activePlayerIndex == 0) {
         this.turnCount++;
@@ -250,8 +252,15 @@ Game.prototype.computeEffectiveCardCost = function(card) {
 };
 
 Game.prototype.computeMaximumPurchaseCost = function() {
+    that = this;
     return this.activePlayerCoinCount + _.mapSum(this.activePlayer.hand, function(card) {
-            return card.isBasicTreasure() ? card.money : 0;
+        if (card == Cards.Copper) {
+            return that.copperValue;
+        } else if (card.isBasicTreasure()) {
+            return card.money;
+        } else {
+            return 0;
+        }
     });
 };
 
@@ -276,6 +285,8 @@ Game.prototype.playTreasure = function(card) {
 
     if (_.isFunction(card.money)) {
         this.pushGameEvent(card.money);
+    } else if (card === Cards.Copper) {
+        this.activePlayerCoinCount += this.copperValue;
     } else {
         this.activePlayerCoinCount += card.money;
     }
