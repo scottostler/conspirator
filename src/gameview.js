@@ -291,7 +291,7 @@ GameView.prototype.offerPileSelection = function(player, selectablePiles, allowC
 
             if (allowPlayTreasures) {
                 var basicCoinMoney = _.mapSum(player.getBasicTreasuresInHand(), function(card) {
-                    if (card == Cards.Copper) {
+                    if (card === Cards.Copper) {
                         return that.game.copperValue;
                     } else {
                         return card.money;

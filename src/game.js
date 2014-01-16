@@ -254,7 +254,7 @@ Game.prototype.computeEffectiveCardCost = function(card) {
 Game.prototype.computeMaximumPurchaseCost = function() {
     that = this;
     return this.activePlayerCoinCount + _.mapSum(this.activePlayer.hand, function(card) {
-        if (card == Cards.Copper) {
+        if (card === Cards.Copper) {
             return that.copperValue;
         } else if (card.isBasicTreasure()) {
             return card.money;
