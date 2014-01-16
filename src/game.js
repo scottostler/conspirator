@@ -101,7 +101,8 @@ Game.prototype.stateUpdated = function() {
         turnState: this.turnState,
         actionCount: this.activePlayerActionCount,
         buyCount: this.activePlayerBuyCount,
-        coinCount: this.activePlayerCoinCount
+        coinCount: this.activePlayerCoinCount,
+        copperValue: this.copperValue
     });
 };
 
