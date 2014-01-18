@@ -44,7 +44,7 @@ PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, allowTreas
     var that = this;
     this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(card, treasures) {
         if (card) {
-            // Auto-play basic tresures when buying.
+            // Auto-play basic treasures when buying.
             var treasures = that.player.getBasicTreasuresInHand();
             onBuy(treasures, card);
         } else if (treasures) {

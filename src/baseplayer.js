@@ -42,7 +42,6 @@ BasePlayer.prototype.getBasicTreasuresInHand = function() {
     });
 };
 
-
 BasePlayer.prototype.getActionsInHand = function() {
     return this.getMatchingCardsInHand(Card.Type.Action);
 };

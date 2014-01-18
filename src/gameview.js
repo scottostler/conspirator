@@ -12,6 +12,7 @@ var ScoreSheet = require('./scoresheet.js');
 function GameStateView(game) {
     this.$counters = $('.status-counters');
     this.lastUpdate = null;
+    this.copperValue = 1;
 }
 
 GameStateView.prototype.updateStatusCounter = function(update) {
@@ -26,6 +27,8 @@ GameStateView.prototype.updateStatusCounter = function(update) {
     this.$counters.find('.buy-count').text(update.buyCount);
     this.$counters.find('.coin-count').text(update.coinCount);
     this.$counters.find('.extra-coins').text('');
+
+    this.copperValue = update.copperValue;
 };
 
 GameStateView.prototype.showExtraCoinIndicator = function(extraCoins) {
@@ -290,8 +293,12 @@ GameView.prototype.offerPileSelection = function(player, selectablePiles, allowC
             });
 
             if (allowPlayTreasures) {
-                var basicCoinMoney = _.mapSum(player.getBasicTreasuresInHand(), function(c) {
-                    return c.money;
+                var basicCoinMoney = _.mapSum(player.getBasicTreasuresInHand(), function(card) {
+                    if (card === Cards.Copper) {
+                        return that.gameStateView.copperValue;
+                    } else {
+                        return card.money;
+                    }
                 });
 
                 pileView.$el.hover(function() {
