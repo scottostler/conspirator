@@ -46,7 +46,7 @@ function collectGameState(game, forPlayer) {
 function startGame(players) {
     var gameInstance = new game.Game(players, []);
 
-    gameInstance.emit = function(eventName, a, b) {
+    gameInstance.emit = function(eventName) {
         var args = _.toArray(arguments);
 
         _.each(players, function(player) {

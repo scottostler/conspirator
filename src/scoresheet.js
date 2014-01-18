@@ -76,8 +76,15 @@ ScoreSheet.prototype.buildSummaryView = function() {
             return card.name;
         });
         _.each(_.keys(deckBreakdown), function(cardName) {
-            var currentCardView = new cardview.CardView(cards.Cards.getCardByName(cardName));
+            var card = cards.Cards.getCardByName(cardName);
+            var currentCardView = new cardview.CardView(card);
             currentCardView.setBadgeCount(deckBreakdown[cardName]);
+
+            if (card.isVictory()) {
+                var vp = _.isFunction(card.vp) ? card.vp(sortedDeck) : card.vp;
+                currentCardView.setVPBadgeCount(vp);
+            }
+
             deckBreakdownHTML.append(currentCardView.$el);
         }, this);
         $tr.append($('<td>').append(deckBreakdownHTML));

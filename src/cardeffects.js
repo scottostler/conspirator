@@ -343,8 +343,8 @@ Game.prototype.playerDiscardsUniqueCardsForCoins = function(player, num) {
 Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) {
     var that = this;
 
-    _.each(_.reverse(players), function(player) {
-        that.eventStack.push(function() {
+    var events = _.map(players, function(player) {
+        return function() {
             var discardAttack = function() {
                 var cards = Cards.uniq(player.getMatchingCardsInHand(cardOrType));
                 if (cards.length > 0) {
@@ -360,9 +360,10 @@ Game.prototype.playersDiscardCardOntoDeckAttack = function(players, cardOrType) 
             };
 
             that.allowReactionsToAttack(player, discardAttack, false);
-        });
+        };
     });
 
+    this.pushGameEvents(events);
     this.advanceGameState();
 };
 

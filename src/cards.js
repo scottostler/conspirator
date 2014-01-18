@@ -691,6 +691,13 @@ Cards.Courtyard = new Card({
     set: 'intrigue'
 });
 
+Cards.Duke = new Card({
+    name: 'Duke',
+    cost: 5,
+    vp: vpPerNCards(1, Cards.Duchy),
+    set: 'intrigue'
+});
+
 Cards.GreatHall = new Card({
     name: 'Great Hall',
     cost: 3,
@@ -756,6 +763,7 @@ Cards.Intrigue = [
     Cards.Conspirator,
     Cards.Coppersmith,
     Cards.Courtyard,
+    Cards.Duke,
     Cards.GreatHall,
     Cards.Harem,
     Cards.Ironworks,
