@@ -32,7 +32,9 @@ GameStateView.prototype.updateStatusCounter = function(update) {
 };
 
 GameStateView.prototype.showExtraCoinIndicator = function(extraCoins) {
-    this.$counters.find('.extra-coins').text('+' + extraCoins);
+    if (extraCoins > 0) {
+        this.$counters.find('.extra-coins').text('+' + extraCoins);
+    }
 };
 
 GameStateView.prototype.hideExtraCoinIndicator = function() {
