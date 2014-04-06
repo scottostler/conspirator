@@ -136,6 +136,12 @@ Game.prototype.playersAsideFrom = function(player) {
     }
 };
 
+Game.prototype.playerLeftOf = function(player) {
+
+    var index = this.players.indexOf(player) + 1;
+    return this.players[index % this.players.length];
+};
+
 Game.prototype.advanceTurn = function() {
     if (this.isGameOver()) {
         this.hasGameEnded = true;
@@ -374,6 +380,13 @@ Game.prototype.playerGainsCard = function(player, card, ontoDeck, intoHand) {
         player.discard.push(card);
         this.emit('gain-card', player, card, pile.count);
     }
+};
+
+Game.prototype.playerPassesCard = function(sourcePlayer, targetPlayer, card) {
+    sourcePlayer.removeCardFromHand(card);
+    targetPlayer.addCardToHand(card);
+    this.emit('player-passes-card', sourcePlayer, targetPlayer, card);
+    this.log(sourcePlayer.name, 'passes one card to', targetPlayer.name);
 };
 
 Game.prototype.playAction = function(card) {

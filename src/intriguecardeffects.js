@@ -1,4 +1,5 @@
 var _ = require('underscore');
+var async = require('async');
 var util = require('./util.js');
 var Game = require('./game.js').Game;
 var Card = require('./cards.js').Card;
@@ -108,4 +109,30 @@ Game.prototype.revealAndDrawOrReorderCards = function(player, num, cardOrType) {
         this.advanceGameState();
     }
 
+};
+
+Game.prototype.masqueradeEffect = function(activePlayer, otherPlayers) {
+    var that = this;
+
+    function promptForMasquerade(player, callback) {
+        if (player.hand.length == 0) {
+            callback(null, [player, null]);
+        } else {
+            player.promptForHandSelection(this, 1, 1, player.hand, function(cards) {
+                callback(null, [player, cards[0]]);
+            });
+        }
+    };
+
+    async.map(this.players, promptForMasquerade, function(err, results) {
+        results.forEach(function(p) {
+            var player = p[0], card = p[1];
+            if (card) {
+                var nextPlayer = that.playerLeftOf(player);
+                that.playerPassesCard(player, nextPlayer, card);
+            }
+        });
+
+        that.playerTrashesCardsEffect(activePlayer, 0, 1, Card.Type.All);
+    });
 };

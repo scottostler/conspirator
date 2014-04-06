@@ -73,25 +73,11 @@ SocketDecider.prototype.promptForGain = function(game, gainablePiles, onGain) {
     this.socket.emit('gain-prompt', serialization.serialize(gainablePiles));
 };
 
-SocketDecider.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
+SocketDecider.prototype.promptForHandSelection = function(game, min, max, cards, onSelection) {
     this.assertPlayer();
     this.assertNoCallback();
-    this.pendingRequestCallback = onDiscard;
-    this.socket.emit('discard-prompt', min, max, serialization.serialize(cards));
-};
-
-SocketDecider.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
-    this.assertPlayer();
-    this.assertNoCallback();
-    this.pendingRequestCallback = onTrash;
-    this.socket.emit('trash-prompt', min, max, serialization.serialize(cards));
-}
-
-SocketDecider.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.assertPlayer();
-    this.assertNoCallback();
-    this.pendingRequestCallback = onReact;
-    this.socket.emit('reaction-prompt', serialization.serialize(reactions));
+    this.pendingRequestCallback = onSelection;
+    this.socket.emit('hand-selection-prompt', min, max, serialization.serialize(cards));
 };
 
 SocketDecider.prototype.promptForDecision = function(game, decision, onDecide) {

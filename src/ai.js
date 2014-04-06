@@ -53,15 +53,10 @@ ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
     onGain(selection ? selection.card : null);
 };
 
-ComputerAI.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
+ComputerAI.prototype.promptForHandSelection = function(game, min, max, cards, onSelect) {
     this.assertPlayer();
-    onDiscard(_.sample(cards, min));
-};
-
-ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
-    this.assertPlayer();
-    onTrash(_.sample(cards, min));
-};
+    onSelect(_.sample(cards, min));
+}
 
 ComputerAI.prototype.promptForCardSelection = function(game, cards, onSelect) {
     this.assertPlayer();
@@ -72,10 +67,5 @@ ComputerAI.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
     onDecide(_.sample(decision.options));
 }
-
-ComputerAI.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.assertPlayer();
-    onReact(null);
-};
 
 module.exports = ComputerAI;

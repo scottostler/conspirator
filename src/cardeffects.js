@@ -99,10 +99,6 @@ Game.prototype.playersDrawCardsEffect = function(players, num) {
 }
 
 Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType, onTrash) {
-    if (arguments.length == 1) {
-        max = min;
-    }
-
     var that = this;
     var cards = player.getMatchingCardsInHand(cardOrType);
 

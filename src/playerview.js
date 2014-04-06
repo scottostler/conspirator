@@ -43,6 +43,10 @@ PlayerView.prototype.updateDeckAndDiscardViews = function() {
     this.discardView.setCardImage(this.player.topDiscard());
 };
 
+PlayerView.prototype.makeCardViewForCard = function(card) {
+    return new cardview.CardView(card, !this.isActivePlayer());
+};
+
 PlayerView.prototype.viewForCard = function(card) {
     if (!card instanceof Card) {
         throw new Error('Illegal argument: ' + card);
@@ -70,6 +74,13 @@ PlayerView.prototype.removeCardFromHand = function(card) {
     this.removeCardViewFromHand(cardView);
 };
 
+PlayerView.prototype.addCardToHand = function(card) {
+    var cv = this.makeCardViewForCard(card);
+    this.$handContainer.append(cv.$el);
+    this.cardViewsInHand.push(cv);
+    this.applyHandTransformations();
+}
+
 PlayerView.prototype.clearSelectionMode = function() {
     this.$el.find('.card')
         .off('click mouseenter mouseleave')
@@ -78,21 +89,14 @@ PlayerView.prototype.clearSelectionMode = function() {
 
 PlayerView.prototype.drawCards = function(cards) {
     var that = this;
-    _.each(cards, function(card) {
-        var cv = new cardview.CardView(card, !this.isActivePlayer());
-        that.$handContainer.append(cv.$el);
-        that.cardViewsInHand.push(cv);
-    }, this);
+
+    _.each(cards, _.bind(this.addCardToHand, this));
     this.applyHandTransformations();
     this.updateDeckAndDiscardViews();
 };
 
 PlayerView.prototype.discardCards = function(cards) {
-    _.each(cards, function(card) {
-        this.removeCardViewFromHand(this.viewForCard(card));
-    }, this);
-
-    this.applyHandTransformations();
+    _.each(cards, _.bind(this.removeCardFromHand, this));
     this.updateDeckAndDiscardViews();
 };
 

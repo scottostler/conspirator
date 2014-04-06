@@ -189,6 +189,8 @@ function GameView(game, humanPlayerIndex) {
         that.viewForPlayer(player).updateDeckAndDiscardViews();
     });
 
+    this.game.on('player-passes-card', _.bind(this.playerPassesCard, this));
+
     $(document).on('mouseenter', '.card', function(e) {
         var view = $(e.currentTarget).data('view');
         var src = view.$el.find('img').attr('src');
@@ -447,4 +449,9 @@ GameView.prototype.offerDoneButton = function(onDone) {
 GameView.prototype.showScoreSheet = function() {
     var scoresheet = new ScoreSheet(this.game, $('.scoresheet'));
     scoresheet.show();
+};
+
+GameView.prototype.playerPassesCard = function(sourcePlayer, targetPlayer, card) {
+    this.viewForPlayer(sourcePlayer).removeCardFromHand(card)
+    this.viewForPlayer(targetPlayer).addCardToHand(card);
 };

@@ -61,22 +61,12 @@ PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) 
     this.gameView.offerPileSelection(this.player, gainablePiles, false, false, onGain);
 };
 
-PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, verb, onSelect) {
+PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, onSelect) {
     this.assertPlayer();
     this.gameView.showStatusMessage(
-        verb + ' ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
+        'Select ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max));
     this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onSelect);
 };
-
-PlayerInterface.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
-    this.assertPlayer();
-    this.promptForHandSelection(game, min, max, cards, 'Discard', onDiscard);
-};
-
-PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
-    this.assertPlayer();
-    this.promptForHandSelection(game, min, max, cards, 'Trash', onTrash);
-}
 
 PlayerInterface.prototype.promptForCardSelection = function(game, cards, onSelect) {
     this.assertPlayer();
@@ -86,12 +76,6 @@ PlayerInterface.prototype.promptForCardSelection = function(game, cards, onSelec
 PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
     this.gameView.offerOptions(decision.title, decision.options, onDecide);
-};
-
-PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.assertPlayer();
-    this.gameView.showStatusMessage('Reveal reaction card');
-    this.gameView.offerOptionalSingleHandSelection(this.player, reactions, onReact);
 };
 
 module.exports = PlayerInterface;

@@ -54,6 +54,10 @@ Player.prototype.addCardToDiscard = function(card) {
     this.addCardsToDiscard([card]);
 };
 
+Player.prototype.removeCardFromHand = function(card) {
+    this.hand = util.removeFirst(this.hand, card);
+};
+
 Player.prototype.takeCardsFromDeck = function(num) {
     var cards = [];
     while (cards.length < num && this.canDraw()) {
@@ -173,7 +177,7 @@ Player.prototype.promptForGain = function(game, gainablePiles, onGain) {
 
 Player.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
     var that = this;
-    this.decider.promptForDiscard(game, min, max, cards, function(cards) {
+    this.decider.promptForHandSelection(game, min, max, cards, function(cards) {
         if (cards.length > 0) {
             game.discardCards(that, cards);
         }
@@ -185,7 +189,7 @@ Player.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
 
 Player.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
     var that = this;
-    this.decider.promptForTrashing(game, min, max, cards, function(cards) {
+    this.decider.promptForHandSelection(game, min, max, cards, function(cards) {
         if (cards.length > 0) {
             game.trashCards(that, cards);
         }
@@ -195,8 +199,12 @@ Player.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
     });
 };
 
+Player.prototype.promptForHandSelection = function(game, min, max, cards, onSelect) {
+    this.decider.promptForHandSelection(game, min, max, cards, onSelect);
+};
+
 Player.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.decider.promptForReaction(game, reactions, onReact);
+    this.decider.promptForHandSelection(game, 0, 1, reactions, onReact);
 };
 
 function optionToKey(o) {
@@ -213,6 +221,9 @@ function optionToKey(o) {
 };
 
 Player.prototype.promptForCardSelection = function(game, cards, onSelect) {
+    if (this.hand.length == 0) {
+        throw new Error('Empty hand');
+    }
     this.decider.promptForCardSelection(game, cards, onSelect);
 };
 

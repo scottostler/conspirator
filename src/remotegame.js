@@ -35,8 +35,8 @@ function RemoteGame(socket, gameState, humanInterface) {
 
     var forwardedEvents = [
         'state-update', 'draw-cards', 'empty-play-area', 'trash-card-from-play',
-        'trash-cards-from-hand', 'add-card-to-trash', 'play-card',
-        'gain-card', 'gain-card-onto-deck', 'gain-card-into-hand', 'discard-cards',
+        'trash-cards-from-hand', 'add-card-to-trash', 'play-card', 'gain-card',
+        'gain-card-onto-deck', 'gain-card-into-hand', 'discard-cards', 'player-passes-card',
         'draw-and-discard-cards', 'discard-cards-from-deck', 'trash-card-from-deck'];
 
     _.each(forwardedEvents, function(eventName) {
@@ -60,10 +60,7 @@ function RemoteGame(socket, gameState, humanInterface) {
     this.listenForPrompt('action-prompt', 'promptForAction');
     this.listenForPrompt('buy-prompt', 'promptForBuy');
     this.listenForPrompt('gain-prompt', 'promptForGain');
-    this.listenForPrompt('discard-prompt', 'promptForDiscard');
-    this.listenForPrompt('trash-prompt', 'promptForTrashing');
-    this.listenForPrompt('reaction-prompt', 'promptForReaction');
-    this.listenForPrompt('decision-prompt', 'promptForDecision');
+    this.listenForPrompt('hand-selection-prompt', 'promptForHandSelection');
 }
 
 RemoteGame.prototype = Object.create(events.EventEmitter.prototype);

@@ -328,6 +328,12 @@ function gainFromHornOfPlenty() {
     };
 }
 
+function masqueradeEffect() {
+    return function(game, activePlayer, otherPlayers) {
+        game.masqueradeEffect(activePlayer, otherPlayers);
+    };
+};
+
 /**
  * @constructor
  */
@@ -740,6 +746,13 @@ Cards.Ironworks = new Card({
     set: 'intrigue'
 });
 
+Cards.Masquerade = new Card({
+    name: 'Masquerade',
+    cost: 3,
+    effects: [drawCards(2), masqueradeEffect()],
+    set: 'intrigue'
+});
+
 Cards.MiningVillage = new Card({
     name: 'Mining Village',
     cost: 4,
@@ -807,7 +820,7 @@ Cards.Intrigue = [
     Cards.GreatHall,
     Cards.Harem,
     Cards.Ironworks,
-    // Cards.Masquerade,
+    Cards.Masquerade,
     Cards.MiningVillage,
     // Cards.Minion,
     Cards.Nobles,
