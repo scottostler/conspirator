@@ -68,15 +68,15 @@ function startGame(players) {
     gameInstance.start();
 }
 
+var players = [];
 io.sockets.on('connection', function(socket) {
-    var players = [];
     var playerName = 'Player ' + playerCounter++;
 
     var remoteInterface = new SocketDecider(socket, playerName);
     var player = new Player(playerName, remoteInterface, uuid.v1());
 
     players.push(player);
-    players.push(new Player('Francisco', new ComputerAI(), uuid.v1()));
+    // players.push(new Player('Francisco', new ComputerAI(), uuid.v1()));
 
     socket.emit('log', 'Welcome, ' + playerName);
     socket.broadcast.emit('log', playerName + ' has joined');

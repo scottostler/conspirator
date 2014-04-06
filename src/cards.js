@@ -105,6 +105,13 @@ function discardAndDraw() {
     };
 }
 
+function discardForCoins() {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerDiscardsForCoinsEffect(activePlayer);
+    };
+}
+
+
 function discardForEffect(cardOrType, effect, altEffect) {
     return function(game, activePlayer, otherPlayers) {
         game.playerDiscardCardForEffect(activePlayer, cardOrType, effect, altEffect);
@@ -319,10 +326,19 @@ function wishForCardReveal(effect) {
 // Reactions
 
 function revealToAvoidAttack() {
-    return function(game, reactingPlayer) {
-        return true;
+    return function(game, reactingPlayer, callback) {
+        callback(true);
     };
 }
+
+function drawAndPutBackCards(n) {
+    return function(game, reactingPlayer, callback) {
+        game.drawCards(reactingPlayer, n);
+        reactingPlayer.promptForDiscardOntoDeck(game, n, n, reactingPlayer.hand, function(cards) {
+            callback(false);
+        });
+    };
+};
 
 // VP counts
 // They take the user's full deck as their argument.
@@ -838,6 +854,14 @@ Cards.Saboteur = new Card({
     set: 'intrigue'
 });
 
+Cards.SecretChamber = new Card({
+    name: 'Secret Chamber',
+    cost: 2,
+    effects: [discardForCoins()],
+    reaction: drawAndPutBackCards(2),
+    set: 'intrigue'
+});
+
 Cards.Scout = new Card({
     name: 'Scout',
     cost: 4,
@@ -919,9 +943,9 @@ Cards.Intrigue = [
     Cards.Minion,
     Cards.Nobles,
     Cards.Pawn,
-    // Cards.Saboteur,
+    Cards.Saboteur,
     Cards.Scout,
-    // Cards.SecretChamber,
+    Cards.SecretChamber,
     Cards.ShantyTown,
     Cards.Steward,
     Cards.Swindler,

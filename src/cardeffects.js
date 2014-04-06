@@ -272,6 +272,17 @@ Game.prototype.playerDiscardsAndDrawsEffect = function(player) {
     });
 };
 
+Game.prototype.playerDiscardsForCoinsEffect = function(player) {
+    var that = this;
+    player.promptForDiscard(this, 0, player.hand.length, player.hand, function(cards) {
+        if (cards.length > 0) {
+            that.incrementCoinCount(cards.length);
+        }
+
+        that.advanceGameState();
+    });
+};
+
 Game.prototype.playerDiscardCardForEffect = function(player, cardOrType, effect, altEffect) {
     var that = this;
     var matchingCards = player.getMatchingCardsInHand(cardOrType);

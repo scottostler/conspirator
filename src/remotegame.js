@@ -59,8 +59,8 @@ function RemoteGame(socket, gameState, humanInterface) {
 
     this.listenForPrompt('pile-selection-prompt', humanInterface.promptForPileSelection);
     this.listenForPrompt('hand-selection-prompt', humanInterface.promptForHandSelection);
-    this.listenForPrompt('card-ordering-prompt', humanInterface.promptForCardOrdering);
     this.listenForPrompt('decision-prompt', humanInterface.promptForDecision);
+    this.listenForPrompt('card-ordering-prompt', humanInterface.promptForCardOrdering);
 }
 
 RemoteGame.prototype = Object.create(events.EventEmitter.prototype);
@@ -70,7 +70,7 @@ RemoteGame.prototype.emitDecision = function(decisionArgs) {
     this.socket.emit.apply(this.socket, eventArgs)
 };
 
-RemoteGame.prototype.listenForPrompt = function(prompt, deciderProperty) {
+RemoteGame.prototype.listenForPrompt = function(prompt, handler) {
     var that = this;
     this.socket.on(prompt, function() {
         var callback = function() {
@@ -81,8 +81,7 @@ RemoteGame.prototype.listenForPrompt = function(prompt, deciderProperty) {
             deserializeArguments(arguments),
             [callback]);
 
-        var func = that.humanInterface[deciderProperty];
-        func.apply(that.humanInterface, args);
+        handler.apply(that.humanInterface, args);
     })
 };
 

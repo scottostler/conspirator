@@ -406,14 +406,18 @@ Game.prototype.playAction = function(card) {
 
 // TODO: should allow reactions when opponent plays attack, not when
 //       attack effect hits.
-Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSkipAttack) {
+Game.prototype.allowReactionsToAttack = function(player, attackEffect, skipAttack) {
     var that = this;
     var processAttack = function() {
-        if (shouldSkipAttack) {
+        if (skipAttack) {
             that.advanceGameState();
         } else {
             attackEffect();
         }
+    };
+
+    var reactionCallback = function(reactionSkipAttack) {
+        that.allowReactionsToAttack(player, attackEffect, skipAttack || reactionSkipAttack);
     };
 
     var reactions = player.getReactionsInHand();
@@ -421,8 +425,7 @@ Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSki
         player.promptForReaction(this, reactions, function(reactionCard) {
             if (reactionCard) {
                 that.log(player.name, 'reveals', reactionCard.name);
-                var shouldSkipAttack = reactionCard.reaction(that, player) || shouldSkipAttack;
-                that.allowReactionsToAttack(player, attackEffect, shouldSkipAttack);
+                reactionCard.reaction(that, player, reactionCallback);
             } else {
                 processAttack();
             }

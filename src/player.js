@@ -192,6 +192,18 @@ Player.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
     });
 };
 
+Player.prototype.promptForDiscardOntoDeck = function(game, min, max, cards, onDiscard) {
+    var that = this;
+    this.decider.promptForHandSelection(game, min, max, cards, function(cards) {
+        if (cards.length > 0) {
+            game.discardCards(that, cards, true);
+        }
+        if (onDiscard) {
+            onDiscard(cards);
+        }
+    });
+};
+
 Player.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
     var that = this;
     this.decider.promptForHandSelection(game, min, max, cards, function(cards) {
@@ -209,7 +221,7 @@ Player.prototype.promptForHandSelection = function(game, min, max, cards, onSele
 };
 
 Player.prototype.promptForReaction = function(game, reactions, onReact) {
-    this.decider.promptForHandSelection(game, 0, 1, reactions, onReact);
+    this.decider.promptForHandSelection(game, 0, 1, reactions, util.adaptListToOption(onReact));
 };
 
 function optionToKey(o) {
