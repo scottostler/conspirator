@@ -265,7 +265,7 @@ GameView.prototype.clearSelectionMode = function() {
 
 // Used for buying or gaining cards from piles.
 // Optionally allows treasures in be played while buying.
-GameView.prototype.offerPileSelection = function(player, selectablePiles, allowCancel, allowPlayTreasures, onSelect) {
+GameView.prototype.offerPileSelection = function(player, selectablePiles, allowPlayTreasures, allowCancel, onSelect) {
     this.clearSelectionMode();
     this.trashView.$el.addClass('not-selectable');
     var that = this;
