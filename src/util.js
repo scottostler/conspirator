@@ -21,7 +21,7 @@ exports.isClient = function() {
 exports.repeat = function(o, n) {
     var a = new Array(n);
     for (var i = 0; i < n; i++) {
-        a[i] = _.isFunction(o) ? o() : o;
+        a[i] = o;
     }
     return a;
 }

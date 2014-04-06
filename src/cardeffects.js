@@ -531,13 +531,23 @@ Game.prototype.revealAndTestHandEffect = function(test, trueEffect, falseEffect)
     }
 };
 
-Game.prototype.playerChoosesEffect = function(player, effects) {
+Game.prototype.playerChoosesNEffects = function(player, n, effects) {
     var that = this;
-    var decision = Decisions.chooseEffect(this, this.activePlayer, effects);
-    player.promptForDecision(this, decision, function(effect) {
-        that.log(player.name, 'chooses', effect._optionString);
-        effect(that, that.activePlayer, that.inactivePlayers);
-    });
+    var otherPlayers = this.playersAsideFrom(player);
+    var remainingEffects = effects;
+
+    var promptChoice = function() {
+        var decision = Decisions.chooseEffect(this, player, remainingEffects);
+        player.promptForDecision(this, decision, function(effect) {
+            remainingEffects = util.removeFirst(remainingEffects, effect);
+            that.log(player.name, 'chooses', effect._optionString);
+            effect(that, player, otherPlayers);
+        });
+    };
+
+    var events = util.repeat(promptChoice, n);
+    this.pushGameEvents(events);
+    this.advanceGameState();
 };
 
 Game.prototype.playerDrawForUniqueCard = function(player) {

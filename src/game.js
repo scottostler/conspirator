@@ -125,6 +125,17 @@ Game.prototype.isGameOver = function() {
     return false;
 };
 
+Game.prototype.playersAsideFrom = function(player) {
+    var index = this.players.indexOf(player);
+    if (index > -1) {
+        return this.players.slice(index + 1).concat(
+            this.players.slice(0, index));
+    } else {
+        console.error('unable to find player', player);
+        return [];
+    }
+};
+
 Game.prototype.advanceTurn = function() {
     if (this.isGameOver()) {
         this.hasGameEnded = true;
@@ -133,8 +144,7 @@ Game.prototype.advanceTurn = function() {
 
     this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
     this.activePlayer = this.players[this.activePlayerIndex];
-    this.inactivePlayers = this.players.slice(this.activePlayerIndex + 1).concat(
-        this.players.slice(0, this.activePlayerIndex));
+    this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
     this.turnState = Game.TurnState.Action;
 
     this.cardBought = false;

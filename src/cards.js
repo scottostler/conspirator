@@ -145,12 +145,15 @@ function trashCardForEffect(cardOrType, effect) {
 }
 
 function chooseEffect(effects) {
+    chooseNEffects(1, effects);
+}
+
+function chooseNEffects(n, effects) {
     if (!_.isArray(effects)) {
         throw new Error('Must be array');
     }
-
     return function(game, activePlayer, otherPlayers) {
-        game.playerChoosesEffect(activePlayer, effects);
+        game.playerChoosesNEffects(activePlayer, n, effects);
     };
 }
 
@@ -739,6 +742,13 @@ Cards.Nobles = new Card({
     set: 'intrigue'
 });
 
+Cards.Pawn = new Card({
+    name: 'Pawn',
+    cost: 2,
+    effects: [chooseNEffects(2, [gainActions(1), drawCards(1), gainBuys(1), gainCoins(1)])],
+    set: 'intrigue'
+});
+
 Cards.Scout = new Card({
     name: 'Scout',
     cost: 4,
@@ -785,6 +795,7 @@ Cards.Intrigue = [
     Cards.Harem,
     Cards.Ironworks,
     Cards.Nobles,
+    Cards.Pawn,
     Cards.Scout,
     Cards.ShantyTown,
     Cards.Steward,
