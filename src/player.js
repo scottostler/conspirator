@@ -148,14 +148,13 @@ Player.prototype.topDiscard = function() {
 // Prompts
 
 Player.prototype.promptForAction = function(game, actions) {
-    this.decider.promptForHandSelection(game, 0, 1, actions, function(actions) {
-        var action = actions ? actions[0] : null;
+    this.decider.promptForHandSelection(game, 0, 1, actions, util.adaptListToOption(function(action) {
         if (action) {
             game.playAction(action);
         } else {
             game.skipActions();
         }
-    });
+    }));
 };
 
 Player.prototype.promptForBuy = function(game, buyablePiles, allowTreasures) {
