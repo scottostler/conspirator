@@ -499,16 +499,16 @@ Game.prototype.trashCardFromDeck = function(player) {
 // Caller is responsible for calling game.stateUpdated() to
 // send update to game listener.
 
-Game.prototype.incrementActionCount = function() {
-    this.activePlayerActionCount++;
+Game.prototype.incrementActionCount = function(n) {
+    this.activePlayerActionCount += n ? n : 1;
 };
 
-Game.prototype.incrementBuyCount = function() {
-    this.activePlayerBuyCount++;
+Game.prototype.incrementBuyCount = function(n) {
+    this.activePlayerBuyCount += n ? n : 1;
 };
 
-Game.prototype.incrementCoinCount = function() {
-    this.activePlayerCoinCount++;
+Game.prototype.incrementCoinCount = function(n) {
+    this.activePlayerCoinCount += n ? n : 1;
 };
 
 // Card management methods
@@ -554,6 +554,7 @@ Game.prototype.discardCardsFromDeck = function(player, num) {
         this.log(player.name, 'discards', discarded.join(', '));
     }
     this.emit('discard-cards-from-deck', player, num);
+    return discarded;
 };
 
 // This method assumes the cards have already been 'taken' from the deck.

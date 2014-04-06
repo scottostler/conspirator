@@ -166,3 +166,39 @@ Game.prototype.playersChooseEffectAttack = function(targetPlayers, effects) {
     this.pushGameEvents(events);
     this.advanceGameState();
 };
+
+Game.prototype.tributeEffect = function(player, targetPlayer) {
+    var cards = Cards.uniq(this.discardCardsFromDeck(targetPlayer, 2));
+    var drawnCards = 0;
+    var gainedActions = 0;
+    var gainedCoins = 0;
+    _.each(cards, function(card) {
+        if (card.isAction()) {
+            gainedActions += 2;
+        }
+
+        if (card.isTreasure()) {
+            gainedCoins += 2;
+        }
+
+        if (card.isVictory()) {
+            drawnCards += 2;
+        }
+    }, this);
+
+    if (drawnCards > 0) {
+        this.drawCards(player, drawnCards);
+    }
+
+    if (gainedActions > 0) {
+        this.log(player.name, 'gains ' + gainedActions + ' actions');
+        this.incrementActionCount(gainedActions);
+    }
+
+    if (gainedCoins > 0) {
+        this.log(player.name, 'gains ' + gainedCoins + ' coins');
+        this.incrementCoinCount(gainedCoins);
+    }
+
+    this.advanceGameState();
+};

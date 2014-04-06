@@ -359,6 +359,13 @@ function masqueradeEffect() {
     };
 };
 
+function tributeEffect() {
+    return function(game, activePlayer, otherPlayers) {
+        var nextPlayer = game.playerLeftOf(activePlayer);
+        game.tributeEffect(activePlayer, nextPlayer);
+    };
+};
+
 /**
  * @constructor
  */
@@ -848,6 +855,13 @@ Cards.TradingPost = new Card({
     set: 'intrigue'
 });
 
+Cards.Tribute = new Card({
+    name: 'Tribute',
+    cost: 5,
+    effects: [tributeEffect()],
+    set: 'intrigue'
+});
+
 Cards.Upgrade = new Card({
     name: 'Upgrade',
     cost: 5,
@@ -885,7 +899,7 @@ Cards.Intrigue = [
     Cards.Swindler,
     Cards.Torturer,
     Cards.TradingPost,
-    // Cards.Tribute,
+    Cards.Tribute,
     Cards.Upgrade,
     Cards.WishingWell
 ];
