@@ -166,6 +166,11 @@ Game.prototype.playerGainsCardEffect = function(player, card) {
     this.playersGainCardsEffect([player], [card]);
 }
 
+Game.prototype.playerGainsCardIntoHandEffect = function(player, card) {
+    that.playerGainsCard(player, card, false, true);
+    this.advanceGameState();
+}
+
 Game.prototype.playersGainCardsAttack = function(players, cards) {
     var that = this;
 
@@ -238,11 +243,7 @@ Game.prototype.playerChoosesGainedCardEffect = function(player, minCost, maxCost
     var gainablePiles = this.filterGainablePiles(minCost, maxCost, cardOrType);
     if (gainablePiles.length > 0) {
         player.promptForGain(this, gainablePiles, function(card) {
-            if (intoHand) {
-                that.playerGainsCard(player, card, false, true);
-            } else {
-                that.playerGainsCard(player, card, false, false);
-            }
+            that.playerGainsCard(player, card, false, intoHand);
 
             if (onGain) {
                 onGain(card);

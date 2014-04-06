@@ -110,6 +110,12 @@ function gainCard(card) {
     };
 }
 
+function gainCardIntoHand(card) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playerGainsCardIntoHandEffect(activePlayer, card);
+    };
+}
+
 function otherPlayersGainCards(cards) {
     return function(game, activePlayer, otherPlayers) {
         game.playersGainCardsAttack(otherPlayers, cards);
@@ -134,10 +140,10 @@ function gainCardCosting(minCost, maxCost, cardOrType, intoHand) {
     };
 }
 
-function trashCardForEffect(cardOrType, effect) {
+function trashCardsForEffect(cardOrType, effect, n) {
     return function(game, activePlayer, otherPlayers) {
-        game.playerTrashesCardsEffect(activePlayer, 1, 1, cardOrType, function(cards) {
-            if (cards.length === 1) {
+        game.playerTrashesCardsEffect(activePlayer, n, n, cardOrType, function(cards) {
+            if (cards.length === n) {
                 game.pushGameEvent(effect);
             }
         });
@@ -584,7 +590,7 @@ Cards.Moat = new Card({
 Cards.Moneylender = new Card({
     name: 'Moneylender',
     cost: 4,
-    effects: [trashCardForEffect(Cards.Copper, gainCoins(3))],
+    effects: [trashCardsForEffect(Cards.Copper, gainCoins(3), 1)],
     set: 'base'
 });
 
@@ -803,6 +809,13 @@ Cards.Swindler = new Card({
     set: 'intrigue'
 });
 
+Cards.TradingPost = new Card({
+    name: 'Trading Post',
+    cost: 5,
+    effects: [trashCardsForEffect(Card.Type.All, gainCardIntoHand(Cards.Silver), 2)],
+    set: 'intrigue'
+});
+
 Cards.Upgrade = new Card({
     name: 'Upgrade',
     cost: 5,
@@ -832,7 +845,7 @@ Cards.Intrigue = [
     Cards.Steward,
     Cards.Swindler,
     // Cards.Torturer,
-    // Cards.TradingPost,
+    Cards.TradingPost,
     // Cards.Tribute,
     Cards.Upgrade,
     // Cards.WishingWell
