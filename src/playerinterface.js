@@ -69,31 +69,23 @@ PlayerInterface.prototype.promptForHandSelection = function(game, min, max, card
 };
 
 PlayerInterface.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
+    this.assertPlayer();
     this.promptForHandSelection(game, min, max, cards, 'Discard', onDiscard);
 };
 
 PlayerInterface.prototype.promptForTrashing = function(game, min, max, cards, onTrash) {
+    this.assertPlayer();
     this.promptForHandSelection(game, min, max, cards, 'Trash', onTrash);
 }
 
+PlayerInterface.prototype.promptForCardSelection = function(game, cards, onSelect) {
+    this.assertPlayer();
+    this.gameView.offerCardSelection(this.player, cards, onSelect);
+};
+
 PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
-    var $modal = $('.choice');
-    var $footer = $modal.find('.modal-footer');
-
-    $modal.find('.modal-title').text(decision.title);
-    $footer.empty();
-
-    _.each(decision.options, function(option) {
-        var label = option._optionString ? option._optionString : option.toString();
-        var $button = $('<button>').addClass('btn btn-primary').text(label).click(function() {
-            $modal.modal('hide');
-            onDecide(option);
-        });
-        $button.appendTo($footer);
-    });
-
-    $modal.modal('show');
+    this.gameView.offerOptions(decision.title, decision.options, onDecide);
 };
 
 PlayerInterface.prototype.promptForReaction = function(game, reactions, onReact) {

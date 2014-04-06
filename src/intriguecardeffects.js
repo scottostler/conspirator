@@ -2,6 +2,7 @@ var _ = require('underscore');
 var util = require('./util.js');
 var Game = require('./game.js').Game;
 var Card = require('./cards.js').Card;
+var Cards = require('./cards.js').Cards;
 var Decisions = require('./decisions.js');
 
 Game.prototype.swindlerAttack = function(attackingPlayer, targetPlayers) {
@@ -76,7 +77,6 @@ Game.prototype.testPlayedActionCount = function(num, effects) {
 
 Game.prototype.increaseCardDiscountBy = function(num) {
     this.cardDiscount += num;
-
     this.advanceGameState();
 };
 
@@ -84,4 +84,28 @@ Game.prototype.increaseCopperValueBy = function(num) {
     this.copperValue += num;
     this.stateUpdated();
     this.advanceGameState();
+};
+
+Game.prototype.revealAndDrawOrReorderCards = function(player, num, cardOrType) {
+    var that = this;
+    var revealedCards = player.takeCardsFromDeck(num);
+
+    this.log(player.name, 'reveals', revealedCards.join(', '));
+
+    var drawnCards = Cards.filter(revealedCards, cardOrType);
+    var cardsToOrder = _.difference(revealedCards, drawnCards);
+
+    if (drawnCards.length > 0) {
+        this.drawTakenCards(player, drawnCards, true);
+    }
+
+    if (cardsToOrder.length > 0) {
+        player.promptForCardSelection(this, cardsToOrder, function(cards) {
+            that.putCardsOnDeck(player, cards);
+            that.advanceGameState();
+        });
+    } else {
+        this.advanceGameState();
+    }
+
 };

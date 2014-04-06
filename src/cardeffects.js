@@ -59,7 +59,9 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
     var setAsideCards = [];
     var drawCardEvent = _.bind(function() {
         if (isDone()) {
-            player.addCardsToDiscard(setAsideCards);
+            if (setAsideCards.length > 0) {
+                this.addCardsToDiscard(player, setAsideCards);
+            }
             this.advanceGameState();
             return;
         }
@@ -69,7 +71,7 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
             var decision = Decisions.drawOrDiscardCard(this, card);
             player.promptForDecision(this, decision, _.bind(function(choice) {
                 if (choice === Decisions.Options.Draw) {
-                    player.addCardToHand(card);
+                    this.drawTakenCard(player, card);
                 } else {
                     setAsideCards.push(card);
                 }
@@ -78,7 +80,7 @@ Game.prototype.playerDrawsToNCardsAllowingDiscardsEffect = function(player, num,
                 this.advanceGameState();
             }, this));
         } else {
-            player.addCardToHand(card);
+            this.drawTakenCard(player, card);
             this.pushGameEvent(drawCardEvent);
             this.advanceGameState();
         }

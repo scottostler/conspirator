@@ -94,6 +94,10 @@ Player.prototype.revealCardFromDeck = function() {
     return _.head(this.revealCardsFromDeck(1));
 };
 
+Player.prototype.putCardsOnDeck = function(cards) {
+    this.deck = cards.concat(this.deck);
+};
+
 Player.prototype.shuffleKeepingDeckOnTop = function() {
     this.deck = _.shuffle(this.discard).concat(this.deck);
     this.discard = [];
@@ -206,6 +210,10 @@ function optionToKey(o) {
         console.error('Unable to convert option to key', o);
         return null;
     }
+};
+
+Player.prototype.promptForCardSelection = function(game, cards, onSelect) {
+    this.decider.promptForCardSelection(game, cards, onSelect);
 };
 
 Player.prototype.promptForDecision = function(game, decision, onDecide) {

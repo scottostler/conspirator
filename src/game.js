@@ -39,8 +39,8 @@ function Game(players, kingdomCards) {
     this.activePlayerCoinCount = 0;
     this.cardDiscount = 0; // apparently if you Throne Room a Bridge it discounts twice, but not Highway, for which we may want a getMatchingCardsInPlayArea
     this.copperValue = 1;
-
     this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
+
     var kingdomCardCount = 10;
     var victoryCardCount = this.players.length == 2 ? 8 : 12;
     var curseCount = (this.players.length - 1) * 10;
@@ -486,7 +486,36 @@ Game.prototype.incrementCoinCount = function() {
 Game.prototype.drawCards = function(player, num) {
     var cards = player.takeCardsFromDeck(num);
     player.addCardsToHand(cards);
+    this.log(player.name, 'draws', num === 1 ? 'card' : num + ' cards');
     this.emit('draw-cards', player, cards);
+};
+
+// Used when card is taken from deck, and optionally drawn.
+// Assumes that the card has already been removed from the deck!
+// The cards may or may not be revealed to all players.
+Game.prototype.drawTakenCard = function(player, card, revealCards) {
+    this.drawTakenCards(player, [card], revealCards);
+};
+
+// Used when card is taken from deck, and optionally drawn.
+// Assumes that the card has already been removed from the deck!
+// The cards may or may not be revealed to all players.
+Game.prototype.drawTakenCards = function(player, cards, revealCards) {
+    player.addCardsToHand(cards);
+    if (revealCards) {
+        this.log(player.name, 'draws', _.pluck(cards, 'name').join(', '));
+    } else {
+        this.log(player.name, 'draws', cards.length === 1 ? 'card' : cards.length + ' cards');
+    }
+
+    this.emit('draw-cards', player, cards);
+};
+
+// Used when player reveals cards, and discards some.
+// Assumes that the card has already been taken from the deck.
+Game.prototype.addCardsToDiscard = function(player, cards) {
+    player.addCardsToDiscard(cards);
+    this.emit('add-cards-to-discard', player, cards);
 };
 
 Game.prototype.discardCardsFromDeck = function(player, num) {
@@ -511,6 +540,11 @@ Game.prototype.drawAndDiscardFromDeck = function(player, draw, discard) {
     }
 
     this.emit('draw-and-discard-cards', player, draw, discard);
+};
+
+Game.prototype.putCardsOnDeck = function(player, cards) {
+    player.putCardsOnDeck(cards);
+    this.log(player.name, 'puts', cards.join(', '), 'onto their deck');
 };
 
 Game.prototype.playActionMultipleTimes = function(card, num) {

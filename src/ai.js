@@ -63,6 +63,11 @@ ComputerAI.prototype.promptForTrashing = function(game, min, max, cards, onTrash
     onTrash(_.sample(cards, min));
 };
 
+ComputerAI.prototype.promptForCardSelection = function(game, cards, onSelect) {
+    this.assertPlayer();
+    onSelect(_.shuffle(cards));
+};
+
 ComputerAI.prototype.promptForDecision = function(game, decision, onDecide) {
     this.assertPlayer();
     onDecide(_.sample(decision.options));

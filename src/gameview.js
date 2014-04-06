@@ -390,6 +390,46 @@ GameView.prototype.offerMultipleHandSelection = function(player, minCards, maxCa
     this.offerHandSelection(player, minCards, maxCards, autoConfirm, selectableCards, onSelect);
 };
 
+GameView.prototype.offerOptions = function(title, options, onDecide) {
+    if (options.length < 1) {
+        console.log('Invalid generic choice args', title, options);
+    }
+
+    var $modal = $('.choice');
+    var $footer = $modal.find('.modal-footer');
+
+    $modal.find('.modal-title').text(title);
+    $footer.empty();
+
+    _.each(options, function(option) {
+        var label = option._optionString ? option._optionString : option.toString();
+        var $button = $('<button>').addClass('btn btn-primary').text(label).click(function() {
+            $modal.modal('hide');
+            onDecide(option);
+        });
+        $button.appendTo($footer);
+    });
+
+    $modal.modal('show');
+};
+
+GameView.prototype.offerCardSelection = function(player, cards, onSelect) {
+    var that = this;
+
+    var offerRemainingCards = function(remainingCards, pickedCards) {
+        that.offerOptions('Pick cards', remainingCards, function(card) {
+            pickedCards = pickedCards.concat([card]);
+            remainingCards = util.removeFirst(remainingCards, card);
+            if (remainingCards.length == 0) {
+                onSelect(pickedCards);
+            } else {
+                offerRemainingCards(remainingCards, pickedCards);
+            }
+        });
+    };
+
+    offerRemainingCards(cards, []);
+};
 
 GameView.prototype.hideDoneButton = function() {
     this.$doneButton.hide().unbind('click');

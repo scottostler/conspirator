@@ -27,6 +27,12 @@ Cards.matchNone = function(cardOrType) {
     };
 };
 
+Cards.filter = function(cards, cardOrType) {
+    return _.filter(cards,
+        function(c) { return c.matchesCardOrType(cardOrType);
+    });
+};
+
 Cards.getCardByName = function(cardName) {
     var card = Cards[cardName.replace(/\s+/g, '')];
     if (!card) {
@@ -270,6 +276,12 @@ function testPlayedActionCount(num, effects) {
     };
 };
 
+function revealAndDrawOrReorderCards(num, cardOrType) {
+    return function(game, activePlayer, otherPlayers) {
+        game.revealAndDrawOrReorderCards(activePlayer, num, cardOrType);
+    };
+}
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -283,9 +295,7 @@ function revealToAvoidAttack() {
 
 function vpPerNCards(cardsPerVP, cardOrType) {
     return function(deck) {
-        var matchingCards = deck.filter(function(card) {
-            return card.matchesCardOrType(cardOrType);
-        });
+        var matchingCards = Cards.filter(deck, cardOrType);
         return Math.floor(matchingCards.length / cardsPerVP);
     };
 }
@@ -729,6 +739,13 @@ Cards.Nobles = new Card({
     set: 'intrigue'
 });
 
+Cards.Scout = new Card({
+    name: 'Scout',
+    cost: 4,
+    effects: [gainActions(1), revealAndDrawOrReorderCards(4, Card.Type.Victory)],
+    set: 'intrigue'
+});
+
 Cards.ShantyTown = new Card({
     name: 'Shanty Town',
     cost: 3,
@@ -768,6 +785,7 @@ Cards.Intrigue = [
     Cards.Harem,
     Cards.Ironworks,
     Cards.Nobles,
+    Cards.Scout,
     Cards.ShantyTown,
     Cards.Steward,
     Cards.Swindler,
