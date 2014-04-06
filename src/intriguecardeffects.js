@@ -202,3 +202,25 @@ Game.prototype.tributeEffect = function(player, targetPlayer) {
 
     this.advanceGameState();
 };
+
+Game.prototype.minionDiscardEffect = function(player, otherPlayers) {
+    var that = this;
+    this.discardHand(player);
+    this.drawCards(player, 4);
+
+    var attackEffects = _.map(otherPlayers, function(otherPlayer) {
+        return function() {
+            that.allowReactionsToAttack(otherPlayer, function() {
+                if (otherPlayer.hand.length >= 5) {
+                    that.discardHand(otherPlayer);
+                    that.drawCards(otherPlayer, 4);
+                }
+
+                that.advanceGameState();
+            });
+        };
+    });
+
+    this.pushGameEvents(attackEffects);
+    this.advanceGameState();
+};

@@ -158,7 +158,7 @@ function trashCardsForEffect(cardOrType, effect, n) {
 }
 
 function chooseEffect(effects) {
-    chooseNEffects(1, effects);
+    return chooseNEffects(1, effects);
 }
 
 function otherPlayersChooseEffect(effects) {
@@ -364,6 +364,13 @@ function tributeEffect() {
         var nextPlayer = game.playerLeftOf(activePlayer);
         game.tributeEffect(activePlayer, nextPlayer);
     };
+};
+
+function minionDiscardEffect() {
+    var f = function(game, activePlayer, otherPlayers) {
+        game.minionDiscardEffect(activePlayer, otherPlayers);
+    };
+    return label(f, 'Discard and draw');
 };
 
 /**
@@ -795,6 +802,14 @@ Cards.MiningVillage = new Card({
     set: 'intrigue'
 });
 
+Cards.Minion = new Card({
+    name: 'Minion',
+    cost: 5,
+    effects: [gainActions(1), chooseEffect([gainCoins(2), minionDiscardEffect()])],
+    action: true,
+    set: 'intrigue'
+});
+
 Cards.Nobles = new Card({
     name: 'Nobles',
     cost: 6,
@@ -888,7 +903,7 @@ Cards.Intrigue = [
     Cards.Ironworks,
     Cards.Masquerade,
     Cards.MiningVillage,
-    // Cards.Minion,
+    Cards.Minion,
     Cards.Nobles,
     Cards.Pawn,
     // Cards.Saboteur,

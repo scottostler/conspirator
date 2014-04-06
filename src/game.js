@@ -206,10 +206,7 @@ Game.prototype.advanceGameState = function() {
 
         this.emit('empty-play-area');
 
-        if (this.activePlayer.hand.length > 0) {
-            this.discardCards(this.activePlayer, this.activePlayer.hand);
-        }
-
+        this.discardHand(this.activePlayer);
         this.drawCards(this.activePlayer, Game.HandSize);
         this.advanceTurn();
 
@@ -433,6 +430,12 @@ Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSki
     } else {
         processAttack();
     }
+};
+
+Game.prototype.discardHand = function(player) {
+     if (player.hand.length > 0) {
+        this.discardCards(player, player.hand);
+     }
 };
 
 Game.prototype.discardCards = function(player, cards, ontoDeck) {
