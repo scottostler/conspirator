@@ -159,7 +159,7 @@ function chooseNEffects(n, effects) {
 
 function trashThisCard() {
     return function(game, activePlayer, otherPlayers) {
-        game.trashCardInPlayEffect(_.last(game.playArea));
+        game.trashCardInPlayEffect(game.activeInPlayCard());
     };
 }
 
@@ -285,6 +285,12 @@ function revealAndDrawOrReorderCards(num, cardOrType) {
     };
 }
 
+function offerTrashForEffect(effect) {
+    return function(game, activePlayer, otherPlayers) {
+        game.offerTrashForEffect(activePlayer, game.activeInPlayCard(), effect);
+    };
+};
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -316,9 +322,9 @@ function drawUniqueCard() {
     };
 }
 
-function gainAndTrashIfVP() {
+function gainFromHornOfPlenty() {
     return function(game, activePlayer, otherPlayers) {
-        game.playerGainCardTrashVP(activePlayer);
+        game.playerGainCardFromHornOfPlenty(activePlayer);
     };
 }
 
@@ -734,6 +740,13 @@ Cards.Ironworks = new Card({
     set: 'intrigue'
 });
 
+Cards.MiningVillage = new Card({
+    name: 'Mining Village',
+    cost: 4,
+    effects: [offerTrashForEffect(gainCoins(2)), gainActions(2), drawCards(1)],
+    set: 'intrigue'
+});
+
 Cards.Nobles = new Card({
     name: 'Nobles',
     cost: 6,
@@ -794,6 +807,7 @@ Cards.Intrigue = [
     Cards.GreatHall,
     Cards.Harem,
     Cards.Ironworks,
+    Cards.MiningVillage,
     Cards.Nobles,
     Cards.Pawn,
     Cards.Scout,
@@ -844,7 +858,7 @@ Cards.Harvest = new Card({
 Cards.HornOfPlenty = new Card({
     name: 'Horn Of Plenty',
     cost: 5,
-    money: gainAndTrashIfVP(),
+    money: gainFromHornOfPlenty(),
     set: 'cornucopia'
 });
 

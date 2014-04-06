@@ -286,6 +286,12 @@ Game.prototype.currentlyBuyablePiles = function() {
     }
 };
 
+// For use in Feast, Mining Village.
+// TODO: need better way to track!
+Game.prototype.activeInPlayCard = function() {
+    return _.last(game.playArea);
+};
+
 // Game-state changes
 
 Game.prototype.playTreasure = function(card) {
@@ -337,7 +343,6 @@ Game.prototype.buyCard = function(card) {
 
     this.advanceGameState();
 };
-
 
 Game.prototype.playerGainsCard = function(player, card, ontoDeck, intoHand) {
     var pile = this.pileForCard(card);

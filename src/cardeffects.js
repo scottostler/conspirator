@@ -566,7 +566,7 @@ Game.prototype.playerDrawForUniqueCard = function(player) {
     this.advanceGameState();
 };
 
-Game.prototype.playerGainCardTrashVP = function(player) {
+Game.prototype.playerGainCardFromHornOfPlenty = function(player) {
     var cards = this.playArea;
     var minCost = 0;
     var maxCost = Cards.uniq(cards).length;
@@ -576,5 +576,18 @@ Game.prototype.playerGainCardTrashVP = function(player) {
         if (card.isVictory()) {
             that.trashCardFromPlay(Cards.HornOfPlenty);
         }
+    });
+};
+
+Game.prototype.offerTrashForEffect = function(player, card, trashEffect) {
+    var that = this;
+    var decision = Decisions.trashCardToGain(this, card, trashEffect);
+    player.promptForDecision(this, decision, function(choice) {
+        if (choice === Decisions.Options.Trash) {
+            that.trashCardFromPlay(card);
+            that.pushGameEvent(trashEffect);
+        }
+
+        that.advanceGameState();
     });
 };

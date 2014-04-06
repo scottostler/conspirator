@@ -3,6 +3,7 @@ var Decisions = module.exports = {};
 Decisions.Options = {
     No: 'No',
     Yes: 'Yes',
+    Trash: 'Trash',
     Discard: 'Discard',
     Keep: 'Keep',
     Draw: 'Draw'
@@ -72,5 +73,14 @@ Decisions.chooseEffect = function(game, player, effects) {
     return {
         title: 'Choose effect',
         options: effects
+    };
+};
+
+Decisions.trashCardToGain = function(game, card, gainEffect) {
+    var gainLabel = gainEffect._optionString ? gainEffect._optionString : gainEffect.toString();
+    var label = 'Trash ' + card.name + ' to gain ' + gainLabel + '?';
+    return {
+        title: label,
+        options: [Decisions.Options.Keep, Decisions.Options.Trash]
     };
 };
