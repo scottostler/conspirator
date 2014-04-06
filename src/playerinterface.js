@@ -36,9 +36,9 @@ PlayerInterface.prototype.promptForPileSelection = function(game, piles, allowTr
 
     var that = this;
     this.gameView.offerPileSelection(this.player, piles, allowTreasures, allowCancel, function(card, treasures) {
-        if (card && allowTreasures) {
+        if (card) {
             // Auto-play basic treasures when buying.
-            var treasures = that.player.getBasicTreasuresInHand();
+            var treasures = allowTreasures ? that.player.getBasicTreasuresInHand() : [];
             onSelect(card, treasures);
         } else if (treasures) {
             onSelect(null, treasures);

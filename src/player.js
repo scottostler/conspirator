@@ -163,6 +163,10 @@ Player.prototype.promptForGain = function(game, piles, onGain) {
     this.decider.promptForPileSelection(game, piles, false, false, onGain);
 };
 
+Player.prototype.promptForCardNaming = function(game, onGain) {
+    this.decider.promptForPileSelection(game, game.kingdomPiles, false, false, onGain);
+};
+
 Player.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
     var that = this;
     this.decider.promptForHandSelection(game, min, max, cards, function(cards) {

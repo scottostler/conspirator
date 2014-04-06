@@ -136,3 +136,21 @@ Game.prototype.masqueradeEffect = function(activePlayer, otherPlayers) {
         that.playerTrashesCardsEffect(activePlayer, 0, 1, Card.Type.All);
     });
 };
+
+Game.prototype.wishForCardReveal = function(player) {
+    var that = this;
+    player.promptForCardNaming(this, function(card) {
+        that.log(player.name, 'wishes for', card.name);
+        var revealedCard = player.revealCardFromDeck();
+        if (revealedCard) {
+            that.log(player.name, 'reveals', revealedCard);
+            if (card.name === revealedCard.name) {
+                that.drawCards(player, 1);
+            }
+        } else {
+            that.log(player.name, 'has no cards to reveal');
+        }
+
+        that.advanceGameState();
+    });
+};

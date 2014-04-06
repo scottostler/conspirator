@@ -297,6 +297,12 @@ function offerTrashForEffect(effect) {
     };
 };
 
+function wishForCardReveal(effect) {
+    return function(game, activePlayer, otherPlayers) {
+        game.wishForCardReveal(activePlayer);
+    };
+};
+
 // Reactions
 
 function revealToAvoidAttack() {
@@ -823,6 +829,13 @@ Cards.Upgrade = new Card({
     set: 'intrigue'
 });
 
+Cards.WishingWell = new Card({
+    name: 'Wishing Well',
+    cost: 3,
+    effects: [drawCards(1), gainActions(1), wishForCardReveal()],
+    set: 'intrigue'
+});
+
 Cards.Intrigue = [
     Cards.Baron,
     Cards.Bridge,
@@ -848,7 +861,7 @@ Cards.Intrigue = [
     Cards.TradingPost,
     // Cards.Tribute,
     Cards.Upgrade,
-    // Cards.WishingWell
+    Cards.WishingWell
 ];
 
 Cards.Fortuneteller = new Card({
