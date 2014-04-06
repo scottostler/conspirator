@@ -99,6 +99,18 @@ Player.prototype.revealCardFromDeck = function() {
     return _.head(this.revealCardsFromDeck(1));
 };
 
+Player.prototype.takeCardsFromDeckUntil = function(predicate) {
+    var revealedCards = [];
+    while (true) {
+        var card = this.takeCardFromDeck();
+        if (!card || predicate(card)) {
+            return [card, revealedCards];
+        } else {
+            revealedCards.push(card)
+        }
+    }
+};
+
 Player.prototype.putCardsOnDeck = function(cards) {
     this.deck = cards.concat(this.deck);
 };

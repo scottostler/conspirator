@@ -224,3 +224,44 @@ Game.prototype.minionDiscardEffect = function(player, otherPlayers) {
     this.pushGameEvents(attackEffects);
     this.advanceGameState();
 };
+
+Game.prototype.saboteurAttack = function(attackingPlayer, targetPlayers) {
+    var that = this;
+    var attacks = _.map(targetPlayers, function(targetPlayer) {
+        return function() {
+            that.allowReactionsToAttack(targetPlayer, function() {
+                var r = targetPlayer.takeCardsFromDeckUntil(function(card) {
+                    return card.cost >= 3 && card.cost <= 6;
+                });
+
+                var trashedCard = r[0];
+                var takenCards = r[1];
+
+                if (takenCards.length > 0) {
+                    that.log(targetPlayer.name, 'reveals', takenCards.join(', '));
+                    targetPlayer.addCardsToDiscard(takenCards);
+                }
+
+                if (trashedCard) {
+                    that.log(attackingPlayer.name, 'trashes', util.possessive(targetPlayer.name), trashedCard.name);
+                    that.addCardToTrash(trashedCard);
+
+                    var gainablePiles = that.filterGainablePiles(0, trashedCard.cost - 2, Card.Type.All);
+                    if (gainablePiles.length > 0) {
+                        targetPlayer.promptForGain(this, gainablePiles, function(card) {
+                            that.playerGainsCard(targetPlayer, card);
+                            that.advanceGameState();
+                        });
+                    } else {
+                        that.advanceGameState();
+                    }
+                } else {
+                    that.advanceGameState();
+                }
+            });
+        };
+    });
+
+    this.pushGameEvents(attacks);
+    this.advanceGameState();
+};

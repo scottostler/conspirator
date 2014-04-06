@@ -104,7 +104,6 @@ html body {
 
 .in-play {
     position: absolute;
-    background-color: darkgray;
     top: 420px;
     left: 5px;
 }

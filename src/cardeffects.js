@@ -449,11 +449,11 @@ Game.prototype.trashAndMaybeGainCardsAttack = function(attackingPlayer, targetPl
                 var decision = Decisions.gainCard(that, card);
                 attackingPlayer.promptForDecision(that, decision, function(choice) {
                     if (choice === Decisions.Options.Yes) {
-                        attackingPlayer.addCardToDiscard(card);
                         that.log(attackingPlayer.name, 'gains', util.possessive(targetPlayer.name), card.name);
+                        attackingPlayer.addCardToDiscard(card);
                     } else {
-                        that.addCardToTrash(card);
                         that.log(attackingPlayer.name, 'trashes', util.possessive(targetPlayer.name), card.name);
+                        that.addCardToTrash(card);
                     }
 
                     that.advanceGameState();

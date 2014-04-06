@@ -373,6 +373,12 @@ function minionDiscardEffect() {
     return label(f, 'Discard and draw');
 };
 
+function saboteurAttack() {
+    return function(game, activePlayer, otherPlayers) {
+        game.saboteurAttack(activePlayer, otherPlayers);
+    };
+};
+
 /**
  * @constructor
  */
@@ -822,6 +828,13 @@ Cards.Pawn = new Card({
     name: 'Pawn',
     cost: 2,
     effects: [chooseNEffects(2, [gainActions(1), drawCards(1), gainBuys(1), gainCoins(1)])],
+    set: 'intrigue'
+});
+
+Cards.Saboteur = new Card({
+    name: 'Saboteur',
+    cost: 5,
+    effects: [saboteurAttack()],
     set: 'intrigue'
 });
 

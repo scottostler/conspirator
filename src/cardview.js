@@ -25,8 +25,6 @@ function CardView(card, useCardback) {
     this.$el.data('view', this);
 }
 
-module.exports.CardView = CardView;
-
 CardView.prototype = Object.create(View.prototype);
 
 CardView.prototype.setCardImage = function(card) {
@@ -51,9 +49,6 @@ CardView.prototype.setVPBadgeCount = function(count) {
     this.$vpBadge.text(count);
 };
 
-/**
- * @constructor
- */
 function PileView(pile) {
     this.pile = pile;
 
@@ -85,4 +80,5 @@ PileView.prototype.setVPBadgeCount = function(count) {
     this.$vpBadge.text(count);
 };
 
+module.exports.CardView = CardView;
 module.exports.PileView = PileView;
