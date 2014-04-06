@@ -807,14 +807,22 @@ Cards.Intrigue = [
     Cards.GreatHall,
     Cards.Harem,
     Cards.Ironworks,
+    // Cards.Masquerade,
     Cards.MiningVillage,
+    // Cards.Minion,
     Cards.Nobles,
     Cards.Pawn,
+    // Cards.Saboteur,
     Cards.Scout,
+    // Cards.SecretChamber,
     Cards.ShantyTown,
     Cards.Steward,
     Cards.Swindler,
-    Cards.Upgrade
+    // Cards.Torturer,
+    // Cards.TradingPost,
+    // Cards.Tribute,
+    Cards.Upgrade,
+    // Cards.WishingWell
 ];
 
 Cards.Fortuneteller = new Card({
