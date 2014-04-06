@@ -27,38 +27,25 @@ PlayerInterface.prototype.getGameView = function() {
     return this.gameView;
 };
 
-PlayerInterface.prototype.promptForAction = function(game, playableActions, onAction) {
-    this.assertPlayer();
-    this.gameView.showStatusMessage('Play action');
+// Prompts
 
-    this.gameView.offerOptionalSingleHandSelection(this.player, playableActions, function(action) {
-        onAction(action);
-    });
-};
-
-PlayerInterface.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
+PlayerInterface.prototype.promptForPileSelection = function(game, piles, allowTreasures, allowCancel, onSelect) {
     this.assertPlayer();
-    var message = allowTreasures ? 'Play treasure or buy card' : 'Buy card';
+    var message = allowTreasures ? 'Choose treasure or buy card' : 'Gain card';
     this.gameView.showStatusMessage(message);
 
     var that = this;
-    this.gameView.offerPileSelection(this.player, buyablePiles, true, true, function(card, treasures) {
-        if (card) {
+    this.gameView.offerPileSelection(this.player, piles, allowTreasures, allowCancel, function(card, treasures) {
+        if (card && allowTreasures) {
             // Auto-play basic treasures when buying.
             var treasures = that.player.getBasicTreasuresInHand();
-            onBuy(treasures, card);
+            onSelect(card, treasures);
         } else if (treasures) {
-            onBuy(treasures, null);
+            onSelect(null, treasures);
         } else {
-            onBuy([], null);
+            onSelect(null, []);
         }
     });
-};
-
-PlayerInterface.prototype.promptForGain = function(game, gainablePiles, onGain) {
-    this.assertPlayer();
-    this.gameView.showStatusMessage('Gain card');
-    this.gameView.offerPileSelection(this.player, gainablePiles, false, false, onGain);
 };
 
 PlayerInterface.prototype.promptForHandSelection = function(game, min, max, cards, onSelect) {
@@ -68,9 +55,9 @@ PlayerInterface.prototype.promptForHandSelection = function(game, min, max, card
     this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onSelect);
 };
 
-PlayerInterface.prototype.promptForCardSelection = function(game, cards, onSelect) {
+PlayerInterface.prototype.promptForCardOrdering = function(game, cards, onOrder) {
     this.assertPlayer();
-    this.gameView.offerCardSelection(this.player, cards, onSelect);
+    this.gameView.offerCardSelection(this.player, cards, onOrder);
 };
 
 PlayerInterface.prototype.promptForDecision = function(game, decision, onDecide) {

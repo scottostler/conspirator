@@ -52,25 +52,11 @@ SocketDecider.prototype.assertNoCallback = function() {
 
 // Prompts
 
-SocketDecider.prototype.promptForAction = function(game, playableActions, onAction) {
+SocketDecider.prototype.promptForPileSelection = function(game, piles, allowTreasures, allowCancel, onSelect) {
     this.assertPlayer();
     this.assertNoCallback();
-    this.pendingRequestCallback = onAction;
-    this.socket.emit('action-prompt', serialization.serialize(playableActions));
-};
-
-SocketDecider.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
-    this.assertPlayer();
-    this.assertNoCallback();
-    this.pendingRequestCallback = onBuy;
-    this.socket.emit('buy-prompt', serialization.serialize(buyablePiles), allowTreasures);
-};
-
-SocketDecider.prototype.promptForGain = function(game, gainablePiles, onGain) {
-    this.assertPlayer();
-    this.assertNoCallback();
-    this.pendingRequestCallback = onGain;
-    this.socket.emit('gain-prompt', serialization.serialize(gainablePiles));
+    this.pendingRequestCallback = onSelect;
+    this.socket.emit('pile-selection-prompt', serialization.serialize(piles), allowTreasures, allowCancel);
 };
 
 SocketDecider.prototype.promptForHandSelection = function(game, min, max, cards, onSelection) {
@@ -86,5 +72,12 @@ SocketDecider.prototype.promptForDecision = function(game, decision, onDecide) {
     this.pendingRequestCallback = onDecide;
     this.socket.emit('decision-prompt', serialization.serialize(decision));
 };
+
+SocketDecider.prototype.promptForCardOrdering = function(game, cards, onOrder) {
+    this.assertPlayer();
+    this.assertNoCallback();
+    this.pendingRequestCallback = onOrder;
+    this.socket.emit('card-ordering-prompt', serialization.serialize(cards));
+}
 
 module.exports = SocketDecider;

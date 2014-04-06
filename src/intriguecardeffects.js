@@ -101,7 +101,7 @@ Game.prototype.revealAndDrawOrReorderCards = function(player, num, cardOrType) {
     }
 
     if (cardsToOrder.length > 0) {
-        player.promptForCardSelection(this, cardsToOrder, function(cards) {
+        player.promptForCardOrdering(this, cardsToOrder, function(cards) {
             that.putCardsOnDeck(player, cards);
             that.advanceGameState();
         });

@@ -57,10 +57,10 @@ function RemoteGame(socket, gameState, humanInterface) {
         that.emit('game-over');
     });
 
-    this.listenForPrompt('action-prompt', 'promptForAction');
-    this.listenForPrompt('buy-prompt', 'promptForBuy');
-    this.listenForPrompt('gain-prompt', 'promptForGain');
-    this.listenForPrompt('hand-selection-prompt', 'promptForHandSelection');
+    this.listenForPrompt('pile-selection-prompt', humanInterface.promptForPileSelection);
+    this.listenForPrompt('hand-selection-prompt', humanInterface.promptForHandSelection);
+    this.listenForPrompt('card-ordering-prompt', humanInterface.promptForCardOrdering);
+    this.listenForPrompt('decision-prompt', humanInterface.promptForDecision);
 }
 
 RemoteGame.prototype = Object.create(events.EventEmitter.prototype);

@@ -295,7 +295,7 @@ Game.prototype.currentlyBuyablePiles = function() {
 // For use in Feast, Mining Village.
 // TODO: need better way to track!
 Game.prototype.activeInPlayCard = function() {
-    return _.last(game.playArea);
+    return _.last(this.playArea);
 };
 
 // Game-state changes

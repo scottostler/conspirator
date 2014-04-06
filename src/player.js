@@ -134,13 +134,10 @@ Player.prototype.topDiscard = function() {
 
 // Prompts
 
-Player.prototype.promptForAction = function(game, playableActions) {
-    this.decider.promptForAction(game, playableActions, function(action) {
+Player.prototype.promptForAction = function(game, actions) {
+    this.decider.promptForHandSelection(game, 0, 1, actions, function(actions) {
+        var action = actions ? actions[0] : null;
         if (action) {
-            if (!action instanceof Card) {
-                console.error('Invalid action to play', action);
-                return;
-            }
             game.playAction(action);
         } else {
             game.skipActions();
@@ -149,17 +146,8 @@ Player.prototype.promptForAction = function(game, playableActions) {
 };
 
 Player.prototype.promptForBuy = function(game, buyablePiles, allowTreasures) {
-    this.decider.promptForBuy(game, buyablePiles, allowTreasures, function(treasures, cardToBuy) {
-        if (cardToBuy && cardToBuy instanceof Card === false) {
-            throw new Error('Invalid card to buy: ' + cardToBuy);
-        }
-
-        _.each(treasures, function(treasure) {
-            if (treasure instanceof Card === false) {
-                throw new Error('Invalid treasure to play: ' + JSON.stringify(treasure));
-            }
-            game.playTreasure(treasure);
-        });
+    this.decider.promptForPileSelection(game, buyablePiles, allowTreasures, true, function(cardToBuy, treasures) {
+        _.each(treasures, _.bind(game.playTreasure, game));
 
         if (cardToBuy) {
             game.buyCard(cardToBuy);
@@ -171,8 +159,8 @@ Player.prototype.promptForBuy = function(game, buyablePiles, allowTreasures) {
     });
 };
 
-Player.prototype.promptForGain = function(game, gainablePiles, onGain) {
-    this.decider.promptForGain(game, gainablePiles, onGain);
+Player.prototype.promptForGain = function(game, piles, onGain) {
+    this.decider.promptForPileSelection(game, piles, false, false, onGain);
 };
 
 Player.prototype.promptForDiscard = function(game, min, max, cards, onDiscard) {
@@ -220,11 +208,11 @@ function optionToKey(o) {
     }
 };
 
-Player.prototype.promptForCardSelection = function(game, cards, onSelect) {
+Player.prototype.promptForCardOrdering = function(game, cards, onSelect) {
     if (this.hand.length == 0) {
         throw new Error('Empty hand');
     }
-    this.decider.promptForCardSelection(game, cards, onSelect);
+    this.decider.promptForCardOrdering(game, cards, onSelect);
 };
 
 Player.prototype.promptForDecision = function(game, decision, onDecide) {

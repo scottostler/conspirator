@@ -19,8 +19,7 @@ Decisions.shuffleDiscardIntoDeck = function(game) {
 Decisions.discardCardOntoDeck = function(game, cards) {
     return {
         title: 'Select card to discard onto deck',
-        options: cards,
-        fromHand: true
+        options: cards
     };
 };
 
@@ -64,8 +63,7 @@ Decisions.chooseCardToTrash = function(game, player, cards) {
 Decisions.playAction = function(game, player, actions) {
     return {
         title: 'Choose action to play',
-        options: actions,
-        fromHand: true
+        options: actions
     };
 };
 

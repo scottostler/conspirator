@@ -6,7 +6,6 @@ var Cards = require('./cards.js').Cards;
  * @constructor
  */
 function ComputerAI() {
-    this.buyList = [Cards.Spy];
     this.trashList = [Cards.Curse, Cards.Copper];
 }
 
@@ -28,29 +27,10 @@ ComputerAI.prototype.setPlayer = function(player) {
     this.player = player;
 };
 
-ComputerAI.prototype.promptForAction = function(game, playableActions, onAction) {
-    this.assertPlayer();
-    onAction(_.sample(playableActions));
-};
-
-ComputerAI.prototype.promptForBuy = function(game, buyablePiles, allowTreasures, onBuy) {
-    this.assertPlayer();
-
-    var treasures = this.player.getTreasuresInHand();
-    var that = this;
-    var sortedPiles = _.sortBy(buyablePiles, function(p) {
-        var index = that.buyList.indexOf(p.card);
-        return index === -1 ? that.buyList.length + Math.random() : index;
-    });
-
-    var selection = _.head(sortedPiles);
-    onBuy(treasures, selection ? selection.card : null);
-}
-
-ComputerAI.prototype.promptForGain = function(game, gainablePiles, onGain) {
-    this.assertPlayer();
-    var selection = _.sample(gainablePiles);
-    onGain(selection ? selection.card : null);
+ComputerAI.prototype.promptForPileSelection = function(game, piles, allowTreasures, allowCancel, onSelect) {
+    var treasures = allowTreasures ? this.player.getTreasuresInHand() : [];
+    var selection = _.head(_.shuffle(piles));
+    onSelect(selection.card, treasures);
 };
 
 ComputerAI.prototype.promptForHandSelection = function(game, min, max, cards, onSelect) {
@@ -58,9 +38,9 @@ ComputerAI.prototype.promptForHandSelection = function(game, min, max, cards, on
     onSelect(_.sample(cards, min));
 }
 
-ComputerAI.prototype.promptForCardSelection = function(game, cards, onSelect) {
+ComputerAI.prototype.promptForCardOrdering = function(game, cards, onOrder) {
     this.assertPlayer();
-    onSelect(_.shuffle(cards));
+    onOrder(_.shuffle(cards));
 };
 
 ComputerAI.prototype.promptForDecision = function(game, decision, onDecide) {
