@@ -96,7 +96,19 @@ Game.prototype.playersDrawCardsEffect = function(players, num) {
     }, this);
 
     this.advanceGameState();
-}
+};
+
+Game.prototype.discardNCardsEffect = function(player, num) {
+    var that = this;
+    var numToDiscard = Math.max(0, player.hand.length - num);
+    if (numToDiscard > 0) {
+        player.promptForDiscard(that, numToDiscard, numToDiscard, player.hand, function(cards) {
+            that.advanceGameState();
+        });
+    } else {
+        this.advanceGameState();
+    }
+};
 
 Game.prototype.playerTrashesCardsEffect = function(player, min, max, cardOrType, onTrash) {
     var that = this;
@@ -129,14 +141,7 @@ Game.prototype.inactivePlayersDiscardToAttack = function(num) {
 
     _.each(_.reverse(this.inactivePlayers), function(player) {
         var discardAttack = function() {
-            var numToDiscard = Math.max(0, player.hand.length - num);
-            if (numToDiscard > 0) {
-                player.promptForDiscard(that, numToDiscard, numToDiscard, player.hand, function(cards) {
-                    that.advanceGameState();
-                });
-            } else {
-                that.advanceGameState();
-            }
+            that.discardNCardsEffect(player, num);
         };
 
         that.eventStack.push(function() {
@@ -534,11 +539,8 @@ Game.prototype.playerChoosesNEffects = function(player, n, effects) {
     var remainingEffects = effects;
 
     var promptChoice = function() {
-        var decision = Decisions.chooseEffect(this, player, remainingEffects);
-        player.promptForDecision(this, decision, function(effect) {
+        player.promptForEffectChoice(that, remainingEffects, function(effect) {
             remainingEffects = util.removeFirst(remainingEffects, effect);
-            that.log(player.name, 'chooses', effect._optionString);
-            effect(that, player, otherPlayers);
         });
     };
 

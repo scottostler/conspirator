@@ -67,6 +67,13 @@ function drawCards(num) {
     }, '+' + num + ' ' + util.pluralize('card', num));
 }
 
+function discardCards(num) {
+    var string = 'discard ' + num + ' ' + util.pluralize('card', num);
+    return label(function(game, activePlayer, otherPlayers) {
+        game.discardNCardsEffect(activePlayer, num);
+    }, string);
+}
+
 function trashCards(min, max) {
     if (max === undefined) { max = min; }
     return label(function(game, activePlayer, otherPlayers) {
@@ -105,15 +112,15 @@ function discardForEffect(cardOrType, effect, altEffect) {
 }
 
 function gainCard(card) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
         game.playerGainsCardEffect(activePlayer, card);
-    };
+    }, 'Gain ' + card.name);
 }
 
 function gainCardIntoHand(card) {
-    return function(game, activePlayer, otherPlayers) {
+    return label(function(game, activePlayer, otherPlayers) {
         game.playerGainsCardIntoHandEffect(activePlayer, card);
-    };
+    }, 'Gain ' + card.name + ' into hand');
 }
 
 function otherPlayersGainCards(cards) {
@@ -152,6 +159,12 @@ function trashCardsForEffect(cardOrType, effect, n) {
 
 function chooseEffect(effects) {
     chooseNEffects(1, effects);
+}
+
+function otherPlayersChooseEffect(effects) {
+    return function(game, activePlayer, otherPlayers) {
+        game.playersChooseEffectAttack(otherPlayers, effects);
+    };
 }
 
 function chooseNEffects(n, effects) {
@@ -582,6 +595,7 @@ Cards.Militia = new Card({
     name: 'Militia',
     cost: 4,
     effects: [gainCoins(2), otherPlayersDiscardTo(3)],
+    attack: true,
     set: 'base'
 });
 
@@ -625,6 +639,7 @@ Cards.Thief = new Card({
     name: 'Thief',
     cost: 4,
     effects: [thiefAttack(Card.Type.Treasure, 2)],
+    attack: true,
     set: 'base'
 });
 
@@ -646,6 +661,7 @@ Cards.Witch = new Card({
     name: 'Witch',
     cost: 5,
     effects: [drawCards(2), otherPlayersGainCards([Cards.Curse])],
+    attack: true,
     set: 'base'
 });
 
@@ -812,6 +828,16 @@ Cards.Swindler = new Card({
     name: 'Swindler',
     cost: 3,
     effects: [gainCoins(2), swindlerAttack()],
+    attack: true,
+    set: 'intrigue'
+});
+
+Cards.Torturer = new Card({
+    name: 'Torturer',
+    cost: 5,
+    effects: [drawCards(3),
+              otherPlayersChooseEffect([discardCards(2), gainCardIntoHand(Cards.Curse)])],
+    attack: true,
     set: 'intrigue'
 });
 
@@ -857,7 +883,7 @@ Cards.Intrigue = [
     Cards.ShantyTown,
     Cards.Steward,
     Cards.Swindler,
-    // Cards.Torturer,
+    Cards.Torturer,
     Cards.TradingPost,
     // Cards.Tribute,
     Cards.Upgrade,
@@ -868,6 +894,7 @@ Cards.Fortuneteller = new Card({
     name: 'Fortuneteller',
     cost: 3,
     effects: [gainCoins(2), otherPlayersDiscardUntilCurseOrVictory()],
+    attack: true,
     set: 'cornucopia'
 });
 
@@ -920,6 +947,7 @@ Cards.Jester = new Card({
     name: 'Jester',
     cost: 5,
     effects: [gainCoins(2), jesterAttack()],
+    attack: true,
     set: 'cornucopia'
 });
 

@@ -4,6 +4,7 @@ var Card = require('./cards.js').Card;
 var Pile = require('./cards.js').Pile;
 var BasePlayer = require('./baseplayer.js');
 var util = require('./util.js');
+var Decisions = require('./decisions.js');
 
 function startingDeck() {
     return _.flatten(
@@ -217,6 +218,20 @@ Player.prototype.promptForCardOrdering = function(game, cards, onSelect) {
         throw new Error('Empty hand');
     }
     this.decider.promptForCardOrdering(game, cards, onSelect);
+};
+
+Player.prototype.promptForEffectChoice = function(game, effects, onChoose) {
+    var otherPlayers = game.playersAsideFrom(this);
+    var decision = Decisions.chooseEffect(game, this, effects);
+    var that = this;
+    this.promptForDecision(game, decision, function(effect) {
+        if (onChoose) {
+            onChoose(effect);
+        }
+
+        game.log(that.name, 'chooses', effect._optionString);
+        effect(game, that, otherPlayers);
+    });
 };
 
 Player.prototype.promptForDecision = function(game, decision, onDecide) {

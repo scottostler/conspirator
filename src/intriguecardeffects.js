@@ -154,3 +154,15 @@ Game.prototype.wishForCardReveal = function(player) {
         that.advanceGameState();
     });
 };
+
+Game.prototype.playersChooseEffectAttack = function(targetPlayers, effects) {
+    var that = this;
+    var events = _.map(targetPlayers, function(player) {
+        return function() {
+            player.promptForEffectChoice(that, effects);
+        };
+    });
+
+    this.pushGameEvents(events);
+    this.advanceGameState();
+};

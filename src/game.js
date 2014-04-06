@@ -407,6 +407,8 @@ Game.prototype.playAction = function(card) {
     this.advanceGameState();
 };
 
+// TODO: should allow reactions when opponent plays attack, not when
+//       attack effect hits.
 Game.prototype.allowReactionsToAttack = function(player, attackEffect, shouldSkipAttack) {
     var that = this;
     var processAttack = function() {
