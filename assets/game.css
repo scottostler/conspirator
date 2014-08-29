@@ -121,6 +121,13 @@ html body {
     width: 100%;
 }
 
+.card .card-inner {
+    height: 100%;
+    width: 100%;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .count-badge {
     position: absolute;
     z-index: 5;
@@ -271,8 +278,6 @@ html body {
 .player-area.remote-player .hand .card {
     position: absolute;
     margin: auto;
-    transition: -webkit-transform 0.25s ease;
-    -webkit-transform-origin: 10px bottom;
     top: -70px;
 
 }
@@ -286,9 +291,11 @@ html body {
 .kingdom-piles .card.selectable {
     cursor: pointer;
     -webkit-transition: -webkit-transform 0.2s;
+    transition: transform 0.2s;
 }
 
 .kingdom-piles .card.selectable:hover {
+    transform: scale(2.0, 2.0);
     -webkit-transform: scale(2.0, 2.0);
     z-index: 5;
 }
@@ -300,17 +307,20 @@ html body {
     cursor: pointer;
     -webkit-transition: -webkit-transform 0.1s;
     -webkit-transform: translateY(0px);
+    transition: transform 0.1s;
+    transform: translateY(0px);
 }
 .hand .card.selectable:hover:not(.selected) {
     -webkit-transform: translateY(-15px);
+    transform: translateY(-15px);
     z-index: 5;
 }
 
 .hand .card.selectable.selected {
     cursor: pointer;
     -webkit-transform: translateY(-15px);
+    transform: translateY(-15px);
     z-index: 5;
-
     outline: 2px solid yellow;
 }
 
@@ -318,6 +328,7 @@ html body {
 .hand .card.highlight:not(.selected) {
     cursor: pointer;
     -webkit-transform: translateY(-15px);
+    transform: translateY(-15px);
     z-index: 5;
 }
 
