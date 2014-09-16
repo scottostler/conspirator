@@ -514,15 +514,15 @@ export var Steward = new cards.Card({
 //     set: 'intrigue'
 // });
 
-Cards.Torturer = new Card({
+export var Torturer = new cards.Card({
     name: 'Torturer',
     cost: 5,
     effects: [
         new e.DrawEffect(3),
         new e.EffectChoiceEffect([
-            
-            ],
-            e.Target.otherPlayers)]
+                new e.DiscardEffect(2, e.Target.ChoosingPlayer),
+                new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand)
+            ], e.Target.OtherPlayers)],
     attack: true,
     set: 'intrigue'
 });
@@ -588,7 +588,7 @@ export var Cardlist:cards.Card[] = [
     ShantyTown,
     Steward,
     // Swindler,
-    // Torturer,
+    Torturer,
     TradingPost,
     // Tribute,
     Upgrade,

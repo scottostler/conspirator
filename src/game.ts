@@ -14,7 +14,7 @@ export interface GameEvent {
     process(game:Game) : effects.Resolution;
 }
 
-class CardEffectEvent {
+export class CardEffectEvent {
 
     effect:effects.Effect;
     target:Player;
@@ -335,6 +335,8 @@ export class Game extends base.BaseGame {
                 return this.inactivePlayers;
             case effects.Target.AllPlayers:
                 return [this.activePlayer].concat(this.inactivePlayers);
+            case effects.Target.ChoosingPlayer:
+                throw new Error('ChoosingPlayer not defined for this method');
         }
     }
 
@@ -353,12 +355,15 @@ export class Game extends base.BaseGame {
         this.pushEventsForEffects([effect]);
     }
 
+    pushEvent(event:GameEvent) {
+        this.eventStack.push(event);
+    }
+
     pushEventsForEffects(effects:effects.Effect[]) {
         var events = effects.map(e =>
             this.playersForTarget(e.getTarget()).map(p =>
                 new CardEffectEvent(e, p)
             ));
-
         this.eventStack = this.eventStack.concat(
             util.reverse(_.flatten(events)));
     }

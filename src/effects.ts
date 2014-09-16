@@ -27,7 +27,8 @@ export class BasicVPEffect implements VPEffect {
 export enum Target {
     ActivePlayer,
     OtherPlayers,
-    AllPlayers
+    AllPlayers,
+    ChoosingPlayer // Only for use with EffectChoiceEffect
 }
 
 // Effects resolve by either advancing the game state, or 
@@ -147,13 +148,13 @@ export class DrawEffect implements LabelledEffect {
 }
 
 export class DiscardEffect implements LabelledEffect {
-    target:Target;
     numCards:number;
+    target:Target;
     destination:base.DiscardDestination;
 
     constructor(numCards:number, target:Target=Target.ActivePlayer, destination:base.DiscardDestination=base.DiscardDestination.Discard) {
-        this.target = target;
         this.numCards = numCards;
+        this.target = target;
         this.destination = destination;
     }
 

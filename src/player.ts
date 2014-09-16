@@ -293,15 +293,16 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForEffectChoice(game:game.Game, es:effects.LabelledEffect[], numChoices:number) : effects.Resolution {
+    promptForEffectChoice(g:game.Game, es:effects.LabelledEffect[], numChoices:number) : effects.Resolution {
         var decision = decisions.chooseEffect(es);
-        return this.promptForDecision(game, decision, (e:effects.LabelledEffect) => {
-            game.log(this.name, 'chooses', e.getLabel());
-            game.pushEventsForEffect(e);
+        return this.promptForDecision(g, decision, (e:effects.LabelledEffect) => {
+            g.log(this.name, 'chooses', e.getLabel());
+            g.pushEvent(new game.CardEffectEvent(e, this));
+
             if (numChoices <= 1) {
                 return effects.Resolution.Advance;
             } else {
-                return this.promptForEffectChoice(game, _.without(es, e), numChoices - 1);
+                return this.promptForEffectChoice(g, _.without(es, e), numChoices - 1);
             }
         });
     }
