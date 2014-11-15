@@ -692,7 +692,7 @@ export class Game extends base.BaseGame {
     drawTakenCards(player:Player, cards:cards.Card[], revealCards:boolean) {
         player.addCardsToHand(cards);
         if (revealCards) {
-            this.log(player, 'draws', cards);
+            this.log(player, 'draws', cards.join(', '));
         } else {
             this.log(player, 'draws', util.pluralize('card', cards.length));
         }
@@ -707,7 +707,7 @@ export class Game extends base.BaseGame {
             return;
         }
 
-        this.log(player.name, 'discards', cards);
+        this.log(player.name, 'discards', cards.join(', '));
         player.addCardsToDiscard(cards);
         this.gameListener.playerDiscardsCards(player, cards);
     }
@@ -716,7 +716,7 @@ export class Game extends base.BaseGame {
         var discarded = player.discardCardsFromDeck(num);
 
         if (discarded.length > 0) {
-            this.log(player.name, 'discards', discarded);
+            this.log(player.name, 'discards', discarded.join(', '));
             this.gameListener.playerDiscardsCardsFromDeck(player, discarded);
         }
 
@@ -743,7 +743,7 @@ export class Game extends base.BaseGame {
         } else if (draw.length > 0) {
             this.log(player, 'draws', draw);
         } else if (discard.length > 0) {
-            this.log(player, 'discards', discard);
+            this.log(player, 'discards', discard.join(', '));
         }
 
         this.gameListener.playerDrawsAndDiscardsCards(player, draw, discard);
