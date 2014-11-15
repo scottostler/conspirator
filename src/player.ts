@@ -123,8 +123,9 @@ class Player extends base.BasePlayer {
 
     takeCardsFromDeckUntil(predicate:cards.CardPredicate) : cards.CardSearchResult {
         var takenCards:cards.Card[] = [];
-        while (true) {
-            var card = this.takeCardFromDeck();
+        var card:cards.Card = null;
+
+        while (card = this.takeCardFromDeck()) {
             if (!card || predicate(card)) {
                 return {
                     foundCard:card,
@@ -202,15 +203,18 @@ class Player extends base.BasePlayer {
             }
         };
 
-        this.decider.promptForPileSelection(buyablePiles, allowTreasures, true, onBuy);
+        this.decider.promptForPileSelection(buyablePiles, allowTreasures, true, 'Buy card', onBuy);
         return effects.Resolution.Wait;
     }
 
-    promptForGain(game:game.Game, piles:cards.Pile[], onGain?:effects.CardCallback) : effects.Resolution {
+    promptForGain(game:game.Game, piles:cards.Pile[], onGain?:effects.CardCallback, label:string=null, gainingPlayer:Player=null) : effects.Resolution {
         if (piles.length === 0) { throw new Error('Cannot gain from empty piles'); }
 
-        this.decider.promptForPileSelection(piles, false, false, (gainedCard:cards.Card, treasures:cards.Card[]) => {
-            game.playerGainsCard(this, gainedCard);
+        gainingPlayer = gainingPlayer || this;
+        label = label || 'Gain card';
+
+        this.decider.promptForPileSelection(piles, false, false, label, (gainedCard:cards.Card, treasures:cards.Card[]) => {
+            game.playerGainsCard(gainingPlayer, gainedCard);
 
             if (onGain) {
                 game.checkEffectResolution(onGain(gainedCard))
@@ -222,12 +226,21 @@ class Player extends base.BasePlayer {
     }
 
     promptForCardNaming(game:game.Game, onSelect:cards.PurchaseCallback) : effects.Resolution {
-        this.decider.promptForPileSelection(game.kingdomPiles, false, false, onSelect);
+        this.decider.promptForPileSelection(game.kingdomPiles, false, false, 'Name card', onSelect);
         return effects.Resolution.Wait;
     }
 
-    promptForPileSelection(game:game.Game, piles:cards.Pile[], onSelect:cards.PurchaseCallback) : effects.Resolution {
-        this.decider.promptForPileSelection(piles, false, false, onSelect);
+    promptForPileSelection(game:game.Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
+        this.decider.promptForPileSelection(piles, false, false, label, (c, ts) => {
+            game.checkEffectResolution(onSelect(c, ts));
+        });
+        return effects.Resolution.Wait;
+    }
+
+    promptForPileSelectionWithCancel(game:game.Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
+        this.decider.promptForPileSelection(piles, false, true, label, (c, ts) => {
+            game.checkEffectResolution(onSelect(c, ts));
+        });
         return effects.Resolution.Wait;
     }
 
@@ -273,7 +286,7 @@ class Player extends base.BasePlayer {
 
     promptForReaction(game:game.Game, reactions:cards.Card[], onSelect:effects.CardCallback) : effects.Resolution {
         this.decider.promptForHandSelection(0, 1, reactions, (cards) => {
-            onSelect(cards.length > 0 ? cards[0] : null);
+            game.checkEffectResolution(onSelect(cards.length > 0 ? cards[0] : null));
         });
         return effects.Resolution.Wait;
     }
@@ -282,7 +295,9 @@ class Player extends base.BasePlayer {
         if (this.hand.length == 0) {
             throw new Error('Empty hand for promptForCardOrdering');
         }
-        this.decider.promptForCardOrdering(cards, onSelect);
+        this.decider.promptForCardOrdering(cards, (cards) => {
+            game.checkEffectResolution(onSelect(cards));
+        });
         return effects.Resolution.Wait;
     }
 

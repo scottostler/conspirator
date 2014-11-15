@@ -94,9 +94,9 @@ class MiningVillageTrashEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:game.Game, player:Player) : e.Resolution {
         var trashDecision = decisions.trashOrKeepCard(MiningVillage);
-        return player.promptForDecision(game, trashDecision, (d:string) => {
+        var onDecide = (d:string) => {
             if (d === decisions.Options.Trash) {
                 // TODO: handle already trashed
                 game.trashCardFromPlay(game.activeInPlayCard());
@@ -104,7 +104,9 @@ class MiningVillageTrashEffect implements e.Effect {
             }
 
             return e.Resolution.Advance;
-        });
+        };
+
+        return player.promptForDecision(game, trashDecision, onDecide);
     }
 }
 
@@ -123,7 +125,59 @@ class MinionDiscardEffect implements e.LabelledEffect {
     }
 }
 
+class SaboteurEffect implements e.Effect {
+    
+    getTarget() { return e.Target.OtherPlayers; }
+
+    process(game:game.Game, player:Player) {
+        var results = player.takeCardsFromDeckUntil((c:cards.Card) => game.effectiveCardCost(c) >= 3);
+        game.addCardsToDiscard(player, results.otherCards);
+
+        if (!results.foundCard) {
+            return e.Resolution.Advance;
+        }
+
+        var cost = game.effectiveCardCost(results.foundCard);
+        var piles = game.filterGainablePiles(0, cost);
+
+        if (piles.length === 0) {
+            return e.Resolution.Advance;
+        }
+
+        game.addCardToTrash(player, results.foundCard);
+        return game.playerGainsFromPiles(player, piles);
+    }
+}
+
+class ScoutEffect implements e.Effect {
+
+    getTarget() { return e.Target.ActivePlayer; }
+
+    process(game:game.Game, player:Player) {
+        var revealedCards = player.takeCardsFromDeck(4);
+
+        if (revealedCards.length == 0) {
+            return e.Resolution.Advance;
+        }
+
+        var victoryCards = cards.getVictories(revealedCards);
+        var remaining = cards.difference(revealedCards, victoryCards);
+
+        victoryCards.forEach(c => game.drawTakenCard(player, c, true));
+
+        if (remaining.length > 0) {
+            return e.Resolution.Advance;
+        } else {
+            return player.promptForCardOrdering(game, remaining, orderedCards => {
+                game.putCardsOnDeck(player, orderedCards);
+                return e.Resolution.Advance;
+            });
+        }
+    }
+}
+
 class ShantyTownEffect implements e.Effect {
+
     getTarget() { return e.Target.ActivePlayer; }
 
     process(game:game.Game, player:Player) {
@@ -138,59 +192,73 @@ class ShantyTownEffect implements e.Effect {
 
 }
 
-// Game.prototype.swindlerAttack = function(attackingPlayer, targetPlayers) {
-//     var that = this;
-//     var events = _.map(targetPlayers, function(targetPlayer) {
-//         return function() {
-//             var attack = function() {
-//                 var card = that.trashCardFromDeck(targetPlayer);
-//                 if (card) {
-//                     var cost = that.effectiveCardCost(card);
-//                     var gainablePiles = that.filterGainablePiles(cost, cost, Card.Type.All);
-//                     if (gainablePiles.length > 0) {
-//                         attackingPlayer.promptForPileSelection(that, gainablePiles, function(gainedCard) {
-//                             that.playerGainsCard(targetPlayer, gainedCard);
-//                             that.advanceGameState();
-//                         });
-//                     } else {
-//                         that.advanceGameState();
-//                     }
-//                 } else {
-//                     that.advanceGameState();
-//                 }
-//             };
+class SwindlerEffect implements e.Effect {
 
-//             that.allowReactionsToAttack(targetPlayer, attack);
-//         };
-//     });
+    getTarget() { return e.Target.OtherPlayers; }
 
-//     this.pushGameEvents(events);
-//     this.advanceGameState();
-// };
+    process(game:game.Game, player:Player) {
+        var card = game.trashCardFromDeck(player);
+        if (!card) {
+            return e.Resolution.Advance;
+        }
 
-// Game.prototype.revealAndDrawOrReorderCards = function(player, num, cardOrType) {
-//     var that = this;
-//     var revealedCards = player.takeCardsFromDeck(num);
+        var cost = game.effectiveCardCost(card);
+        var piles = game.filterGainablePiles(cost, cost);
 
-//     this.log(player.name, 'reveals', revealedCards.join(', '));
+        if (piles.length == 0) {
+            return e.Resolution.Advance;
+        } else {
+            return game.activePlayer.promptForGain(game, piles, null, 'Choose card to give', player);
+        }
+    }
+}
 
-//     var drawnCards = Cards.filter(revealedCards, cardOrType);
-//     var cardsToOrder = _.difference(revealedCards, drawnCards);
+class TributeEffect implements e.Effect {
 
-//     if (drawnCards.length > 0) {
-//         this.drawTakenCards(player, drawnCards, true);
-//     }
+    getTarget() { return e.Target.ActivePlayer; }
 
-//     if (cardsToOrder.length > 0) {
-//         player.promptForCardOrdering(this, cardsToOrder, function(cards) {
-//             that.putCardsOnDeck(player, cards);
-//             that.advanceGameState();
-//         });
-//     } else {
-//         this.advanceGameState();
-//     }
+    process(game:game.Game, player:Player) {
+        var discardingPlayer = game.playerLeftOf(player);
+        var discarded = cards.uniq(discardingPlayer.discardCardsFromDeck(2));
 
-// };
+        discarded.forEach((c:cards.Card) => {
+            if (c.isAction()) {
+                game.incrementActionCount(2);
+            }
+
+            if (c.isTreasure()) {
+                game.incrementCoinCount(2);
+            }
+
+            if (c.isVictory()) {
+                game.drawCards(player, 2);
+            }
+        });
+
+        return e.Resolution.Advance;
+    }
+}
+
+class WishingWellEffect implements e.Effect {
+
+    getTarget() { return e.Target.ActivePlayer; }
+
+    process(game:game.Game, player:Player) {
+        var onSelect:e.PurchaseCallback = (picked:cards.Card, _:cards.Card[]) => {
+            game.log(player, 'wishes for', picked);
+
+            var revealed = game.revealCardFromDeck(player);
+            if (revealed && revealed.equals(picked)) {
+                game.drawCards(player, 1);
+            }
+
+            return e.Resolution.Advance;
+        };
+
+        return player.promptForPileSelection(game, game.kingdomPiles, 'Wish for card', onSelect);
+    }
+
+}
 
 // Game.prototype.masqueradeEffect = function(activePlayer, otherPlayers) {
 //     var that = this;
@@ -216,82 +284,6 @@ class ShantyTownEffect implements e.Effect {
 
 //         that.playerTrashesCardsEffect(activePlayer, 0, 1, Card.Type.All);
 //     });
-// };
-
-// Game.prototype.wishForCardReveal = function(player) {
-//     var that = this;
-//     player.promptForCardNaming(this, function(card) {
-//         that.log(player.name, 'wishes for', card.name);
-//         var revealedCard = player.revealCardFromDeck();
-//         if (revealedCard) {
-//             that.log(player.name, 'reveals', revealedCard);
-//             if (card.name === revealedCard.name) {
-//                 that.drawCards(player, 1);
-//             }
-//         } else {
-//             that.log(player.name, 'has no cards to reveal');
-//         }
-
-//         that.advanceGameState();
-//     });
-// };
-
-// Game.prototype.tributeEffect = function(player, targetPlayer) {
-//     var cards = Cards.uniq(this.discardCardsFromDeck(targetPlayer, 2));
-//     var drawnCards = 0;
-//     var gainedActions = 0;
-//     var gainedCoins = 0;
-//     _.each(cards, function(card) {
-//         if (card.isAction()) {
-//             gainedActions += 2;
-//         }
-
-//         if (card.isTreasure()) {
-//             gainedCoins += 2;
-//         }
-
-//         if (card.isVictory()) {
-//             drawnCards += 2;
-//         }
-//     }, this);
-
-//     if (drawnCards > 0) {
-//         this.drawCards(player, drawnCards);
-//     }
-
-//     if (gainedActions > 0) {
-//         this.log(player.name, 'gains ' + gainedActions + ' actions');
-//         this.incrementActionCount(gainedActions);
-//     }
-
-//     if (gainedCoins > 0) {
-//         this.log(player.name, 'gains ' + gainedCoins + ' coins');
-//         this.incrementCoinCount(gainedCoins);
-//     }
-
-//     this.advanceGameState();
-// };
-
-// Game.prototype.minionDiscardEffect = function(player, otherPlayers) {
-//     var that = this;
-//     this.discardHand(player);
-//     this.drawCards(player, 4);
-
-//     var attackEffects = _.map(otherPlayers, function(otherPlayer) {
-//         return function() {
-//             that.allowReactionsToAttack(otherPlayer, function() {
-//                 if (otherPlayer.hand.length >= 5) {
-//                     that.discardHand(otherPlayer);
-//                     that.drawCards(otherPlayer, 4);
-//                 }
-
-//                 that.advanceGameState();
-//             });
-//         };
-//     });
-
-//     this.pushGameEvents(attackEffects);
-//     this.advanceGameState();
 // };
 
 // Game.prototype.saboteurAttack = function(attackingPlayer, targetPlayers) {
@@ -463,12 +455,13 @@ export var Pawn = new cards.Card({
     set: SetName
 });
 
-// Cards.Saboteur = new Card({
-//     name: 'Saboteur',
-//     cost: 5,
-//     effects: [saboteurAttack()],
-//     set: 'intrigue'
-// });
+export var Saboteur = new cards.Card({
+    name: 'Saboteur',
+    cost: 5,
+    effects: [new SaboteurEffect()],
+    attack: true,
+    set: SetName
+});
 
 // Cards.SecretChamber = new Card({
 //     name: 'Secret Chamber',
@@ -478,12 +471,14 @@ export var Pawn = new cards.Card({
 //     set: 'intrigue'
 // });
 
-// Cards.Scout = new Card({
-//     name: 'Scout',
-//     cost: 4,
-//     effects: [gainActions(1), revealAndDrawOrReorderCards(4, Card.Type.Victory)],
-//     set: 'intrigue'
-// });
+export var Scout = new cards.Card({
+    name: 'Scout',
+    cost: 4,
+    effects: [
+        new e.GainActionsEffect(1),
+        new ScoutEffect()],
+    set: SetName
+});
 
 export var ShantyTown = new cards.Card({
     name: 'Shanty Town',
@@ -506,13 +501,15 @@ export var Steward = new cards.Card({
     set: SetName
 });
 
-// Cards.Swindler = new Card({
-//     name: 'Swindler',
-//     cost: 3,
-//     effects: [gainCoins(2), swindlerAttack()],
-//     attack: true,
-//     set: 'intrigue'
-// });
+export var Swindler = new cards.Card({
+    name: 'Swindler',
+    cost: 3,
+    effects: [
+        new e.GainCoinsEffect(2),
+        new SwindlerEffect()],
+    attack: true,
+    set: SetName
+});
 
 export var Torturer = new cards.Card({
     name: 'Torturer',
@@ -524,7 +521,7 @@ export var Torturer = new cards.Card({
                 new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand)
             ], e.Target.OtherPlayers)],
     attack: true,
-    set: 'intrigue'
+    set: SetName
 });
 
 var GainSilverEffect = new e.GainCardEffect(
@@ -539,12 +536,12 @@ export var TradingPost = new cards.Card({
     set: SetName
 });
 
-// Cards.Tribute = new Card({
-//     name: 'Tribute',
-//     cost: 5,
-//     effects: [tributeEffect()],
-//     set: 'intrigue'
-// });
+export var Tribute = new cards.Card({
+    name: 'Tribute',
+    cost: 5,
+    effects: [new TributeEffect()],
+    set: SetName
+});
 
 export var Upgrade = new cards.Card({
     name: 'Upgrade',
@@ -560,12 +557,16 @@ export var Upgrade = new cards.Card({
     set: SetName
 });
 
-// Cards.WishingWell = new Card({
-//     name: 'Wishing Well',
-//     cost: 3,
-//     effects: [drawCards(1), gainActions(1), wishForCardReveal()],
-//     set: 'intrigue'
-// });
+export var WishingWell = new cards.Card({
+    name: 'Wishing Well',
+    cost: 3,
+    effects: [
+        new e.DrawEffect(1),
+        new e.GainActionsEffect(1),
+        new WishingWellEffect()
+    ],
+    set: SetName
+});
 
 export var Cardlist:cards.Card[] = [
     Baron,
@@ -582,15 +583,15 @@ export var Cardlist:cards.Card[] = [
     Minion,
     Nobles,
     Pawn,
-    // Saboteur,
-    // Scout,
+    Saboteur,
+    Scout,
     // SecretChamber,
     ShantyTown,
     Steward,
-    // Swindler,
+    Swindler,
     Torturer,
     TradingPost,
-    // Tribute,
+    Tribute,
     Upgrade,
-    // WishingWell
+    WishingWell
 ];

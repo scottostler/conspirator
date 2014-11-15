@@ -387,7 +387,7 @@ export class Game extends base.BaseGame {
     }
 
     pileForCard(card:cards.Card) : cards.Pile {
-        var pile = _.find(this.kingdomPiles, function(pile:cards.Pile) {
+        var pile = _.find(this.kingdomPiles, (pile:cards.Pile) => {
             return pile.card === card;
         });
 
@@ -537,7 +537,7 @@ export class Game extends base.BaseGame {
             this.playerGainsCard(player, piles[0].card, dest);
             return effects.Resolution.Advance;
         } else {
-            console.error(player.getName(), 'cannot gain from empty piles');
+            console.error(player.name, 'cannot gain from empty piles');
             return effects.Resolution.Advance;
         }
     }
@@ -613,11 +613,16 @@ export class Game extends base.BaseGame {
         this.gameListener.playerTrashesCards(player, cards);
     }
 
+    // Doesn't fire gameListener method
+    baseAddToTrash(player:Player, card:cards.Card) {
+        this.log(player.name, 'trashes', card.name);
+        this.trash.push(card);
+    }
+
     // For use with 'floating' cards, e.g. cards revealed by thief.
     // Normal trashing from hand should use trashCards.
     addCardToTrash(player:Player, card:cards.Card) {
-        this.log(player.name, 'trashes', card.name);
-        this.trash.push(card);
+        this.baseAddToTrash(player, card);
         this.gameListener.addCardToTrash(card);
     }
 
@@ -625,10 +630,20 @@ export class Game extends base.BaseGame {
         // May not be true if a feast was throne-roomed, for example.
         if (_.contains(this.playArea, card)) {
             this.playArea = util.removeFirst(this.playArea, card);
-            this.trash.push(card);
-            this.log(this.activePlayer.name, 'trashes', card);
+            this.baseAddToTrash(this.activePlayer, card);
             this.gameListener.trashCardFromPlay(card);
         }
+    }
+
+    trashCardFromDeck(player:Player) : cards.Card {
+        var card = player.takeCardFromDeck();
+        if (!card) {
+            return null;
+        }
+
+        this.baseAddToTrash(player, card);
+        this.gameListener.trashCardFromDeck(player, card);
+        return card;
     }
 
     gainCardFromTrash(player:Player, card:cards.Card) {
@@ -688,6 +703,10 @@ export class Game extends base.BaseGame {
     // Used when player reveals cards, and discards some.
     // Assumes that the card has already been taken from the deck.
     addCardsToDiscard(player:Player, cards:cards.Card[]) {
+        if (cards.length === 0) {
+            return;
+        }
+
         this.log(player.name, 'discards', cards);
         player.addCardsToDiscard(cards);
         this.gameListener.playerDiscardsCards(player, cards);
@@ -755,7 +774,7 @@ export class Game extends base.BaseGame {
         this.stateUpdated();
     }
 
-    filterGainablePiles(minCost:number, maxCost:number, cardType:cards.Type) : cards.Pile[] {
+    filterGainablePiles(minCost:number, maxCost:number, cardType:cards.Type=cards.Type.All) : cards.Pile[] {
         return _.filter<cards.Pile>(this.kingdomPiles, (pile:cards.Pile) => {
             if (pile.count == 0) {
                 return false;

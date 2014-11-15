@@ -20,7 +20,7 @@ export class AIDecider implements decider.Decider {
         this.player = player;
     }
 
-    promptForPileSelection(piles:any, allowTreasures:boolean, allowCancel:boolean, onSelect:cards.PurchaseCallback) {
+    promptForPileSelection(piles:any, allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
         this.assertPlayer();
         var treasures = allowTreasures ? cards.getTreasures(this.player.getHand()) : [];
         var selection:any = _.head(_.shuffle(piles));

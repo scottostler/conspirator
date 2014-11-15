@@ -427,3 +427,7 @@ export interface CardsCallback {
 export interface LabelledEffectCallback {
     (effect:LabelledEffect) : Resolution;
 }
+
+export interface PurchaseCallback {
+    (card:cards.Card, treasures:cards.Card[]) : Resolution;
+}

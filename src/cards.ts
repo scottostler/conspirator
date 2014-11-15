@@ -53,6 +53,10 @@ export class Card {
         this.assetURL = buildCardURL(this.set, this.name);
     }
 
+    equals(c:Card) {
+        return this.name === c.name;
+    }
+
     toString() {
         return this.name;
     }
@@ -147,6 +151,10 @@ export function uniq(cards:Card[]) : Card[] {
 
 export function areUnique(cards:Card[]) : boolean {
     return cards.length === uniq(cards).length;
+}
+
+export function difference(first:Card[], second:Card[]) : Card[] {
+    return _.difference<Card>(first, second);
 }
 
 export function matchNone(cardType:Type) : CardsPredicate {

@@ -23,6 +23,7 @@ class GameConsoleLogger implements base.BaseGameListener {
     playerTrashesCards(player:base.BasePlayer, cards:cards.Card[]) {}
     playerDrawsAndDiscardsCards(player:base.BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {}
     trashCardFromPlay(card:cards.Card) {}
+    trashCardFromDeck(player:base.BasePlayer, card:cards.Card) {}
     addCardToTrash(card:cards.Card) {}
     gameEnded(decks:cards.Card[][]) {}
 

@@ -313,7 +313,7 @@ export class GameView extends View implements base.BaseGameListener {
         (<any>$modal).modal('show');
     }
 
-    offerCardSelection(player:base.BasePlayer, cards:cards.Card[], onSelect:cards.CardsCallback) {
+    offerCardOrdering(player:base.BasePlayer, cards:cards.Card[], onSelect:cards.CardsCallback) {
         var offerRemainingCards = (remainingCards:cards.Card[], pickedCards:cards.Card[]) => {
             this.offerOptions('Pick cards', remainingCards, card => {
                 pickedCards = pickedCards.concat([card]);
@@ -422,6 +422,11 @@ export class GameView extends View implements base.BaseGameListener {
         var cardView = this.viewForInPlayCard(card);
         this.inPlayViews = util.removeFirst(this.inPlayViews, cardView);
         cardView.$el.remove();
+        this.setTrashViewCard(card);
+    }
+
+    trashCardFromDeck(player:base.BasePlayer, card:cards.Card) {
+        this.viewForPlayer(player).updateDeckAndDiscardViews();
         this.setTrashViewCard(card);
     }
 

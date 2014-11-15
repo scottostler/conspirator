@@ -77,17 +77,17 @@ class DiscardToDrawEffect implements e.Effect {
     getTarget() { return e.Target.ActivePlayer; }
 
     process(game:game.Game, player:Player) {
-        if (player.hand.length > 0) {
-            return player.promptForDiscard(game, 0, player.hand.length, player.hand, base.DiscardDestination.Discard, (cards) => {
-                if (cards.length > 0) {
-                    game.drawCards(player, cards.length);
-                }
-
-                return e.Resolution.Advance;
-            });
-        } else {
+        if (player.hand.length === 0) {
             return e.Resolution.Advance;
         }
+
+        return player.promptForDiscard(game, 0, player.hand.length, player.hand, base.DiscardDestination.Discard, (cards) => {
+            if (cards.length > 0) {
+                game.drawCards(player, cards.length);
+            }
+
+            return e.Resolution.Advance;
+        });
     }
 }
 

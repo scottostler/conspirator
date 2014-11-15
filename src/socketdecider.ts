@@ -60,7 +60,7 @@ export class SocketDecider implements decider.Decider {
 
     // Prompts
 
-    promptForPileSelection(piles:any, allowTreasures:boolean, allowCancel:boolean, onSelect:cards.PurchaseCallback) {
+    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
         this.assertPlayer();
         this.assertNoCallback();
         this.pendingRequestCallback = onSelect;

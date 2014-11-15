@@ -31,10 +31,9 @@ class PlayerInterface implements decider.Decider {
 
     // Prompting
 
-    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, onSelect:cards.PurchaseCallback) {
+    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
         this.assertPlayer();
-        var message = allowTreasures ? 'Play treasure or buy card' : 'Gain card';
-        this.gameView.showStatusMessage(message);
+        this.gameView.showStatusMessage(label);
 
         this.gameView.offerPileSelection(this.player, piles, allowTreasures, allowCancel, (card, treasures) => {
             if (card) {
@@ -61,7 +60,7 @@ class PlayerInterface implements decider.Decider {
 
     promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
         this.assertPlayer();
-        this.gameView.offerCardSelection(this.player, cards, onOrder);
+        this.gameView.offerCardOrdering(this.player, cards, onOrder);
     }
 
     promptForDecision(decision:decisions.Decision, onDecide:util.AnyCallback) {
