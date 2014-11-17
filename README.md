@@ -8,15 +8,6 @@ To get started:
 
     npm install
 
-3) install browserify globally
-    
-    npm install browserify -g
+3) generate javascript
 
-4) generate bundle.js
-
-    browserify src/main.js -o bundle.js
-
-5) use watchify to automatically regenerate bundle.js as you edit  (Opt.) 
-
-    npm install watchify -g
-    watchify src/main.js -o bundle.js
+    grunt
