@@ -86,9 +86,13 @@ class ScoreSheet extends View {
             var deckBreakdown = _.countBy<cards.Card>(sortedDeck, card => {
                 return card.name;
             });
+            var cardLookup = _.indexBy<cards.Card, string>(sortedDeck, card => {
+                return card.name;
+            });
+
 
             _.each(_.keys(deckBreakdown), cardName => {
-                var card = cards.getCardByName(cardName);
+                var card = cardLookup[cardName];
                 var currentCardView = new cardview.CardView(card);
                 currentCardView.setBadgeCount(deckBreakdown[cardName]);
 

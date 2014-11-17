@@ -1,6 +1,7 @@
 import _ = require('underscore');
 import util = require('./util');
 import base = require('./base');
+import TurnState = require('./turnstate');
 import Player = require('./player');
 import cards = require('./cards')
 import effects = require('./effects')
@@ -95,20 +96,13 @@ export class Game extends base.BaseGame {
     playArea:cards.Card[];
     eventStack:GameEvent[];
     hasGameEnded:boolean;
-    cardBought:boolean;
 
     activePlayerIndex:number;
-    activePlayerActionCount:number;
-    activePlayerBuyCount:number;
-    activePlayerCoinCount:number;
-    playedActionCount:number;
-
     activePlayer:Player;
     inactivePlayers:Player[];
-    turnPhase:base.TurnPhase;
 
-    cardDiscount:number;
-    copperValue:number;
+    turnState:TurnState;
+
     emptyPilesToEndGame:number;
     storedState:any;
 
@@ -124,13 +118,6 @@ export class Game extends base.BaseGame {
         this.playArea = [];
         this.eventStack = [];
         this.hasGameEnded = false;
-        this.cardBought = false; // When true, no more treasures can be played.
-        this.playedActionCount = 0;
-        this.activePlayerActionCount = 0;
-        this.activePlayerBuyCount = 0;
-        this.activePlayerCoinCount = 0;
-        this.cardDiscount = 0; // apparently if you Throne Room a Bridge it discounts twice, but not Highway, for which we may want a getMatchingCardsInPlayArea
-        this.copperValue = 1;
         this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
 
         this.storedState = {};
@@ -161,15 +148,11 @@ export class Game extends base.BaseGame {
         });
     }
 
-    gameState() : base.TurnState {
+    gameState() : base.GameState {
         return {
             activePlayer: this.activePlayer.name,
             turnCount: this.turnCount,
-            turnPhase: this.turnPhase,
-            actionCount: this.activePlayerActionCount,
-            buyCount: this.activePlayerBuyCount,
-            coinCount: this.activePlayerCoinCount,
-            copperValue: this.copperValue
+            turnState: this.turnState
         };
     }
 
@@ -223,15 +206,8 @@ export class Game extends base.BaseGame {
         this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
         this.activePlayer = this.players[this.activePlayerIndex];
         this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
-        this.turnPhase = base.TurnPhase.Action;
 
-        this.cardBought = false;
-        this.playedActionCount = 0;
-        this.activePlayerActionCount = 1;
-        this.activePlayerBuyCount = 1;
-        this.activePlayerCoinCount = 0;
-        this.cardDiscount = 0;
-        this.copperValue = 1;
+        this.turnState = new TurnState();
 
         // TODO: assert is empty at appropriate times
         this.storedState = {};
@@ -264,25 +240,25 @@ export class Game extends base.BaseGame {
             return;
         }
 
-        if (this.turnPhase == base.TurnPhase.Action) {
+        if (this.turnState.phase == base.TurnPhase.Action) {
             var playableActions = this.currentlyPlayableActions();
             if (playableActions.length == 0) {
-                this.turnPhase = base.TurnPhase.Buy;
+                this.turnState.phase = base.TurnPhase.Buy;
                 this.stateUpdated();
                 this.advanceGameState();
             } else {
                 this.activePlayer.promptForAction(this, playableActions);
             }
-        } else if (this.turnPhase == base.TurnPhase.Buy) {
+        } else if (this.turnState.phase == base.TurnPhase.Buy) {
             var buyablePiles = this.currentlyBuyablePiles();
             if (buyablePiles.length == 0) {
-                this.turnPhase = base.TurnPhase.Cleanup;
+                this.turnState.phase = base.TurnPhase.Cleanup;
                 this.stateUpdated();
                 this.advanceGameState();
             } else {
-                this.activePlayer.promptForBuy(this, buyablePiles, !this.cardBought);
+                this.activePlayer.promptForBuy(this, buyablePiles, !this.turnState.cardBought);
             }
-        } else if (this.turnPhase == base.TurnPhase.Cleanup) {
+        } else if (this.turnState.phase == base.TurnPhase.Cleanup) {
             this.activePlayer.discard = this.activePlayer.discard.concat(this.playArea);
             this.playArea = [];
 
@@ -298,7 +274,7 @@ export class Game extends base.BaseGame {
                 this.advanceGameState();
             }
         } else {
-            throw new Error('Illegal turn phase: ' + this.turnPhase);
+            throw new Error('Illegal turn phase: ' + this.turnState.phase);
         }
     }
 
@@ -309,13 +285,13 @@ export class Game extends base.BaseGame {
     }
 
     skipActions() {
-        this.activePlayerActionCount = 0;
+        this.turnState.actionCount = 0;
         this.stateUpdated();
         this.advanceGameState();
     }
 
     skipBuys = function() {
-        this.activePlayerBuyCount = 0;
+        this.turnState.buyCount = 0;
         this.stateUpdated();
         this.advanceGameState();
     }
@@ -373,7 +349,7 @@ export class Game extends base.BaseGame {
     }
 
     currentlyPlayableActions() : cards.Card[] {
-        if (this.activePlayerActionCount == 0) {
+        if (this.turnState.actionCount == 0) {
             return [];
         } else {
             return cards.getActions(this.activePlayer.getHand());
@@ -399,13 +375,13 @@ export class Game extends base.BaseGame {
     }
 
     effectiveCardCost(card:cards.Card) : number {
-        return Math.max(card.cost - this.cardDiscount, 0);
+        return Math.max(card.cost - this.turnState.cardDiscount, 0);
     }
 
     computeMaximumPurchaseCost() : number {
-        return this.activePlayerCoinCount + util.mapSum(this.activePlayer.hand, (card:cards.Card) => {
+        return this.turnState.coinCount + util.mapSum(this.activePlayer.hand, (card:cards.Card) => {
             if (card === cards.Copper) {
-                return this.copperValue;
+                return this.turnState.copperValue;
             } else if (card.isBasicTreasure()) {
                 return card.money;
             } else {
@@ -415,7 +391,7 @@ export class Game extends base.BaseGame {
     }
 
     currentlyBuyablePiles() : cards.Pile[] {
-        if (this.activePlayerBuyCount == 0) {
+        if (this.turnState.buyCount == 0) {
             return [];
         } else {
             var maximumCost = this.computeMaximumPurchaseCost();
@@ -461,9 +437,9 @@ export class Game extends base.BaseGame {
         this.playArea.push(card);
 
         if (card === cards.Copper) {
-            this.activePlayerCoinCount += this.copperValue;
+            this.turnState.coinCount += this.turnState.copperValue;
         } else {
-            this.activePlayerCoinCount += card.money;
+            this.turnState.coinCount += card.money;
         }
 
         if (card.moneyEffect) {
@@ -482,18 +458,18 @@ export class Game extends base.BaseGame {
 
         if (!pile) {
             throw new Error('No pile for card: ' + card);
-        } else if (this.activePlayerBuyCount == 0) {
+        } else if (this.turnState.buyCount == 0) {
             throw new Error('Unable to buy with zero buys');
         } else if (pile.count == 0) {
             throw new Error('Unable to buy from empty pile');
-        } else if (this.activePlayerCoinCount < cost) {
+        } else if (this.turnState.coinCount < cost) {
             throw new Error('Unable to buy card with too little money');
         }
 
-        this.activePlayerBuyCount--;
-        this.activePlayerCoinCount -= cost;
+        this.turnState.buyCount--;
+        this.turnState.coinCount -= cost;
         this.activePlayer.discard.push(pile.card);
-        this.cardBought = true;
+        this.turnState.cardBought = true;
         pile.count--;
 
         this.stateUpdated();
@@ -552,10 +528,16 @@ export class Game extends base.BaseGame {
     playAction(card:cards.Card) {
         this.log(this.activePlayer.name, 'plays', card.name);
 
-        this.playedActionCount++;
-        this.activePlayerActionCount--;
+        this.turnState.playedActionCount++;
+        this.turnState.actionCount--;
         this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
         this.playArea.push(card);
+
+        if (card.isAttack()) {
+
+        }
+
+        // TODO: re-action cards
 
         this.pushEventsForEffects(card.effects);
 
@@ -567,7 +549,7 @@ export class Game extends base.BaseGame {
     //       Outside callers shouldn't use this.
     playClonedActionWithoutAdvance(card:cards.Card, playCount:number) {
         this.log(this.activePlayer, 'plays', card, '(' + playCount + ')');
-        this.playedActionCount++;
+        this.turnState.playedActionCount++;
         this.pushEventsForEffects(card.effects);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
     }
@@ -654,22 +636,22 @@ export class Game extends base.BaseGame {
     // Methods to increment active player's turn counts.
 
     incrementActionCount(n:number) {
-        this.activePlayerActionCount += n;
+        this.turnState.actionCount += n;
         this.stateUpdated();
     }
 
     incrementBuyCount(n:number) {
-        this.activePlayerBuyCount += n;
+        this.turnState.buyCount += n;
         this.stateUpdated();
     }
 
     incrementCoinCount(n:number) {
-        this.activePlayerCoinCount += n;
+        this.turnState.coinCount += n;
         this.stateUpdated();
     }
 
     incrementCardDiscount(n:number) {
-        this.cardDiscount += n;
+        this.turnState.cardDiscount += n;
         this.stateUpdated();
     }
 
@@ -770,7 +752,7 @@ export class Game extends base.BaseGame {
     }
 
     increaseCopperValueBy(num:number) {
-        this.copperValue += num;
+        this.turnState.copperValue += num;
         this.stateUpdated();
     }
 
@@ -803,12 +785,6 @@ export class Game extends base.BaseGame {
             var score = scoring.calculateScore(player.getFullDeck());
             this.log('-', player, 'has', score, 'VP');
         });
-
-        var piles = _.map(this.kingdomPiles, function(p) {
-            return p.card.name + ' (' + p.count + ')';
-        });
-        
-        this.log('- Piles:', piles);
 
         var fullDecks = this.players.map(function(p) {
             return p.getFullDeck();

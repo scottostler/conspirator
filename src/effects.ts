@@ -393,6 +393,23 @@ export class EffectChoiceEffect implements Effect {
     }
 }
 
+export class DiscardForCoinsEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
+
+    process(game:g.Game, player:Player) {
+        if (player.hand.length === 0) {
+            return Resolution.Advance;
+        }
+
+        return player.promptForDiscard(game, 0, player.hand.length, player.hand, base.DiscardDestination.Discard, (cards) => {
+            if (cards.length > 0) {
+                game.incrementCoinCount(cards.length);
+            }
+            return Resolution.Advance;
+        });
+    }
+}
+
 export enum ReactionTrigger {
     OnAttack
 }

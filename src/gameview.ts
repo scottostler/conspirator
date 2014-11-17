@@ -19,19 +19,19 @@ export class GameStateView {
         this.copperValue = 1;
     }
 
-    updateStatusCounter(update:base.TurnState) {
+    updateStatusCounter(update:base.GameState) {
         this.$counters.find('.turn-label').text(
             util.possessive(update.activePlayer) + ' Turn ' + update.turnCount);
 
         this.$counters.find('.phase-label').text(
-            base.TurnPhase[update.turnPhase] + ' Phase');
+            base.TurnPhase[update.turnState.phase] + ' Phase');
 
-        this.$counters.find('.action-count').text(update.actionCount);
-        this.$counters.find('.buy-count').text(update.buyCount);
-        this.$counters.find('.coin-count').text(update.coinCount);
+        this.$counters.find('.action-count').text(update.turnState.actionCount);
+        this.$counters.find('.buy-count').text(update.turnState.buyCount);
+        this.$counters.find('.coin-count').text(update.turnState.coinCount);
         this.$counters.find('.extra-coins').text('');
 
-        this.copperValue = update.copperValue;
+        this.copperValue = update.turnState.copperValue;
     }
 
     showExtraCoinIndicator(extraCoins:number) {
@@ -354,7 +354,7 @@ export class GameView extends View implements base.BaseGameListener {
         $log.append($line).scrollTop($log[0].scrollHeight);
     }
 
-    stateUpdated(state:base.TurnState) {
+    stateUpdated(state:base.GameState) {
         this.gameStateView.updateStatusCounter(state);
     }
 

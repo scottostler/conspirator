@@ -37,7 +37,7 @@ class ConspiratorGainEffect implements e.Effect {
     getTarget() { return e.Target.ActivePlayer; }
 
     process(game:game.Game, player:Player) {
-        if (game.playedActionCount >= 3) {
+        if (game.turnState.playedActionCount >= 3) {
             game.drawCards(player, 1);
             game.incrementActionCount(1);
         }
@@ -463,13 +463,14 @@ export var Saboteur = new cards.Card({
     set: SetName
 });
 
-// Cards.SecretChamber = new Card({
-//     name: 'Secret Chamber',
-//     cost: 2,
-//     effects: [discardForCoins()],
-//     reaction: drawAndPutBackCards(2),
-//     set: 'intrigue'
-// });
+export var SecretChamber = new cards.Card({
+    name: 'Secret Chamber',
+    cost: 2,
+    effects: [new e.DiscardForCoinsEffect()],
+    // TODO
+    reaction: [],
+    set: SetName
+});
 
 export var Scout = new cards.Card({
     name: 'Scout',
@@ -585,7 +586,7 @@ export var Cardlist:cards.Card[] = [
     Pawn,
     Saboteur,
     Scout,
-    // SecretChamber,
+    SecretChamber,
     ShantyTown,
     Steward,
     Swindler,

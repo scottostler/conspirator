@@ -11,7 +11,7 @@ class GameConsoleLogger implements base.BaseGameListener {
         console.log(msg);
     }
 
-    stateUpdated(state:base.TurnState) {}
+    stateUpdated(state:base.GameState) {}
     playAreaEmptied() {}
     playerDrewCards(player:base.BasePlayer, cards:cards.Card[]) {}
     playerGainedCard(player:base.BasePlayer, card:cards.Card, newCount:number, dest:base.GainDestination) {}

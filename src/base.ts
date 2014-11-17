@@ -3,6 +3,7 @@
 import _ = require('underscore');
 import cards = require('./cards');
 import util = require('./util');
+import TurnState = require('./turnstate');
 
 export enum TurnPhase {
     Action,
@@ -28,19 +29,15 @@ export class BasePlayer {
     topDiscard() : cards.Card { throw new Error('Unimplemented'); }
 }
 
-export interface TurnState {
+export interface GameState {
     activePlayer:string;
     turnCount:number;
-    turnPhase:TurnPhase;
-    actionCount:number;
-    buyCount:number;
-    coinCount:number;
-    copperValue:number;
+    turnState:TurnState;
 }
 
 export interface BaseGameListener {
     log(msg:string):void;
-    stateUpdated(state:TurnState):void;
+    stateUpdated(state:GameState):void;
     playAreaEmptied():void;
     playerDrewCards(player:BasePlayer, cards:cards.Card[]):void;
     playerGainedCard(player:BasePlayer, card:cards.Card, newCount:number, dest:GainDestination):void;
