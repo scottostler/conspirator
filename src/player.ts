@@ -1,4 +1,3 @@
-/// <reference path="../typings/underscore/underscore.d.ts" />
 import _ = require("underscore");
 import util = require('./util');
 import cards = require('./cards');

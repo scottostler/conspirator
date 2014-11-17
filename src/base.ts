@@ -1,8 +1,4 @@
-/// <reference path="../typings/underscore/underscore.d.ts" />
-/// <reference path="../typings/node/node.d.ts" />
-import _ = require('underscore');
 import cards = require('./cards');
-import util = require('./util');
 import TurnState = require('./turnstate');
 
 export enum TurnPhase {
