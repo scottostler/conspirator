@@ -86,7 +86,7 @@ class ScoreSheet extends View {
             var deckBreakdown = _.countBy<cards.Card>(sortedDeck, card => {
                 return card.name;
             });
-            var cardLookup = _.indexBy<cards.Card, string>(sortedDeck, card => {
+            var cardLookup = _.indexBy<cards.Card>(sortedDeck, card => {
                 return card.name;
             });
 
