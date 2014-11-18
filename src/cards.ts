@@ -177,10 +177,6 @@ export function filterByCard(cards:Card[], card:Card) {
     return filter(cards, makeIsCardPredicate(card));
 }
 
-export function getCardByName(cardName:string) : Card {
-    throw new Error('TODO');
-}
-
 export function getActions(cards:Card[]) : Card[] {
     return filterByType(cards, Type.Action);
 }
@@ -196,7 +192,6 @@ export function getTreasures(cards:Card[]) : Card[] {
 export function getVictories(cards:Card[]) : Card[] {
     return filterByType(cards, Type.Victory);
 }
-
 
 export function getBasicTreasures(cards:Card[]) : Card[] {
     return _.filter(cards, (c:Card) => {

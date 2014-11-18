@@ -540,7 +540,6 @@ export class Game extends base.BaseGame {
         // TODO: re-action cards
 
         this.pushEventsForEffects(card.effects);
-
         this.gameListener.playerPlayedCard(this.activePlayer, card);
         this.advanceGameState();
     }

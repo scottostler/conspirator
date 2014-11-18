@@ -3,6 +3,7 @@
 import _ = require('underscore');
 import util = require('./util');
 import cards = require('./cards');
+import cardlist = require('./cardlist')
 import Player = require('./player');
 
 var Card = cards.Card;
@@ -60,9 +61,9 @@ export function deserialize(o:any, playerLookupFunc?:any) : any {
     if (o === null) {
         return null;
     } else if (o._cType === 'card') {
-        return cards.getCardByName(o.name);
+        return cardlist.getCardByName(o.name);
     } else if (o._cType === 'pile') {
-        return new Pile(cards.getCardByName(o.card), o.count);
+        return new Pile(cardlist.getCardByName(o.card), o.count);
     } else if (o._cType === 'player') {
         return playerLookupFunc(o);
     } else if (_.isArray(o)) {
