@@ -8,6 +8,7 @@ import Player = require('./player');
 import Decisions = require('./decisions');
 
 import DiscardDestination = base.DiscardDestination;
+import GainDestination = base.GainDestination;
 import Effect = e.Effect;
 import VPEffect = e.VPEffect;
 import Resolution = e.Resolution;
@@ -258,7 +259,7 @@ var Bureaucrat = new cards.Card({
     cost: 4,
     attack:true,
     effects: [
-        new e.GainCardEffect(cards.Silver, Target.ActivePlayer, base.GainDestination.Deck),
+        new e.GainCardEffect(cards.Silver, Target.ActivePlayer, GainDestination.Deck),
         new BureaucratDiscardEffect()],
     set: SetName
 });
@@ -356,7 +357,7 @@ var Mine = new cards.Card({
     name: 'Mine',
     cost: 5,
     effects: [
-        new e.TrashToGainPlusCostEffect(3, cards.Type.Treasure, base.GainDestination.Hand)],
+        new e.TrashToGainPlusCostEffect(3, cards.Type.Treasure, GainDestination.Hand)],
     set: SetName
 });
 
@@ -365,7 +366,7 @@ var Militia = new cards.Card({
     cost: 4,
     effects: [
         new e.GainCoinsEffect(2),
-        new e.DiscardToEffect(Target.OtherPlayers, 2)],
+        new e.DiscardToEffect(Target.OtherPlayers, 3)],
     attack: true,
     set: SetName
 });

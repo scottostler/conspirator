@@ -284,9 +284,14 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForReaction(game:Game, reactions:cards.Card[], onSelect:effects.CardCallback) : effects.Resolution {
+    promptForReaction(game:Game, reactions:cards.Card[]) : effects.Resolution {
         this.decider.promptForHandSelection(0, 1, reactions, 'react', (cards) => {
-            game.checkEffectResolution(onSelect(cards.length > 0 ? cards[0] : null));
+            var reaction = _.first(cards);
+            if (reaction) {
+                game.playerRevealsReaction(this, reaction);
+            }
+
+            game.advanceGameState();
         });
         return effects.Resolution.Wait;
     }

@@ -8,11 +8,14 @@ import effects = require('./effects')
 import scoring = require('./scoring')
 import cardlist = require('./cardlist');
 
+import Resolution = effects.Resolution;
+import Target = effects.Target;
+
 var NumKingdomCards = 10;
 var HandSize = 5;
 
 interface EventFunction {
-    ():effects.Resolution;
+    ():Resolution;
 }
 
 var randomizedKingdomCards = function(forcedCards:cards.Card[], numCards:number) : cards.Card[] {
@@ -71,6 +74,7 @@ class Game extends base.BaseGame {
     inactivePlayers:Player[];
 
     turnState:TurnState;
+    attackImmunity:Player[];
 
     emptyPilesToEndGame:number;
     storedState:any;
@@ -177,6 +181,7 @@ class Game extends base.BaseGame {
         this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
 
         this.turnState = new TurnState();
+        this.attackImmunity = [];
 
         // TODO: assert is empty at appropriate times
         this.storedState = {};
@@ -202,7 +207,7 @@ class Game extends base.BaseGame {
 
             if (_.isUndefined(resolution)) {
                 console.error(event, 'did not return a resolution');
-            } else if (resolution === effects.Resolution.Advance) {
+            } else if (resolution === Resolution.Advance) {
                 this.advanceGameState();
             }
 
@@ -247,8 +252,8 @@ class Game extends base.BaseGame {
         }
     }
 
-    checkEffectResolution(resolution:effects.Resolution) {
-        if (resolution == effects.Resolution.Advance) {
+    checkEffectResolution(resolution:Resolution) {
+        if (resolution == Resolution.Advance) {
             this.advanceGameState();
         }
     }
@@ -270,17 +275,22 @@ class Game extends base.BaseGame {
         this.log(player, 'reveals hand:', player.hand);
     }
 
+    playerRevealsReaction(player:Player, card:cards.Card) {
+        this.log(player.name, 'reveals', card.name);
+        this.pushEventForOtherEffect(card, card.reaction, player);
+    }
+
     // Game Events
 
-    playersForTarget(target:effects.Target) : Player[] {
+    playersForTarget(target:Target) : Player[] {
         switch (target) {
-            case effects.Target.ActivePlayer:
+            case Target.ActivePlayer:
                 return [this.activePlayer];
-            case effects.Target.OtherPlayers:
+            case Target.OtherPlayers:
                 return this.inactivePlayers;
-            case effects.Target.AllPlayers:
+            case Target.AllPlayers:
                 return [this.activePlayer].concat(this.inactivePlayers);
-            case effects.Target.ChoosingPlayer:
+            case Target.ChoosingPlayer:
                 throw new Error('ChoosingPlayer not defined for this method');
         }
     }
@@ -295,18 +305,45 @@ class Game extends base.BaseGame {
         this.eventStack = this.eventStack.concat(util.reverse(events));
     }
 
-    pushEventsForCardEffects(card:cards.Card, effects:effects.Effect[]) {
+    pushEventsForActionEffects(card:cards.Card) {
         var events:EventFunction[] = [];
 
-        effects.forEach(e => {
+        card.effects.forEach(e => {
             this.playersForTarget(e.getTarget()).forEach(p => {
                 events.push(() => {
-                    return e.process(this, p, card);
+                    if (_.contains(this.attackImmunity, p)) {
+                        return Resolution.Advance;
+                    } else {
+                        return e.process(this, p, card);
+                    }
                 });
             });
         });
 
         this.pushEvents(events);
+
+        if (card.isAttack()) {
+            var otherPlayers = this.playersForTarget(Target.OtherPlayers);
+
+            this.attackImmunity = [];
+            this.pushEvents(otherPlayers.map(p => {
+                return () => {
+                    // TODO: handle multiple reveals
+                    var reactions = cards.getReactions(p.hand);
+                    if (reactions.length > 0) {
+                        return p.promptForReaction(this, reactions);
+                    } else {
+                        return Resolution.Advance;
+                    }
+                }
+            }));
+        }
+    }
+
+    pushEventForOtherEffect(card:cards.Card, effect:effects.Effect, player:Player) {
+        this.pushEvent(() => {
+            return effect.process(this, player, card);
+        });
     }
 
     logPlayerShuffle(player:Player) {
@@ -402,7 +439,7 @@ class Game extends base.BaseGame {
         }
 
         if (card.moneyEffect) {
-            this.pushEventsForCardEffects(card, [card.moneyEffect]);
+            this.pushEventForOtherEffect(card, card.moneyEffect, this.activePlayer);
         }
 
         this.stateUpdated();
@@ -470,15 +507,15 @@ class Game extends base.BaseGame {
     }
 
     playerGainsFromPiles(player:Player, piles:cards.Pile[],
-                         dest:base.GainDestination=base.GainDestination.Discard) : effects.Resolution {
+                         dest:base.GainDestination=base.GainDestination.Discard) : Resolution {
         if (piles.length > 1) {
             return player.promptForGain(this, piles);
         } else if (piles.length === 1) {
             this.playerGainsCard(player, piles[0].card, dest);
-            return effects.Resolution.Advance;
+            return Resolution.Advance;
         } else {
             console.error(player.name, 'cannot gain from empty piles');
-            return effects.Resolution.Advance;
+            return Resolution.Advance;
         }
     }
 
@@ -500,16 +537,11 @@ class Game extends base.BaseGame {
 
         this.turnState.playedActionCount++;
         this.turnState.actionCount--;
-        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
+
+        this.activePlayer.hand = cards.removeFirstIdentical(this.activePlayer.hand, card);
         this.playArea.push(card);
 
-        if (card.isAttack()) {
-
-        }
-
-        // TODO: re-action cards
-
-        this.pushEventsForCardEffects(card, card.effects);
+        this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
         this.advanceGameState();
     }
@@ -517,12 +549,15 @@ class Game extends base.BaseGame {
     playClonedActionWithoutAdvance(card:cards.Card, playCount:number) {
         this.log(this.activePlayer, 'plays', card.name, '(' + playCount + ')');
         this.turnState.playedActionCount++;
-        this.pushEventsForCardEffects(card, card.effects);
+        this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
+        this.advanceGameState();
     }
 
     givePlayerAttackImmunity(player:Player) {
-        throw new Error('TODO');
+        if (!_.contains(this.attackImmunity, player)) {
+            this.attackImmunity.push(player);
+        }
     }
 
     discardHand(player:Player) {
@@ -534,11 +569,11 @@ class Game extends base.BaseGame {
     discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
         var ontoDeck = destination === base.DiscardDestination.Deck;
         _.each(cs, card => {
-            if (!_.contains(player.hand, card)) {
+            if (!cards.containsIdentical(player.hand, card)) {
                 console.error('Player unable to discard', player, card);
                 return;
             }
-            player.hand = cards.removeFirst(player.hand, card);
+            player.hand = cards.removeFirstIdentical(player.hand, card);
             if (ontoDeck) {
                 player.deck.push(card);
             } else {
@@ -706,7 +741,7 @@ class Game extends base.BaseGame {
         var playEvents = _.times(num, (i) => {
             return () => {
                 this.playClonedActionWithoutAdvance(card, i);
-                return effects.Resolution.Advance;
+                return Resolution.Advance;
             };
         });
 

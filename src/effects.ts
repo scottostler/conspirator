@@ -7,6 +7,9 @@ import cards = require('./cards');
 import decisions = require('./decisions');
 import base = require('./base');
 
+import DiscardDestination = base.DiscardDestination;
+import GainDestination = base.GainDestination;
+
 export interface VPEffect {
     calculatePoints(deck:cards.Card[]) : number;
 }
@@ -150,9 +153,9 @@ export class DrawEffect implements LabelledEffect {
 export class DiscardEffect implements LabelledEffect {
     numCards:number;
     target:Target;
-    destination:base.DiscardDestination;
+    destination:DiscardDestination;
 
-    constructor(numCards:number, target:Target=Target.ActivePlayer, destination:base.DiscardDestination=base.DiscardDestination.Discard) {
+    constructor(numCards:number, target:Target=Target.ActivePlayer, destination:DiscardDestination=DiscardDestination.Discard) {
         this.numCards = numCards;
         this.target = target;
         this.destination = destination;
@@ -234,9 +237,9 @@ export class GainCardEffect implements LabelledEffect {
 
     card:cards.Card;
     target:Target;
-    destination:base.GainDestination;
+    destination:GainDestination;
 
-    constructor(card:cards.Card, target:Target=Target.ActivePlayer, destination:base.GainDestination=base.GainDestination.Discard) {
+    constructor(card:cards.Card, target:Target=Target.ActivePlayer, destination:GainDestination=GainDestination.Discard) {
         this.card = card;
         this.target = target;
         this.destination = destination;
@@ -261,12 +264,10 @@ export class GainCardWithCostEffect implements Effect {
     maxCost:number;
     target:Target;
     cardType:cards.Type;
-    destination:base.GainDestination;
+    destination:GainDestination;
 
-    constructor(minCost:number, maxCost:number,
-                target:Target=Target.ActivePlayer,
-                cardType=cards.Type.All,
-                destination=base.GainDestination.Discard) {
+    constructor(minCost:number, maxCost:number, target:Target=Target.ActivePlayer,
+                cardType=cards.Type.All, destination=GainDestination.Discard) {
         this.minCost = minCost;
         this.maxCost = maxCost;
         this.target = target;
@@ -277,8 +278,7 @@ export class GainCardWithCostEffect implements Effect {
     getTarget() { return this.target; }
 
     process(game:Game, player:Player, card:cards.Card) {
-        var piles = game.filterGainablePiles(
-            this.minCost, this.maxCost, this.cardType);
+        var piles = game.filterGainablePiles(this.minCost, this.maxCost, this.cardType);
         return game.playerGainsFromPiles(player, piles, this.destination);
     }
 }
@@ -293,14 +293,14 @@ export class TrashToGainPlusCostEffect implements Effect {
 
     plusCost:number;
     cardType:cards.Type;
-    destination:base.GainDestination;
+    destination:GainDestination;
     costRestriction:GainCostRestriction;
 
     getTarget() { return Target.ActivePlayer; }
 
     constructor(plusCost:number,
                 cardType:cards.Type=cards.Type.All,
-                destination:base.GainDestination=base.GainDestination.Discard,
+                destination:GainDestination=GainDestination.Discard,
                 costRestriction:GainCostRestriction=GainCostRestriction.UpToCost) {
         this.plusCost = plusCost;
         this.cardType = cardType;
@@ -404,7 +404,7 @@ export class DiscardForCoinsEffect implements Effect {
             return Resolution.Advance;
         }
 
-        return player.promptForDiscard(game, 0, player.hand.length, player.hand, base.DiscardDestination.Discard, (cards) => {
+        return player.promptForDiscard(game, 0, player.hand.length, player.hand, DiscardDestination.Discard, (cards) => {
             if (cards.length > 0) {
                 game.incrementCoinCount(cards.length);
             }

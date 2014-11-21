@@ -29,7 +29,7 @@ export class AIDecider implements decider.Decider {
 
     promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
         this.assertPlayer();
-        onSelect(_.sample<cards.Card>(cards, min));
+        onSelect(_.sample<cards.Card>(cards, _.random(min, max)));
     }
 
     promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
