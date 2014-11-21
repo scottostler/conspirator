@@ -1,9 +1,12 @@
 import Player = require('./player');
 import cards = require('./cards')
 import base = require('./base');
-import game = require('./game');
+import Game = require('./game');
 import ai = require('./ai');
 
+import BasePlayer = base.BasePlayer;
+import GainDestination = base.GainDestination;
+import GameState = base.GameState;
 
 class GameConsoleLogger implements base.BaseGameListener {
 
@@ -11,26 +14,25 @@ class GameConsoleLogger implements base.BaseGameListener {
         console.log(msg);
     }
 
-    stateUpdated(state:base.GameState) {}
+    stateUpdated(state:GameState) {}
     playAreaEmptied() {}
-    playerDrewCards(player:base.BasePlayer, cards:cards.Card[]) {}
-    playerGainedCard(player:base.BasePlayer, card:cards.Card, newCount:number, dest:base.GainDestination) {}
-    playerPassedCard(player:base.BasePlayer, targetPlayer:base.BasePlayer, card:cards.Card) {}
-    playerPlayedCard(player:base.BasePlayer, card:cards.Card) {}
-    playerPlayedClonedCard(player:base.BasePlayer, card:cards.Card) {}
-    playerDiscardsCards(player:base.BasePlayer, cards:cards.Card[]) {}
-    playerDiscardsCardsFromDeck(player:base.BasePlayer, cards:cards.Card[]) {}
-    playerTrashesCards(player:base.BasePlayer, cards:cards.Card[]) {}
-    playerDrawsAndDiscardsCards(player:base.BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {}
+    playerDrewCards(player:BasePlayer, cards:cards.Card[]) {}
+    playerGainedCard(player:BasePlayer, card:cards.Card, newCount:number, dest:GainDestination) {}
+    playerGainedCardFromTrash(player:BasePlayer, card:cards.Card) {}
+    playerPassedCard(player:BasePlayer, targetPlayer:BasePlayer, card:cards.Card) {}
+    playerPlayedCard(player:BasePlayer, card:cards.Card) {}
+    playerPlayedClonedCard(player:BasePlayer, card:cards.Card) {}
+    playerDiscardedCards(player:BasePlayer, cards:cards.Card[]) {}
+    playerDiscardedCardsFromDeck(player:BasePlayer, cards:cards.Card[]) {}
+    playerTrashedCards(player:BasePlayer, cards:cards.Card[]) {}
+    playerTrashedCardFromDeck(player:BasePlayer, card:cards.Card) {}
+    playerDrewAndDiscardedCards(player:BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {}
     trashCardFromPlay(card:cards.Card) {}
-    trashCardFromDeck(player:base.BasePlayer, card:cards.Card) {}
     addCardToTrash(card:cards.Card) {}
     gameEnded(decks:cards.Card[][]) {}
 
 }
 
-var players = ai.makeComputerPlayers(2);
-var g = new game.Game(players);
-g.gameListener = new GameConsoleLogger();
-
-g.start();
+var game = new Game(ai.makeComputerPlayers(2));
+game.gameListener = new GameConsoleLogger();
+game.start();

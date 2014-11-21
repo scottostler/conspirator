@@ -24,7 +24,7 @@ class PlayerInterface implements decider.Decider {
         this.player = player;
     }
 
-    // This method solves a circular dependency between this and the gameView :(
+    // TODO: this method solves a circular dependency between this and the gameView :(
     setGameView(gameView:gameview.GameView) {
         this.gameView = gameView;
     }
@@ -48,13 +48,13 @@ class PlayerInterface implements decider.Decider {
         });
     }
 
-    defaultHandSelectionLabel(min:number, max:number) : string {
-        return 'Select ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max);
+    fullHandSelectionLabel(min:number, max:number, label:string) : string {
+        return 'Select ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max) + ' to ' + label;
     }
 
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], onSelect:cards.CardsCallback, label?:string) {
+    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
         this.assertPlayer();
-        this.gameView.showStatusMessage(label ? label : this.defaultHandSelectionLabel(min, max));
+        this.gameView.showStatusMessage(this.fullHandSelectionLabel(min, max, label));
         this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onSelect);
     }
 

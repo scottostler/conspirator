@@ -59,9 +59,9 @@ export class RemoteGame extends base.BaseGame {
 
     assertListenerProperty(propertyName:string) {
         if (!(propertyName in this.gameListener)) {
-            console.error('Missing property in RemoteGame.gameListener',
+            console.error('Missing property in RemoteGameListener',
                 propertyName, this.gameListener);
-            throw new Error('RemoteGame.gameListener missing property: ' + propertyName);
+            throw new Error('RemoteGameListener missing property: ' + propertyName);
         }
     }
 

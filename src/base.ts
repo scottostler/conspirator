@@ -37,15 +37,16 @@ export interface BaseGameListener {
     playAreaEmptied():void;
     playerDrewCards(player:BasePlayer, cards:cards.Card[]):void;
     playerGainedCard(player:BasePlayer, card:cards.Card, newCount:number, dest:GainDestination):void;
+    playerGainedCardFromTrash(player:BasePlayer, card:cards.Card):void;
     playerPassedCard(player:BasePlayer, targetPlayer:BasePlayer, card:cards.Card):void;
     playerPlayedCard(player:BasePlayer, card:cards.Card):void;
     playerPlayedClonedCard(player:BasePlayer, card:cards.Card):void;
-    playerDiscardsCards(player:BasePlayer, cards:cards.Card[]):void;
-    playerDiscardsCardsFromDeck(player:BasePlayer, cards:cards.Card[]):void;
-    playerTrashesCards(player:BasePlayer, cards:cards.Card[]):void;
-    playerDrawsAndDiscardsCards(player:BasePlayer, drawn:cards.Card[], discard:cards.Card[]):void;
+    playerDiscardedCards(player:BasePlayer, cards:cards.Card[]):void;
+    playerDiscardedCardsFromDeck(player:BasePlayer, cards:cards.Card[]):void;
+    playerTrashedCards(player:BasePlayer, cards:cards.Card[]):void;
+    playerTrashedCardFromDeck(player:BasePlayer, card:cards.Card):void;
+    playerDrewAndDiscardedCards(player:BasePlayer, drawn:cards.Card[], discard:cards.Card[]):void;
     trashCardFromPlay(card:cards.Card):void;
-    trashCardFromDeck(player:BasePlayer, card:cards.Card):void;
     addCardToTrash(card:cards.Card):void;
     gameEnded(decks:cards.Card[][]):void;
 }
@@ -56,20 +57,23 @@ export var GameEvents:string[] = [
     'playAreaEmptied',
     'playerDrewCards',
     'playerGainedCard',
+    'playerGainedCardFromTrash',
     'playerPassedCard',
     'playerPlayedCard',
     'playerPlayedClonedCard',
-    'playerDiscardsCards',
-    'playerDiscardsCardsFromDeck',
-    'playerTrashesCards',
-    'playerDrawsAndDiscardsCards',
+    'playerDiscardedCards',
+    'playerDiscardedCardsFromDeck',
+    'playerTrashedCards',
+    'playerTrashedCardFromDeck',
+    'playerDrewAndDiscardedCards',
     'trashCardFromPlay',
     'addCardToTrash',
-    'gameEnded'
+    'gameEnded',
 ];
 
 export class BaseGame {
     players:BasePlayer[];
+    trash:cards.Card[];
     kingdomPileGroups:cards.Pile[][];
     gameListener:BaseGameListener;
 }

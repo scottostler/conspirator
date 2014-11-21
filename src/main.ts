@@ -2,7 +2,7 @@ import _ = require('underscore');
 import $ = require('jquery');
 
 import util = require('./util');
-import game = require('./game');
+import Game = require('./game');
 import Player = require('./player');
 import PlayerInterface = require('./playerinterface');
 import ai = require('./ai');
@@ -26,7 +26,7 @@ export function beginLocalGame() {
     var computerPlayers = ai.makeComputerPlayers(numPlayers - 1);
     var players = [humanPlayer].concat(computerPlayers);
 
-    var gameInstance = new game.Game(players);
+    var gameInstance = new Game(players);
     var gameView = new gameview.GameView(gameInstance, 0);
 
     humanInterface.setGameView(gameView);

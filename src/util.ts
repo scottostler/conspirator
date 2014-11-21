@@ -25,12 +25,10 @@ export function isClient() : boolean {
     return window.location.href.match('^http') !== null;
 }
 
-export function repeat<T>(o:T, n:number) : T[] {
-    var a = new Array(n);
-    for (var i = 0; i < n; i++) {
-        a[i] = o;
-    }
-    return a;
+export function duplicate<T>(o:T, n:number) : T[] {
+    return _.times<T>(n, () => {
+        return _.clone(o);
+    });
 }
 
 export function removeFirst<T>(array:T[], o:T) : T[] {

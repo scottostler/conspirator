@@ -6,7 +6,7 @@ import cardview = require('./cardview');
 import cards = require('./cards');
 import ScoreSheet = require('./scoresheet');
 import View = require('./view');
-import game = require('./game');
+import Game = require('./game');
 import base = require('./base');
 
 export class GameStateView {
@@ -125,7 +125,7 @@ export class GameView extends View implements base.BaseGameListener {
 
     viewForInPlayCard(card:cards.Card) : cardview.CardView {
         var cardView = _.find(this.inPlayViews, function(v:cardview.CardView) {
-            return v.card === card;
+            return v.card.isIdenticalCard(card);
         });
 
         if (!cardView) {
@@ -138,7 +138,7 @@ export class GameView extends View implements base.BaseGameListener {
     // Will return null if no pile exist, e.g. for prizes
     pileViewForCard(card:cards.Card) : cardview.PileView {
         return _.find(this.pileViews, function(p:cardview.PileView) {
-            return p.pile.card === card;
+            return p.pile.card.isSameCard(card);
         });
     }
 
@@ -158,7 +158,8 @@ export class GameView extends View implements base.BaseGameListener {
         this.$statusMessageLabel.text(message);
     }
 
-    setTrashViewCard(card?:cards.Card) {
+    updateTrashPile() {
+        var card = _.last<cards.Card>(this.game.trash);
         this.trashView.setCardImage(card ? card.assetURL : cards.Trash.assetURL);
     }
 
@@ -197,9 +198,7 @@ export class GameView extends View implements base.BaseGameListener {
 
         var playerView = this.viewForPlayer(player);
         _.each(this.pileViews, (pileView:cardview.PileView) => {
-            var isSelectable = _.some(selectablePiles, function(p:cards.Pile) {
-                return p.card === pileView.pile.card;
-            });
+            var isSelectable = _.contains(selectablePiles, pileView.pile);
             if (isSelectable) {
                 pileView.$el.addClass('selectable').click(() => {
                     endSelection(pileView.pile.card, null);
@@ -208,7 +207,7 @@ export class GameView extends View implements base.BaseGameListener {
                 if (allowPlayTreasures) {
                     var basicTreasures = cards.getBasicTreasures(player.getHand());
                     var basicCoinMoney = util.mapSum(basicTreasures, card => {
-                        if (card === cards.Copper) {
+                        if (card.isSameCard(cards.Copper)) {
                             return this.gameStateView.copperValue;
                         } else {
                             return card.money;
@@ -381,6 +380,11 @@ export class GameView extends View implements base.BaseGameListener {
         }
     }
 
+    playerGainedCardFromTrash(player:base.BasePlayer, card:cards.Card) {
+        this.viewForPlayer(player).updateDeckAndDiscardViews();
+        this.updateTrashPile();
+    }
+
     playerPassedCard(player:base.BasePlayer, targetPlayer:base.BasePlayer, card:cards.Card) {
         this.viewForPlayer(player).removeCardFromHand(card)
         this.viewForPlayer(targetPlayer).addCardToHand(card);
@@ -398,23 +402,28 @@ export class GameView extends View implements base.BaseGameListener {
         // TODO: visually highlight played card
     }
 
-    playerDiscardsCards(player:base.BasePlayer, cards:cards.Card[]) {
+    playerDiscardedCards(player:base.BasePlayer, cards:cards.Card[]) {
         this.viewForPlayer(player).discardCards(cards);
     }
 
-    playerDiscardsCardsFromDeck(player:base.BasePlayer, cards:cards.Card[]) {
+    playerDiscardedCardsFromDeck(player:base.BasePlayer, cards:cards.Card[]) {
         this.viewForPlayer(player).updateDeckAndDiscardViews();
     }
 
-    playerTrashesCards(player:base.BasePlayer, cards:cards.Card[]) {
+    playerTrashedCards(player:base.BasePlayer, cards:cards.Card[]) {
         var playerView = this.viewForPlayer(player);
         _.each(cards, card => {
             playerView.removeCardFromHand(card);
         });
-        this.setTrashViewCard(_.last(cards));
+        this.updateTrashPile();
     }
 
-    playerDrawsAndDiscardsCards(player:base.BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {
+    playerTrashedCardFromDeck(player:base.BasePlayer, card:cards.Card) {
+        this.viewForPlayer(player).updateDeckAndDiscardViews();
+        this.updateTrashPile();
+    }
+
+    playerDrewAndDiscardedCards(player:base.BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {
         this.viewForPlayer(player).drawCards(drawn);
     }
 
@@ -422,16 +431,11 @@ export class GameView extends View implements base.BaseGameListener {
         var cardView = this.viewForInPlayCard(card);
         this.inPlayViews = util.removeFirst(this.inPlayViews, cardView);
         cardView.$el.remove();
-        this.setTrashViewCard(card);
-    }
-
-    trashCardFromDeck(player:base.BasePlayer, card:cards.Card) {
-        this.viewForPlayer(player).updateDeckAndDiscardViews();
-        this.setTrashViewCard(card);
+        this.updateTrashPile();
     }
 
     addCardToTrash(card:cards.Card) {
-        this.setTrashViewCard(card);
+        this.updateTrashPile();
     }
 
     gameEnded(decks:cards.Card[][]) {

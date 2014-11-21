@@ -27,7 +27,7 @@ export class AIDecider implements decider.Decider {
         onSelect(selection.card, treasures);
     }
 
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], onSelect:cards.CardsCallback) {
+    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
         this.assertPlayer();
         onSelect(_.sample<cards.Card>(cards, min));
     }

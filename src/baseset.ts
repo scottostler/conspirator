@@ -1,19 +1,25 @@
 import _ = require('underscore');
 import util = require('./util');
 import base = require('./base');
-import game = require('./game');
+import Game = require('./game');
 import e = require('./effects');
 import cards = require('./cards');
 import Player = require('./player');
 import Decisions = require('./decisions');
 
+import DiscardDestination = base.DiscardDestination;
+import Effect = e.Effect;
+import VPEffect = e.VPEffect;
+import Resolution = e.Resolution;
+import Target = e.Target;
+
 export var SetName = 'Base';
 
-class LibraryDrawEffect implements e.Effect {
+class LibraryDrawEffect implements Effect {
 
-    getTarget() { return e.Target.ActivePlayer; }
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var discardType = cards.Type.Action;
         var targetHandSize = 7;
 
@@ -27,7 +33,7 @@ class LibraryDrawEffect implements e.Effect {
                 if (setAsideCards.length > 0) {
                     game.addCardsToDiscard(player, setAsideCards);
                 }
-                return e.Resolution.Advance;
+                return Resolution.Advance;
             }
 
             var card = player.takeCardFromDeck();
@@ -40,61 +46,58 @@ class LibraryDrawEffect implements e.Effect {
                         setAsideCards.push(card);
                     }
 
-                    game.pushGameEvent(drawCardEvent);
-                    return e.Resolution.Advance;
+                    game.pushEvent(drawCardEvent);
+                    return Resolution.Advance;
                 });
             } else {
                 game.drawTakenCard(player, card);
-                game.pushGameEvent(drawCardEvent);
-                return e.Resolution.Advance;
+                game.pushEvent(drawCardEvent);
+                return Resolution.Advance;
             }
         };
 
-        game.pushGameEvent(drawCardEvent);
-        return e.Resolution.Advance;
+        game.pushEvent(drawCardEvent);
+        return Resolution.Advance;
     }
 }
 
-class BureaucratDiscardEffect implements e.Effect {
+class BureaucratDiscardEffect implements Effect {
 
-    getTarget() { return e.Target.OtherPlayers; }
+    getTarget() { return Target.OtherPlayers; }
     
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var matchingCards = cards.getVictories(player.getHand());
         if (matchingCards.length > 0) {
-            return player.promptForHandSelection(game, 1, 1, matchingCards, (cards) => {
-                game.discardCards(player, cards, base.DiscardDestination.Deck);
-                return e.Resolution.Advance;
-            });
+            return player.promptForDiscard(game, 1, 1, matchingCards, DiscardDestination.Deck);
         } else {
             game.revealPlayerHand(player);
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         }
     }
 }
 
-class DiscardToDrawEffect implements e.Effect {
-    getTarget() { return e.Target.ActivePlayer; }
+class DiscardToDrawEffect implements Effect{
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         if (player.hand.length === 0) {
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         }
 
-        return player.promptForDiscard(game, 0, player.hand.length, player.hand, base.DiscardDestination.Discard, (cards) => {
+        return player.promptForDiscard(game, 0, player.hand.length, player.hand, DiscardDestination.Discard, (cards) => {
             if (cards.length > 0) {
                 game.drawCards(player, cards.length);
             }
 
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         });
     }
 }
 
-class ChancellorEffect implements e.Effect {
-    getTarget() { return e.Target.ActivePlayer; }
+class ChancellorEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var decision = Decisions.binaryDecision('Shuffle discard into deck?');
         return player.promptForDecision(game, decision, (choice) => {
             if (choice === Decisions.Options.Yes) {
@@ -102,15 +105,15 @@ class ChancellorEffect implements e.Effect {
                 game.log(player, 'shuffles discard into deck');
             }
 
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         });
     }
 }
 
-class AdventurerDrawEffect implements e.Effect {
-    getTarget() { return e.Target.ActivePlayer; }
+class AdventurerDrawEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var num = 2;
         var cardType = cards.Type.Treasure;
         var selectedCards:cards.Card[] = [];
@@ -126,25 +129,24 @@ class AdventurerDrawEffect implements e.Effect {
         }
 
         game.drawAndDiscardFromDeck(player, selectedCards, revealedCards);
-        return e.Resolution.Advance;
+        return Resolution.Advance;
     }
 }
 
-class TrashThisCardEffect implements e.Effect {
-    getTarget() { return e.Target.ActivePlayer; }
+class TrashThisCardEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
-        var card = game.activeInPlayCard();
-        game.trashCardFromPlay(card);
-        return e.Resolution.Advance;
+    process(game:Game, player:Player, card:cards.Card) {
+        game.trashCardFromPlay(player, card);
+        return Resolution.Advance;
     }
 }
 
-class SpyAttackEffect implements e.Effect {
+class SpyAttackEffect implements Effect {
 
-    getTarget() { return e.Target.AllPlayers; }
+    getTarget() { return Target.AllPlayers; }
 
-    process(game:game.Game, targetPlayer:Player) {
+    process(game:Game, targetPlayer:Player) {
         var attackingPlayer = game.activePlayer;
         var card = game.revealCardFromDeck(targetPlayer);
         if (card) {
@@ -154,21 +156,21 @@ class SpyAttackEffect implements e.Effect {
                     game.discardCardsFromDeck(targetPlayer, 1);
                 }
 
-                return e.Resolution.Advance;
+                return Resolution.Advance;
             });
         } else {
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         }
     }
 }
 
 var ThiefTrashedCardsKey = 'ThiefTrashedCards';
 
-class ThiefTrashEffect implements e.Effect {
+class ThiefTrashEffect implements Effect {
 
-    getTarget() { return e.Target.OtherPlayers; }
+    getTarget() { return Target.OtherPlayers; }
 
-    process(game:game.Game, targetPlayer:Player) {
+    process(game:Game, targetPlayer:Player) {
         var attackingPlayer = game.activePlayer;
         var numCards = 2;
         var cardType = cards.Type.Treasure;
@@ -200,7 +202,7 @@ class ThiefTrashEffect implements e.Effect {
                     targetPlayer.addCardsToDiscard(nonMatchingCards);
                 }
 
-                return e.Resolution.Advance;
+                return Resolution.Advance;
             });
         } else {
             if (nonMatchingCards.length > 0) {
@@ -208,41 +210,36 @@ class ThiefTrashEffect implements e.Effect {
                 game.log(targetPlayer.name, 'discards', _.pluck(nonMatchingCards, 'name').join(', '));
             }
 
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         }
     }
 }
 
-class ThiefGainEffect implements e.Effect {
+class ThiefGainEffect implements Effect {
 
-    getTarget() { return e.Target.ActivePlayer; }
+    getTarget() { return Target.ActivePlayer; }
 
-    process(game:game.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var trashedCards:cards.Card[] = game.getStoredState(ThiefTrashedCardsKey);
         game.clearStoredState(ThiefTrashedCardsKey);
 
-        game.pushGameEvent(() => {
-            _.each(trashedCards, (card:cards.Card) => {
-                game.pushGameEvent(() => {
-                    var decision = Decisions.binaryDecision('Gain ' + card.name + '?');
-                    return player.promptForDecision(game, decision, (choice) => {
-                        if (choice === Decisions.Options.Yes) {
-                            game.gainCardFromTrash(player, card);
-                        }
-
-                        return e.Resolution.Advance;
-                    });
-                 });
+        trashedCards.forEach((card:cards.Card) => {
+            game.pushEvent(() => {
+                var decision = Decisions.binaryDecision('Gain ' + card.name + '?');
+                return player.promptForDecision(game, decision, (choice) => {
+                    if (choice === Decisions.Options.Yes) {
+                        game.playerGainsFromTrash(player, card);
+                    }
+                    return Resolution.Advance;
+                });
             });
-
-            return e.Resolution.Advance;
         });
 
-        return e.Resolution.Advance;
+        return Resolution.Advance;
     }
 }
 
-class GardenVPEffect implements e.VPEffect {
+class GardenVPEffect implements VPEffect {
     calculatePoints(deck:cards.Card[]) : number {
         var cardsPerVP = 10;
         return Math.floor(deck.length / cardsPerVP);
@@ -261,7 +258,7 @@ var Bureaucrat = new cards.Card({
     cost: 4,
     attack:true,
     effects: [
-        new e.GainCardEffect(cards.Silver, e.Target.ActivePlayer, base.GainDestination.Deck),
+        new e.GainCardEffect(cards.Silver, Target.ActivePlayer, base.GainDestination.Deck),
         new BureaucratDiscardEffect()],
     set: SetName
 });
@@ -287,7 +284,7 @@ var Chancellor = new cards.Card({
 var Chapel = new cards.Card({
     name: 'Chapel',
     cost: 2,
-    effects: [new e.TrashEffect(e.Target.ActivePlayer, 0, 4)],
+    effects: [new e.TrashEffect(Target.ActivePlayer, 0, 4)],
     set: SetName
 });
 
@@ -297,7 +294,7 @@ var CouncilRoom = new cards.Card({
     effects: [
         new e.DrawEffect(4),
         new e.GainBuysEffect(1),
-        new e.DrawEffect(1, e.Target.OtherPlayers)],
+        new e.DrawEffect(1, Target.OtherPlayers)],
     set: SetName
 });
 
@@ -368,7 +365,7 @@ var Militia = new cards.Card({
     cost: 4,
     effects: [
         new e.GainCoinsEffect(2),
-        new e.DiscardToEffect(e.Target.OtherPlayers, 2)],
+        new e.DiscardToEffect(Target.OtherPlayers, 2)],
     attack: true,
     set: SetName
 });
@@ -444,7 +441,7 @@ var Witch = new cards.Card({
     cost: 5,
     effects: [
         new e.DrawEffect(2),
-        new e.GainCardEffect(cards.Curse, e.Target.OtherPlayers)],
+        new e.GainCardEffect(cards.Curse, Target.OtherPlayers)],
     attack: true,
     set: SetName
 });

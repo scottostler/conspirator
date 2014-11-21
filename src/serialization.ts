@@ -20,7 +20,7 @@ export interface PlayerState {
 export function serializePlayer(player:Player, forPlayer:Player) : PlayerState {
     var hand = player === forPlayer
         ? player.hand
-        : util.repeat(cards.Cardback, player.hand.length);
+        : util.duplicate(cards.Cardback, player.hand.length);
 
     return {
         _cType: 'player',

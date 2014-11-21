@@ -4,7 +4,7 @@ import cards = require('./cards');
 import Player = require('./player');
 import ai = require('./ai');
 import socketdecider = require('./socketdecider');
-import game = require('./game');
+import Game = require('./game');
 import serialization = require('./serialization');
 
 
@@ -25,7 +25,7 @@ app.get('/', (req:any, res:any) => {
 
 var playerCounter = 0;
 
-function collectGameState(game:game.Game, forPlayer:Player) {
+function collectGameState(game:Game, forPlayer:Player) {
     var playerIndex = game.players.indexOf(forPlayer);
     var players = game.players.map(function(p) {
         return serialization.serialize(p, forPlayer);
@@ -40,7 +40,7 @@ function collectGameState(game:game.Game, forPlayer:Player) {
 }
 
 function startGame(players:Player[]) {
-    var gameInstance = new game.Game(players, []);
+    var gameInstance = new Game(players, []);
     // TODO
     // gameInstance.emit = function(eventName) {
     //     var args = _.toArray(arguments);

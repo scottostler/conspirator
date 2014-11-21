@@ -53,8 +53,12 @@ export class Card {
         this.assetURL = buildCardURL(this.set, this.name);
     }
 
-    equals(c:Card) {
+    isSameCard(c:Card) {
         return this.name === c.name;
+    }
+
+    isIdenticalCard(c:Card) {
+        return this === c;
     }
 
     toString() {
@@ -131,7 +135,7 @@ export interface PurchaseCallback {
 }
 
 export function makeIsCardPredicate(card:Card) : CardPredicate {
-    return (c:Card) => { return c.name == card.name; }
+    return (c:Card) => { return card.isSameCard(c); }
 }
 
 export function makeIsTypePredicate(cardType:Type) : CardPredicate {
@@ -197,6 +201,34 @@ export function getBasicTreasures(cards:Card[]) : Card[] {
     return _.filter(cards, (c:Card) => {
         return c.isBasicTreasure();
     });
+}
+
+export function contains(cards:Card[], card:Card) {
+    return _.some<Card>(cards, makeIsCardPredicate(card));
+}
+
+export function containsIdentical(cards:Card[], card:Card) {
+    return _.contains(cards, card);
+}
+
+export function removeFirst(cards:Card[], card:Card) {
+    var match = _.find<Card>(cards, makeIsCardPredicate(card));
+    var index = cards.indexOf(match);
+
+    if (index != -1) {
+        return cards.slice(0, index).concat(cards.slice(index + 1));
+    } else {
+        return cards;
+    }
+}
+
+export function removeFirstIdentical(cards:Card[], card:Card) {
+    var index = cards.indexOf(card);
+    if (index != -1) {
+        return cards.slice(0, index).concat(cards.slice(index + 1));
+    } else {
+        return cards;
+    }
 }
 
 // Dummy Cards

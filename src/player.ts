@@ -5,11 +5,12 @@ import base = require('./base');
 import decider = require('./decider');
 import decisions = require('./decisions');
 import effects = require('./effects');
-import game = require('./game');
+import Game = require('./game');
 
 function startingDeck() : cards.Card[] {
     return _.flatten(
-        [util.repeat(cards.Copper, 7), util.repeat(cards.Estate, 3)],
+        [util.duplicate(cards.Copper, 7),
+         util.duplicate(cards.Estate, 3)],
         true);
 }
 
@@ -31,7 +32,7 @@ class Player extends base.BasePlayer {
     name:string;
     decider:decider.Decider;
 
-    game:game.Game;
+    game:Game;
     hand:cards.Card[];
     deck:cards.Card[];
     discard:cards.Card[];
@@ -52,7 +53,7 @@ class Player extends base.BasePlayer {
 
     toString() { return this.name; }
 
-    setGame(game:game.Game) {
+    setGame(game:Game) {
         this.game = game;
     }
 
@@ -176,7 +177,7 @@ class Player extends base.BasePlayer {
 
     // Prompts
 
-    promptForAction(game:game.Game, actions:cards.Card[]) : effects.Resolution {
+    promptForAction(game:Game, actions:cards.Card[]) : effects.Resolution {
         var onAction = (action:cards.Card) => {
             if (action) {
                 game.playAction(action);
@@ -185,11 +186,11 @@ class Player extends base.BasePlayer {
             }
         }
 
-        this.decider.promptForHandSelection(0, 1, actions, util.adaptListToOption(onAction), 'Play action');
+        this.decider.promptForHandSelection(0, 1, actions, 'play', util.adaptListToOption(onAction));
         return effects.Resolution.Wait;
     }
 
-    promptForBuy(game:game.Game, buyablePiles:cards.Pile[], allowTreasures:boolean) : effects.Resolution {
+    promptForBuy(game:Game, buyablePiles:cards.Pile[], allowTreasures:boolean) : effects.Resolution {
         var onBuy:cards.PurchaseCallback = (cardToBuy, treasures) => {
             _.each(treasures, _.bind(game.playTreasure, game));
 
@@ -206,7 +207,7 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForGain(game:game.Game, piles:cards.Pile[], onGain?:effects.CardCallback, label:string=null, gainingPlayer:Player=null) : effects.Resolution {
+    promptForGain(game:Game, piles:cards.Pile[], onGain?:effects.CardCallback, label:string=null, gainingPlayer:Player=null) : effects.Resolution {
         if (piles.length === 0) { throw new Error('Cannot gain from empty piles'); }
 
         gainingPlayer = gainingPlayer || this;
@@ -224,29 +225,29 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForCardNaming(game:game.Game, onSelect:cards.PurchaseCallback) : effects.Resolution {
+    promptForCardNaming(game:Game, onSelect:cards.PurchaseCallback) : effects.Resolution {
         this.decider.promptForPileSelection(game.kingdomPiles, false, false, 'Name card', onSelect);
         return effects.Resolution.Wait;
     }
 
-    promptForPileSelection(game:game.Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
+    promptForPileSelection(game:Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
         this.decider.promptForPileSelection(piles, false, false, label, (c, ts) => {
             game.checkEffectResolution(onSelect(c, ts));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForPileSelectionWithCancel(game:game.Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
+    promptForPileSelectionWithCancel(game:Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
         this.decider.promptForPileSelection(piles, false, true, label, (c, ts) => {
             game.checkEffectResolution(onSelect(c, ts));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForDiscard(game:game.Game, min:number, max:number, cards:cards.Card[],
+    promptForDiscard(game:Game, min:number, max:number, cards:cards.Card[],
                      destination:base.DiscardDestination=base.DiscardDestination.Discard,
                      onDiscard?:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, (cards) => {
+        this.decider.promptForHandSelection(min, max, cards, 'discard', (cards) => {
             if (cards.length > 0) {
                 game.discardCards(this, cards, destination);
             }
@@ -260,8 +261,8 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForTrashing(game:game.Game, min:number, max:number, cards:cards.Card[], onTrash?:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, (cards) => {
+    promptForTrashing(game:Game, min:number, max:number, cards:cards.Card[], onTrash?:effects.CardsCallback) : effects.Resolution {
+        this.decider.promptForHandSelection(min, max, cards, 'trash', (cards) => {
             if (cards.length > 0) {
                 game.trashCards(this, cards);
             }
@@ -276,21 +277,21 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForHandSelection(game:game.Game, min:number, max:number, cards:cards.Card[], onSelect:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, (cards) => {
+    promptForHandSelection(game:Game, min:number, max:number, cards:cards.Card[], label:string, onSelect:effects.CardsCallback) : effects.Resolution {
+        this.decider.promptForHandSelection(min, max, cards, label, (cards) => {
             game.checkEffectResolution(onSelect(cards));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForReaction(game:game.Game, reactions:cards.Card[], onSelect:effects.CardCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(0, 1, reactions, (cards) => {
+    promptForReaction(game:Game, reactions:cards.Card[], onSelect:effects.CardCallback) : effects.Resolution {
+        this.decider.promptForHandSelection(0, 1, reactions, 'react', (cards) => {
             game.checkEffectResolution(onSelect(cards.length > 0 ? cards[0] : null));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForCardOrdering(game:game.Game, cards:cards.Card[], onSelect:effects.CardsCallback) : effects.Resolution {
+    promptForCardOrdering(game:Game, cards:cards.Card[], onSelect:effects.CardsCallback) : effects.Resolution {
         if (this.hand.length == 0) {
             throw new Error('Empty hand for promptForCardOrdering');
         }
@@ -300,23 +301,25 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForDecision(game:game.Game, decision:decisions.Decision, onDecide:effects.DecisionCallback) : effects.Resolution {
+    promptForDecision(game:Game, decision:decisions.Decision, onDecide:effects.DecisionCallback) : effects.Resolution {
         this.decider.promptForDecision(decision, d => {
             game.checkEffectResolution(onDecide(d));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForEffectChoice(g:game.Game, es:effects.LabelledEffect[], numChoices:number) : effects.Resolution {
+    promptForEffectChoice(game:Game, card:cards.Card, es:effects.LabelledEffect[], numChoices:number) : effects.Resolution {
         var decision = decisions.chooseEffect(es);
-        return this.promptForDecision(g, decision, (e:effects.LabelledEffect) => {
-            g.log(this.name, 'chooses', e.getLabel());
-            g.pushEvent(new game.CardEffectEvent(e, this));
+        return this.promptForDecision(game, decision, (e:effects.LabelledEffect) => {
+            game.log(this.name, 'chooses', e.getLabel());
+            game.pushEvent(() => {
+                return e.process(game, this, card);
+            });
 
             if (numChoices <= 1) {
                 return effects.Resolution.Advance;
             } else {
-                return this.promptForEffectChoice(g, _.without(es, e), numChoices - 1);
+                return this.promptForEffectChoice(game, card, _.without(es, e), numChoices - 1);
             }
         });
     }

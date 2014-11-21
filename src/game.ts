@@ -8,42 +8,11 @@ import effects = require('./effects')
 import scoring = require('./scoring')
 import cardlist = require('./cardlist');
 
-export var NumKingdomCards = 10;
-export var HandSize = 5;
+var NumKingdomCards = 10;
+var HandSize = 5;
 
-export interface GameEvent {
-    process(game:Game) : effects.Resolution;
-}
-
-export class CardEffectEvent {
-
-    effect:effects.Effect;
-    target:Player;
-
-    constructor(effect:effects.Effect, target:Player) {
-        this.effect = effect;
-        this.target = target;
-    }
-
-    process(game:Game) : effects.Resolution {
-        return this.effect.process(game, this.target);
-    }
-}
-
-export interface EventFunction {
+interface EventFunction {
     ():effects.Resolution;
-}
-
-class EventFunctionInvocation {
-    f:EventFunction;
-
-    constructor(f:EventFunction) {
-        this.f = f;
-    }
-
-    process(game:Game) : effects.Resolution {
-        return this.f();
-    }
 }
 
 var randomizedKingdomCards = function(forcedCards:cards.Card[], numCards:number) : cards.Card[] {
@@ -84,7 +53,7 @@ function groupKingdomCards(kingdomCards:cards.Card[], kingdomCount:number, vpCou
     return kingdomPileGroups;
 }
 
-export class Game extends base.BaseGame {
+class Game extends base.BaseGame {
 
     players:Player[];
     kingdomCards:cards.Card[];
@@ -94,7 +63,7 @@ export class Game extends base.BaseGame {
 
     turnCount:number;
     playArea:cards.Card[];
-    eventStack:GameEvent[];
+    eventStack:EventFunction[];
     hasGameEnded:boolean;
 
     activePlayerIndex:number;
@@ -229,7 +198,7 @@ export class Game extends base.BaseGame {
 
         if (this.eventStack.length > 0) {
             var event = this.eventStack.pop();
-            var resolution = event.process(this);
+            var resolution = event();
 
             if (_.isUndefined(resolution)) {
                 console.error(event, 'did not return a resolution');
@@ -316,32 +285,28 @@ export class Game extends base.BaseGame {
         }
     }
 
-    pushGameEvent(e:EventFunction) {
-        this.eventStack.push(new EventFunctionInvocation(e));
+    pushEvent(e:EventFunction) {
+        this.eventStack.push(e);
     }
 
     // Takes events in forward chronological order,
     // and adds them in event stack order (reversed).
-    pushGameEvents(events:EventFunction[]) {
-        var invocations = events.map(e => new EventFunctionInvocation(e));
-        this.eventStack = this.eventStack.concat(util.reverse(invocations));
+    pushEvents(events:EventFunction[]) {
+        this.eventStack = this.eventStack.concat(util.reverse(events));
     }
 
-    pushEventsForEffect(effect:effects.Effect) {
-        this.pushEventsForEffects([effect]);
-    }
+    pushEventsForCardEffects(card:cards.Card, effects:effects.Effect[]) {
+        var events:EventFunction[] = [];
 
-    pushEvent(event:GameEvent) {
-        this.eventStack.push(event);
-    }
+        effects.forEach(e => {
+            this.playersForTarget(e.getTarget()).forEach(p => {
+                events.push(() => {
+                    return e.process(this, p, card);
+                });
+            });
+        });
 
-    pushEventsForEffects(effects:effects.Effect[]) {
-        var events = effects.map(e =>
-            this.playersForTarget(e.getTarget()).map(p =>
-                new CardEffectEvent(e, p)
-            ));
-        this.eventStack = this.eventStack.concat(
-            util.reverse(_.flatten(events)));
+        this.pushEvents(events);
     }
 
     logPlayerShuffle(player:Player) {
@@ -364,7 +329,7 @@ export class Game extends base.BaseGame {
 
     pileForCard(card:cards.Card) : cards.Pile {
         var pile = _.find(this.kingdomPiles, (pile:cards.Pile) => {
-            return pile.card === card;
+            return pile.card.isSameCard(card);
         });
 
         if (!pile) {
@@ -380,7 +345,7 @@ export class Game extends base.BaseGame {
 
     computeMaximumPurchaseCost() : number {
         return this.turnState.coinCount + util.mapSum(this.activePlayer.hand, (card:cards.Card) => {
-            if (card === cards.Copper) {
+            if (card.isSameCard(cards.Copper)) {
                 return this.turnState.copperValue;
             } else if (card.isBasicTreasure()) {
                 return card.money;
@@ -399,12 +364,6 @@ export class Game extends base.BaseGame {
                 return this.effectiveCardCost(pile.card) <= maximumCost;
             });
         }        
-    }
-
-    // For use in Feast, Mining Village.
-    // TODO: need better way to track!
-    activeInPlayCard() {
-        return _.last(this.playArea);
     }
 
     // Misc. state storage
@@ -433,21 +392,30 @@ export class Game extends base.BaseGame {
     playTreasure(card:cards.Card) {
         this.log(this.activePlayer, 'plays', card);
 
-        this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
+        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
         this.playArea.push(card);
 
-        if (card === cards.Copper) {
+        if (card.isSameCard(cards.Copper)) {
             this.turnState.coinCount += this.turnState.copperValue;
         } else {
             this.turnState.coinCount += card.money;
         }
 
         if (card.moneyEffect) {
-            this.pushEventsForEffect(card.moneyEffect);
+            this.pushEventsForCardEffects(card, [card.moneyEffect]);
         }
 
         this.stateUpdated();
         this.gameListener.playerPlayedCard(this.activePlayer, card);
+    }
+
+    vendCardFromPile(pile:cards.Pile) : cards.Card {
+        if (pile.count <= 0) {
+            throw new Error('Unable to buy from empty pile');
+        }
+
+        pile.count--;
+        return _.clone(pile.card);
     }
 
     buyCard(card:cards.Card) {
@@ -470,7 +438,8 @@ export class Game extends base.BaseGame {
         this.turnState.coinCount -= cost;
         this.activePlayer.discard.push(pile.card);
         this.turnState.cardBought = true;
-        pile.count--;
+
+        card = this.vendCardFromPile(pile);
 
         this.stateUpdated();
         this.gameListener.playerGainedCard(this.activePlayer, card, pile.count, base.GainDestination.Discard);
@@ -480,12 +449,7 @@ export class Game extends base.BaseGame {
 
     playerGainsCard(player:Player, card:cards.Card, dest:base.GainDestination=base.GainDestination.Discard) {
         var pile = this.pileForCard(card);
-
-        if (pile.count <= 0) {
-            throw new Error('Unable to gain from empty pile');
-        }
-
-        pile.count--;
+        card = this.vendCardFromPile(pile);
 
         switch (dest) {
             case base.GainDestination.Discard:
@@ -518,6 +482,12 @@ export class Game extends base.BaseGame {
         }
     }
 
+    playerGainsFromTrash(player:Player, card:cards.Card) {
+        this.trash = cards.removeFirst(this.trash, card);
+        player.addCardToDiscard(card);
+        this.gameListener.playerGainedCardFromTrash(player, card);
+    }
+
     playerPassesCard(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
         sourcePlayer.removeCardFromHand(card);
         targetPlayer.addCardToHand(card);
@@ -530,7 +500,7 @@ export class Game extends base.BaseGame {
 
         this.turnState.playedActionCount++;
         this.turnState.actionCount--;
-        this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
+        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
         this.playArea.push(card);
 
         if (card.isAttack()) {
@@ -539,17 +509,15 @@ export class Game extends base.BaseGame {
 
         // TODO: re-action cards
 
-        this.pushEventsForEffects(card.effects);
+        this.pushEventsForCardEffects(card, card.effects);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
         this.advanceGameState();
     }
 
-    // NOTE: PlayClonedActionEffect advances the game state.
-    //       Outside callers shouldn't use this.
     playClonedActionWithoutAdvance(card:cards.Card, playCount:number) {
-        this.log(this.activePlayer, 'plays', card, '(' + playCount + ')');
+        this.log(this.activePlayer, 'plays', card.name, '(' + playCount + ')');
         this.turnState.playedActionCount++;
-        this.pushEventsForEffects(card.effects);
+        this.pushEventsForCardEffects(card, card.effects);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
     }
 
@@ -563,14 +531,14 @@ export class Game extends base.BaseGame {
         }
     }
 
-    discardCards(player:Player, cards:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
+    discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
         var ontoDeck = destination === base.DiscardDestination.Deck;
-        _.each(cards, card => {
+        _.each(cs, card => {
             if (!_.contains(player.hand, card)) {
                 console.error('Player unable to discard', player, card);
                 return;
             }
-            player.hand = util.removeFirst(player.hand, card);
+            player.hand = cards.removeFirst(player.hand, card);
             if (ontoDeck) {
                 player.deck.push(card);
             } else {
@@ -578,24 +546,23 @@ export class Game extends base.BaseGame {
             }
         });
 
-        this.log(player, 'discards', cards.join(', '), ontoDeck ? 'onto deck' : '');
-        this.gameListener.playerDiscardsCards(player, cards);
+        this.log(player, 'discards', cs.join(', '), ontoDeck ? 'onto deck' : '');
+        this.gameListener.playerDiscardedCards(player, cs);
     }
 
     // Trash cards from a player's hand.
-    trashCards(player:Player, cards:cards.Card[]) {
-        this.log(player.name, 'trashes', cards.join(', '));
+    trashCards(player:Player, cs:cards.Card[]) {
+        this.log(player.name, 'trashes', cs.join(', '));
 
-        _.each(cards, card => {
-            player.hand = util.removeFirst(player.hand, card);
+        _.each(cs, card => {
+            player.hand = cards.removeFirst(player.hand, card);
             this.trash.push(card);
         });
 
-        this.gameListener.playerTrashesCards(player, cards);
+        this.gameListener.playerTrashedCards(player, cs);
     }
 
-    // Doesn't fire gameListener method
-    baseAddToTrash(player:Player, card:cards.Card) {
+    baseTrashCard(player:Player, card:cards.Card) {
         this.log(player.name, 'trashes', card.name);
         this.trash.push(card);
     }
@@ -603,33 +570,30 @@ export class Game extends base.BaseGame {
     // For use with 'floating' cards, e.g. cards revealed by thief.
     // Normal trashing from hand should use trashCards.
     addCardToTrash(player:Player, card:cards.Card) {
-        this.baseAddToTrash(player, card);
+        this.baseTrashCard(player, card);
         this.gameListener.addCardToTrash(card);
     }
 
-    trashCardFromPlay(card:cards.Card) {
-        // May not be true if a feast was throne-roomed, for example.
-        if (_.contains(this.playArea, card)) {
-            this.playArea = util.removeFirst(this.playArea, card);
-            this.baseAddToTrash(this.activePlayer, card);
+    trashCardFromPlay(player:Player, card:cards.Card) : boolean {
+        if (cards.containsIdentical(this.playArea, card)) {
+            this.playArea = cards.removeFirstIdentical(this.playArea, card);
+            this.baseTrashCard(player, card);
             this.gameListener.trashCardFromPlay(card);
+            return true;
+        } else {
+            return false;
         }
     }
 
-    trashCardFromDeck(player:Player) : cards.Card {
+    playerTrashedCardFromDeck(player:Player) : cards.Card {
         var card = player.takeCardFromDeck();
         if (!card) {
             return null;
         }
 
-        this.baseAddToTrash(player, card);
-        this.gameListener.trashCardFromDeck(player, card);
+        this.baseTrashCard(player, card);
+        this.gameListener.playerTrashedCardFromDeck(player, card);
         return card;
-    }
-
-    gainCardFromTrash(player:Player, card:cards.Card) {
-        this.log(player.name, 'gains', card);
-        player.addCardToDiscard(card);
     }
 
     // Methods to increment active player's turn counts.
@@ -659,7 +623,7 @@ export class Game extends base.BaseGame {
     drawCards(player:Player, num:number) {
         var cards = player.takeCardsFromDeck(num);
         player.addCardsToHand(cards);
-        this.log(player, 'draws', num === 1 ? 'card' : num + ' cards');
+        this.log(player, 'draws', num, util.pluralize('card', num));
         this.gameListener.playerDrewCards(player, cards);
     }
 
@@ -690,7 +654,7 @@ export class Game extends base.BaseGame {
 
         this.log(player.name, 'discards', cards.join(', '));
         player.addCardsToDiscard(cards);
-        this.gameListener.playerDiscardsCards(player, cards);
+        this.gameListener.playerDiscardedCards(player, cards);
     }
 
     discardCardsFromDeck(player:Player, num:number) : cards.Card[] {
@@ -698,7 +662,7 @@ export class Game extends base.BaseGame {
 
         if (discarded.length > 0) {
             this.log(player.name, 'discards', discarded.join(', '));
-            this.gameListener.playerDiscardsCardsFromDeck(player, discarded);
+            this.gameListener.playerDiscardedCardsFromDeck(player, discarded);
         }
 
         return discarded;
@@ -727,7 +691,7 @@ export class Game extends base.BaseGame {
             this.log(player, 'discards', discard.join(', '));
         }
 
-        this.gameListener.playerDrawsAndDiscardsCards(player, draw, discard);
+        this.gameListener.playerDrewAndDiscardedCards(player, draw, discard);
     }
 
     putCardsOnDeck(player:Player, cards:cards.Card[]) {
@@ -735,18 +699,18 @@ export class Game extends base.BaseGame {
         this.log(player.name, 'puts', cards, 'onto their deck');
     }
 
-    // Does not advance game state!
     playActionMultipleTimes(card:cards.Card, num:number) {
         this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
         this.playArea.push(card);
 
-        var clonedEffects = _.map<number, effects.Effect>(_.range(1, num + 1), (i) => {
-            return new PlayClonedActionEffect(card, i);
+        var playEvents = _.times(num, (i) => {
+            return () => {
+                this.playClonedActionWithoutAdvance(card, i);
+                return effects.Resolution.Advance;
+            };
         });
 
-        this.pushEventsForEffects(clonedEffects);
-
-        this.log(this.activePlayer, 'plays', card, num + 'x');
+        this.pushEvents(playEvents);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
     }
 
@@ -794,20 +758,4 @@ export class Game extends base.BaseGame {
 
 }
 
-class PlayClonedActionEffect implements effects.Effect {
-
-    card:cards.Card;
-    playCount:number; // Starts at 1
-
-    constructor(card:cards.Card, playCount:number) {
-        this.card = card;
-        this.playCount = playCount;
-    }
-
-    getTarget() { return effects.Target.ActivePlayer; }
-
-    process(game:Game, target:Player) {
-        game.playClonedActionWithoutAdvance(this.card, this.playCount);
-        return effects.Resolution.Advance;
-    }
-}
+export = Game;

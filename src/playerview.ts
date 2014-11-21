@@ -65,7 +65,7 @@ export class PlayerView extends View {
 
     viewForCard(card:cards.Card) : cardview.CardView {
         var view = _.find(this.cardViewsInHand, function(view:any) {
-            return view.card === card;
+            return view.card.isIdenticalCard(card);
         });
 
         if (!view) {
@@ -142,7 +142,6 @@ export class HumanPlayerView extends PlayerView {
     isActivePlayer() {
         return true;
     }
-
 
     highlightBasicTreasures() {
         _.each(this.cardViewsInHand, function(cv:any) {

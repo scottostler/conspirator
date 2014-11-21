@@ -1,7 +1,7 @@
 /// <reference path="../typings/underscore/underscore.d.ts" />
 import _ = require('underscore');
 import util = require('./util');
-import g = require('./game');
+import Game = require('./game');
 import Player = require('./player');
 import cards = require('./cards');
 import decisions = require('./decisions');
@@ -50,7 +50,7 @@ export enum Resolution {
 
 export interface Effect {
     getTarget():Target;
-    process(game:g.Game, target:Player) : Resolution;
+    process(game:Game, target:Player, card:cards.Card) : Resolution;
 }
 
 export interface LabelledEffect extends Effect {
@@ -66,7 +66,7 @@ export class CardDiscountEffect implements Effect {
 
     getTarget() { return Target.ActivePlayer; }
 
-    process(game:g.Game, target:Player) : Resolution {
+    process(game:Game, target:Player) : Resolution {
         game.incrementCardDiscount(this.num);
         return Resolution.Advance;
     }
@@ -85,7 +85,7 @@ export class GainCoinsEffect implements LabelledEffect {
         return '+' + this.numCoins + ' ' + util.pluralize('coin', this.numCoins);
     }
 
-    process(game:g.Game, target:Player) : Resolution {
+    process(game:Game, target:Player) : Resolution {
         game.incrementCoinCount(this.numCoins);
         return Resolution.Advance;
     }
@@ -103,7 +103,7 @@ export class GainActionsEffect implements LabelledEffect {
         return '+' + this.numActions + ' ' + util.pluralize('action', this.numActions);
     }
 
-    process(game:g.Game, target:Player) : Resolution {
+    process(game:Game, target:Player) : Resolution {
         game.incrementActionCount(this.numActions);
         return Resolution.Advance;
     }
@@ -121,7 +121,7 @@ export class GainBuysEffect implements LabelledEffect {
         return '+' + this.numBuys + ' ' + util.pluralize('buy', this.numBuys);
     }
 
-    process(game:g.Game, target:Player) : Resolution {
+    process(game:Game, target:Player) : Resolution {
         game.incrementBuyCount(this.numBuys);
         return Resolution.Advance;
     }
@@ -141,7 +141,7 @@ export class DrawEffect implements LabelledEffect {
         return '+' + this.numCards + ' ' + util.pluralize('card', this.numCards);
     }
 
-    process(game:g.Game, player:Player) : Resolution {
+    process(game:Game, player:Player, card:cards.Card) : Resolution {
         game.drawCards(player, this.numCards);
         return Resolution.Advance;
     }
@@ -163,7 +163,7 @@ export class DiscardEffect implements LabelledEffect {
         return 'Discard ' + this.numCards + ' ' + util.pluralize('card', this.numCards);
     }
 
-    process(game:g.Game, player:Player) : Resolution {
+    process(game:Game, player:Player, card:cards.Card) : Resolution {
         var numToDiscard = Math.min(this.numCards, player.hand.length);
         if (numToDiscard > 0) {
             return player.promptForDiscard(game, numToDiscard, numToDiscard, player.hand, this.destination);
@@ -184,7 +184,7 @@ export class DiscardToEffect implements Effect {
 
     getTarget() { return this.target; }
 
-    process(game:g.Game, player:Player) : Resolution {
+    process(game:Game, player:Player, card:cards.Card) : Resolution {
         var numToDiscard = Math.max(0, player.hand.length - this.targetNumCards);
         if (numToDiscard > 0) {
             return player.promptForDiscard(game, numToDiscard, numToDiscard, player.hand);
@@ -216,7 +216,7 @@ export class TrashEffect implements LabelledEffect {
             + util.pluralize('card', this.max);
     }
 
-    process(game:g.Game, player:Player) : Resolution {
+    process(game:Game, player:Player, card:cards.Card) : Resolution {
         var matchingCards = cards.filterByType(player.hand, this.cardType);
         if (matchingCards.length < this.min) {
             if (matchingCards.length > 0) {
@@ -245,7 +245,7 @@ export class GainCardEffect implements LabelledEffect {
     getTarget() { return this.target; }
     getLabel() { return 'Gain ' + this.card.name; }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var pile = game.pileForCard(this.card);
         if (pile.count > 0) {
             game.playerGainsCard(player, this.card, this.destination);
@@ -276,7 +276,7 @@ export class GainCardWithCostEffect implements Effect {
 
     getTarget() { return this.target; }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var piles = game.filterGainablePiles(
             this.minCost, this.maxCost, this.cardType);
         return game.playerGainsFromPiles(player, piles, this.destination);
@@ -308,7 +308,7 @@ export class TrashToGainPlusCostEffect implements Effect {
         this.costRestriction = costRestriction;
     }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var trashableCards = cards.filterByType(player.getHand(), this.cardType);
         return player.promptForTrashing(game, 1, 1, trashableCards, (selectedCards) => {
             if (selectedCards.length === 1) {
@@ -337,12 +337,14 @@ export class TrashForEffect implements Effect {
         this.n = n;
     }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var hand = player.getHand();
         if (hand.length > 0) {
             return player.promptForTrashing(game, this.n, this.n, hand, (cards) => {
                 if (cards.length == this.n) {
-                    game.pushEventsForEffect(this.effect);
+                    game.pushEvent(() => {
+                        return this.effect.process(game, player, card);
+                    });
                 }
 
                 return Resolution.Advance;
@@ -361,10 +363,11 @@ export class PlayActionManyTimesEffect implements Effect {
         this.num = num;
     }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         var actions = cards.getActions(player.getHand());
         if (actions.length > 0) {
-            return player.promptForHandSelection(game, 1, 1, actions, (actions) => {
+            // TODO: replace label with 'Play action'
+            return player.promptForHandSelection(game, 1, 1, actions, 'play', (actions) => {
                 game.playActionMultipleTimes(actions[0], this.num);
                 return Resolution.Advance;
             });
@@ -388,15 +391,15 @@ export class EffectChoiceEffect implements Effect {
         this.numChoices = numChoices;
     }
 
-    process(game:g.Game, player:Player) {
-        return player.promptForEffectChoice(game, this.effects, this.numChoices);
+    process(game:Game, player:Player, card:cards.Card) {
+        return player.promptForEffectChoice(game, card, this.effects, this.numChoices);
     }
 }
 
 export class DiscardForCoinsEffect implements Effect {
     getTarget() { return Target.ActivePlayer; }
 
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         if (player.hand.length === 0) {
             return Resolution.Advance;
         }
@@ -416,12 +419,12 @@ export enum ReactionTrigger {
 
 export interface ReactionEffect {
     getTrigger() : ReactionTrigger;
-    process(game:g.Game, player:Player) : Resolution;
+    process(game:Game, player:Player, card:cards.Card) : Resolution;
 }
 
 export class MoatReaction implements ReactionEffect {
     getTrigger() { return ReactionTrigger.OnAttack; }
-    process(game:g.Game, player:Player) {
+    process(game:Game, player:Player, card:cards.Card) {
         game.givePlayerAttackImmunity(player);
         return Resolution.Advance;
     }

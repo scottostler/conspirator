@@ -11,3 +11,5 @@ To get started:
 3) generate javascript
 
     grunt
+
+4) open index.html to start!

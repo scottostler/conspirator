@@ -67,11 +67,11 @@ export class SocketDecider implements decider.Decider {
         this.socket.emit('promptForPileSelection', serialization.serialize(piles), allowTreasures, allowCancel);
     }
 
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], onSelect:cards.CardsCallback) {
+    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
         this.assertPlayer();
         this.assertNoCallback();
         this.pendingRequestCallback = onSelect;
-        this.socket.emit('promptForHandSelection', min, max, serialization.serialize(cards));
+        this.socket.emit('promptForHandSelection', min, max, label, serialization.serialize(cards));
     }
 
     promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
