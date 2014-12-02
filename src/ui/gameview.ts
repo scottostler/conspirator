@@ -1,13 +1,13 @@
 import $ = require('jquery');
 import _ = require('underscore');
-import util = require('./util');
+import util = require('../util');
+import cards = require('../cards');
+import Game = require('../game');
+import base = require('../base');
 import playerview = require('./playerview');
 import cardview = require('./cardview');
-import cards = require('./cards');
 import ScoreSheet = require('./scoresheet');
 import View = require('./view');
-import Game = require('./game');
-import base = require('./base');
 
 export class GameStateView {
 

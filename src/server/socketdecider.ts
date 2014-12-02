@@ -1,16 +1,14 @@
 // SocketDecider proxies decisions to a connected socketio client.
 
-/// <reference path="../typings/underscore/underscore.d.ts" />
-
 import _ = require('underscore');
-import util = require('./util');
-import cards = require('./cards');
+import util = require('../util');
+import cards = require('../cards');
+import Player = require('../player');
+import base = require('../base');
+import game = require('../game');
+import decisions = require('../decisions');
+import decider = require('../decider');
 import serialization = require('./serialization');
-import Player = require('./player');
-import base = require('./base');
-import game = require('./game');
-import decisions = require('./decisions');
-import decider = require('./decider');
 
 export class SocketDecider implements decider.Decider {
 

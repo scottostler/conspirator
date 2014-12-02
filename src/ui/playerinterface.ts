@@ -1,12 +1,12 @@
 import _ = require('underscore');
-import util = require('./util');
-import game = require('./game');
-import cards = require('./cards');
-import base = require('./base');
-import Player = require('./player');
+import util = require('../util');
+import game = require('../game');
+import cards = require('../cards');
+import base = require('../base');
+import Player = require('../player');
+import decisions = require('../decisions');
+import decider = require('../decider');
 import gameview = require('./gameview');
-import decisions = require('./decisions');
-import decider = require('./decider');
 
 class PlayerInterface implements decider.Decider {
     

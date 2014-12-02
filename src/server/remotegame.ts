@@ -1,13 +1,12 @@
 import _ = require('underscore');
-import events = require("events");
 
-import util = require('./util');
-import cards = require('./cards');
-import base = require('./base');
-import decider = require('./decider');
-import Player = require('./player');
+import util = require('../util');
+import cards = require('../cards');
+import base = require('../base');
+import decider = require('../decider');
+import Player = require('../player');
 import serialization = require('./serialization');
-import PlayerInterface = require('./playerinterface');
+import PlayerInterface = require('ui/playerinterface');
 
 
 // RemoteGame acts as a local proxy for a server-hosted game.
@@ -15,16 +14,16 @@ export class RemoteGame extends base.BaseGame {
 
     socket:any;
     gameState:any;
-    humanInterface:PlayerInterface;
+    localDecider:decider.Decider;
     players:RemotePlayer[];
     kingdomPileGroups:cards.Pile[][];
     gameListener:base.BaseGameListener;
 
-    constructor(socket:any, gameState:any, humanInterface:PlayerInterface) {
+    constructor(socket:any, gameState:any, localDecider:decider.Decider) {
         super();
         this.socket = socket;
         this.gameState = gameState;
-        this.humanInterface = humanInterface;
+        this.localDecider = localDecider;
 
         this.players = _.map(gameState.players, (playerState:any) => {
             return new RemotePlayer(playerState);
@@ -32,7 +31,7 @@ export class RemoteGame extends base.BaseGame {
         this.kingdomPileGroups = serialization.deserialize(gameState.kingdomPileGroups);
 
         if (gameState.playerIndex >= 0) {
-            this.humanInterface.player = this.players[gameState.playerIndex];
+            this.localDecider.setPlayer(this.players[gameState.playerIndex]);
         }
 
         var playerLookupFunc = _.bind(this.lookupAndUpdatePlayer, this);
@@ -52,7 +51,7 @@ export class RemoteGame extends base.BaseGame {
                 var args:any[] = serialization.deserialize(_.toArray(arguments));
                 args.push(decisionCallback);
 
-                (<any>this.humanInterface)[decisionName].apply(this.humanInterface, args);
+                (<any>this.localDecider)[decisionName].apply(this.localDecider, args);
             });
         });
     }

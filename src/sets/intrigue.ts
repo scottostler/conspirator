@@ -1,12 +1,13 @@
 import _ = require('underscore');
-import util = require('./util');
-import base = require('./base');
-import Game = require('./game');
-import cards = require('./cards');
-import Player = require('./player');
-import decisions = require('./decisions');
-import e = require('./effects');
+import util = require('../util');
+import base = require('../base');
+import Game = require('../game');
+import cards = require('../cards');
+import Player = require('../player');
+import decisions = require('../decisions');
+import effects = require('../effects');
 
+import e = effects;
 var SetName = 'intrigue';
 
 class BaronDiscardEffect implements e.Effect {

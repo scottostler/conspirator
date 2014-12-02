@@ -1,13 +1,11 @@
-/// <reference path="../typings/underscore/underscore.d.ts" />
-/// <reference path="../typings/node/node.d.ts" />
 import _ = require('underscore');
-import util = require('./util');
-import cards = require('./cards');
-import cardlist = require('./cardlist')
-import Player = require('./player');
+import util = require('../util');
+import cards = require('../cards');
+import Player = require('../player');
+import cardlist = require('../sets/cardlist')
 
-var Card = cards.Card;
-var Pile = cards.Pile;
+import Card = cards.Card;
+import Pile = cards.Pile;
 
 export interface PlayerState {
     _cType:string;

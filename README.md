@@ -1,10 +1,16 @@
+# Conspirator
+
+Conspirator is a Dominion game engine implemented in TypeScript,
+including a HTML 5 front-end. Currently, the original set
+and Intrigue (save Masquerade) are implemented.
+
 To get started:
 
-1) install node.js, e.g. on a Mac:
+1) install node.js and npm, e.g. on a Mac:
 
     brew install node
 
-2) install project's node dependencies
+2) install the project's dependencies
 
     npm install
 

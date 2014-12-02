@@ -6,7 +6,7 @@ import Player = require('./player');
 import cards = require('./cards')
 import effects = require('./effects')
 import scoring = require('./scoring')
-import cardlist = require('./cardlist');
+import cardlist = require('sets/cardlist');
 
 import Resolution = effects.Resolution;
 import Target = effects.Target;

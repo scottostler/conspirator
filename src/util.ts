@@ -1,4 +1,3 @@
-/// <reference path="../typings/underscore/underscore.d.ts" />
 import _ = require('underscore');
 
 export function mapSum<T>(list:T[], f:(t:T)=>number) : number {

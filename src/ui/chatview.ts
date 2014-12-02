@@ -1,9 +1,6 @@
-/// <reference path="../typings/jquery/jquery.d.ts" />
-/// <reference path="../typings/underscore/underscore.d.ts" />
-
 import $ = require('jquery');
 import _ = require('underscore');
-import util = require('./util');
+import util = require('../util');
 
 class ChatView {
 

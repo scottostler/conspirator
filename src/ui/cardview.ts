@@ -1,5 +1,5 @@
-import util = require('./util');
-import cards = require('./cards');
+import util = require('../util');
+import cards = require('../cards');
 import View = require('./view');
 
 var Card = cards.Card;

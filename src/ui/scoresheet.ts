@@ -1,10 +1,11 @@
 import _ = require('underscore');
-import util = require('./util');
-import base = require('./base');
+import util = require('../util');
+import base = require('../base');
+import cards = require('../cards');
+import scoring = require('../scoring')
+
 import View = require('./view');
-import cards = require('./cards');
 import cardview = require('./cardview');
-import scoring = require('./scoring')
 
 class ScoreSheet extends View {
 

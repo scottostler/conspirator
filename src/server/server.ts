@@ -1,19 +1,23 @@
 import _ = require('underscore');
-import util = require('./util');
-import cards = require('./cards');
-import Player = require('./player');
-import ai = require('./ai');
+import util = require('../util');
+import cards = require('../cards');
+import Player = require('../player');
+import ai = require('../ai');
+import Game = require('../game');
 import socketdecider = require('./socketdecider');
-import Game = require('./game');
 import serialization = require('./serialization');
 
+declare function require(name:string):any;
+declare var process:any;
 
 var crypto = require('crypto');
-var uuid = require('node-uuid');
-var express = require('express')
-  , app = express()
-  , server = require('http').createServer(app)
-  , io = require('socket.io').listen(server);
+var http = require('http');
+var express = require('express');
+var socketIo = require('socket.io');
+
+var app = express()
+var server = http.createServer(app)
+var io = socketIo.listen(server);
 
 app.use(express.cookieParser());
 app.use(express.session({ secret: 'double jack' }));

@@ -15,7 +15,7 @@ module.exports = function (grunt) {
             },
 
             build: {
-                src: ["src/*.ts"],
+                src: ["src/**/*.ts"],
                 html: ['src/html/*.tpl.html'],
                 outDir: 'build',
                 watch: 'src',

@@ -1,19 +1,17 @@
-/// <reference path="../typings/jquery/jquery.d.ts" />
-/// <reference path="../typings/underscore/underscore.d.ts" />
 import $ = require('jquery');
 import _ = require('underscore');
 
-import util = require('./util');
-import base = require('./base');
+import util = require('../util');
+import base = require('../base');
+import cards = require('../cards');
 import View = require('./view');
-import cards = require('./cards');
 import gameview = require('./gameview');
 import cardview = require('./cardview');
 
-var Card = cards.Card;
+import Card = cards.Card;
 
-var PlayerLocations = ['south', 'north', 'west', 'east'];
-var PlayerColors = ['blue', 'red', 'green', 'yellow'];
+var PlayerLocations = ['south', 'north'];
+var PlayerColors = ['blue', 'red'];
 
 export class PlayerView extends View {
 

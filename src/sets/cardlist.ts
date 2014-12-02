@@ -1,5 +1,5 @@
 import _ = require('underscore');
-import cards = require('./cards')
+import cards = require('../cards')
 import baseset = require('./baseset');
 import intrigue = require('./intrigue');
 
