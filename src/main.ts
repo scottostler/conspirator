@@ -7,7 +7,7 @@ import $ = require('jquery');
 import util = require('./util');
 import Game = require('./game');
 import Player = require('./player');
-import ai = require('./ai');
+import ai = require('ai/aidecider');
 import remotegame = require('server/remotegame');
 
 import PlayerInterface = require('ui/playerinterface');

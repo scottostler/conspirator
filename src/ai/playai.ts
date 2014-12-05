@@ -1,8 +1,8 @@
-import Player = require('./player');
-import cards = require('./cards')
-import base = require('./base');
-import Game = require('./game');
-import ai = require('./ai');
+import Player = require('../player');
+import cards = require('../cards')
+import base = require('../base');
+import Game = require('../game');
+import ai = require('./aidecider');
 
 import BasePlayer = base.BasePlayer;
 import GainDestination = base.GainDestination;

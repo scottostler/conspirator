@@ -543,6 +543,7 @@ class Game extends base.BaseGame {
 
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
+        this.stateUpdated();
         this.advanceGameState();
     }
 
@@ -551,7 +552,6 @@ class Game extends base.BaseGame {
         this.turnState.playedActionCount++;
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
-        this.advanceGameState();
     }
 
     givePlayerAttackImmunity(player:Player) {

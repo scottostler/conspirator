@@ -1,10 +1,11 @@
-import util = require('./util');
 import _ = require('underscore');
-import Player = require('./player');
-import cards = require('./cards');
-import game = require('./game');
-import decisions = require('./decisions');
-import decider = require('./decider');
+
+import util = require('../util');
+import Player = require('../player');
+import cards = require('../cards');
+import game = require('../game');
+import decisions = require('../decisions');
+import decider = require('../decider');
 
 export class AIDecider implements decider.Decider {
 

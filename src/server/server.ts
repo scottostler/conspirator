@@ -2,8 +2,8 @@ import _ = require('underscore');
 import util = require('../util');
 import cards = require('../cards');
 import Player = require('../player');
-import ai = require('../ai');
 import Game = require('../game');
+import ai = require('../ai/aidecider');
 import socketdecider = require('./socketdecider');
 import serialization = require('./serialization');
 
