@@ -91,7 +91,6 @@ class ScoreSheet extends View {
                 return card.name;
             });
 
-
             _.each(_.keys(deckBreakdown), cardName => {
                 var card = cardLookup[cardName];
                 var currentCardView = new cardview.CardView(card);
