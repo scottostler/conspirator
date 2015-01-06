@@ -79,6 +79,7 @@ class Game extends base.BaseGame {
     emptyPilesToEndGame:number;
     storedState:any;
 
+    // TODO: gameListener should be initialized or a required param
     constructor(players:Player[], kingdomCards:cards.Card[]=[]) {
         super();
 
