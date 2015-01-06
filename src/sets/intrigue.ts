@@ -59,7 +59,7 @@ class CoppersmithEffect implements e.Effect {
 
 class DukeVPEffect implements e.VPEffect {
     calculatePoints(deck:cards.Card[]) : number {
-        return util.count(deck, cards.Duchy);
+        return cards.countByCard(deck, cards.Duchy);
     }
 }
 

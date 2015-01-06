@@ -19,3 +19,5 @@ To get started:
     grunt
 
 4) open index.html to start!
+
+5) run tests with: `rm -r tmp/; mocha --compilers ts:typescript-require`

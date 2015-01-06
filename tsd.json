@@ -4,5 +4,12 @@
   "ref": "master",
   "path": "typings",
   "bundle": "typings/tsd.d.ts",
-  "installed": {}
+  "installed": {
+    "mocha/mocha.d.ts": {
+      "commit": "494b30d2327ab489fa5b5f082a3c9a299e4c5644"
+    },
+    "chai/chai.d.ts": {
+      "commit": "494b30d2327ab489fa5b5f082a3c9a299e4c5644"
+    }
+  }
 }

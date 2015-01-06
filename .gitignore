@@ -4,6 +4,7 @@ bundle.js
 .idea
 build/
 typings/
+tmp/
 
 Conspirator.sublime-project
 Conspirator.sublime-workspace

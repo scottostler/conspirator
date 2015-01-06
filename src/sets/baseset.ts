@@ -247,14 +247,14 @@ class GardenVPEffect implements VPEffect {
     }
 }
 
-var Adventurer = new cards.Card({
+export var Adventurer = new cards.Card({
     name: 'Adventurer',
     cost: 6,
     effects: [new AdventurerDrawEffect()],
     set: SetName
 });
 
-var Bureaucrat = new cards.Card({
+export var Bureaucrat = new cards.Card({
     name: 'Bureaucrat',
     cost: 4,
     attack:true,
@@ -264,7 +264,7 @@ var Bureaucrat = new cards.Card({
     set: SetName
 });
 
-var Cellar = new cards.Card({
+export var Cellar = new cards.Card({
     name: 'Cellar',
     cost: 2,
     effects: [
@@ -273,7 +273,7 @@ var Cellar = new cards.Card({
     set: SetName
 });
 
-var Chancellor = new cards.Card({
+export var Chancellor = new cards.Card({
     name: 'Chancellor',
     cost: 3,
     effects: [
@@ -282,14 +282,14 @@ var Chancellor = new cards.Card({
     set: SetName
 });
 
-var Chapel = new cards.Card({
+export var Chapel = new cards.Card({
     name: 'Chapel',
     cost: 2,
     effects: [new e.TrashEffect(Target.ActivePlayer, 0, 4)],
     set: SetName
 });
 
-var CouncilRoom = new cards.Card({
+export var CouncilRoom = new cards.Card({
     name: 'Council Room',
     cost: 5,
     effects: [
@@ -300,7 +300,7 @@ var CouncilRoom = new cards.Card({
 });
 
 // TODO: handle correctly with Throne Room
-var Feast = new cards.Card({
+export var Feast = new cards.Card({
     name: 'Feast',
     cost: 4,
     effects: [
@@ -309,7 +309,7 @@ var Feast = new cards.Card({
     set: SetName
 });
 
-var Festival = new cards.Card({
+export var Festival = new cards.Card({
     name: 'Festival',
     cost: 5,
     effects: [
@@ -319,14 +319,14 @@ var Festival = new cards.Card({
     set: SetName
 });
 
-var Gardens = new cards.Card({
+export var Gardens = new cards.Card({
     name: 'Gardens',
     cost: 4,
     vp: new GardenVPEffect(),
     set: SetName
 });
 
-var Laboratory = new cards.Card({
+export var Laboratory = new cards.Card({
     name: 'Laboratory',
     cost: 5,
     effects: [
@@ -335,14 +335,14 @@ var Laboratory = new cards.Card({
     set: SetName
 });
 
-var Library = new cards.Card({
+export var Library = new cards.Card({
     name: 'Library',
     cost: 5,
     effects: [new LibraryDrawEffect()],
     set: SetName
 });
 
-var Market = new cards.Card({
+export var Market = new cards.Card({
     name: 'Market',
     cost: 5,
     effects: [
@@ -353,7 +353,7 @@ var Market = new cards.Card({
     set: SetName
 });
 
-var Mine = new cards.Card({
+export var Mine = new cards.Card({
     name: 'Mine',
     cost: 5,
     effects: [
@@ -361,7 +361,7 @@ var Mine = new cards.Card({
     set: SetName
 });
 
-var Militia = new cards.Card({
+export var Militia = new cards.Card({
     name: 'Militia',
     cost: 4,
     effects: [
@@ -371,7 +371,7 @@ var Militia = new cards.Card({
     set: SetName
 });
 
-var Moat = new cards.Card({
+export var Moat = new cards.Card({
     name: 'Moat',
     cost: 2,
     effects: [new e.DrawEffect(2)],
@@ -379,7 +379,7 @@ var Moat = new cards.Card({
     set: SetName
 });
 
-var Moneylender = new cards.Card({
+export var Moneylender = new cards.Card({
     name: 'Moneylender',
     cost: 4,
     effects: [
@@ -389,7 +389,7 @@ var Moneylender = new cards.Card({
     set: SetName
 });
 
-var Remodel = new cards.Card({
+export var Remodel = new cards.Card({
     name: 'Remodel',
     cost: 4,
     effects: [
@@ -397,14 +397,14 @@ var Remodel = new cards.Card({
     set: SetName
 });
 
-var Smithy = new cards.Card({
+export var Smithy = new cards.Card({
     name: 'Smithy',
     cost: 4,
     effects: [new e.DrawEffect(3)],
     set: SetName
 });
 
-var Spy = new cards.Card({
+export var Spy = new cards.Card({
     name: 'Spy',
     cost: 4,
     effects: [
@@ -415,7 +415,7 @@ var Spy = new cards.Card({
     set: SetName
 });
 
-var Thief = new cards.Card({
+export var Thief = new cards.Card({
     name: 'Thief',
     cost: 4,
     effects: [new ThiefTrashEffect(), new ThiefGainEffect()],
@@ -423,21 +423,21 @@ var Thief = new cards.Card({
     set: SetName
 });
 
-var ThroneRoom = new cards.Card({
+export var ThroneRoom = new cards.Card({
     name: 'Throne Room',
     cost: 4,
     effects: [new e.PlayActionManyTimesEffect(2)],
     set: SetName
 });
 
-var Village = new cards.Card({
+export var Village = new cards.Card({
     name: 'Village',
     cost: 3,
     effects: [new e.DrawEffect(1), new e.GainActionsEffect(2)],
     set: SetName
 });
 
-var Witch = new cards.Card({
+export var Witch = new cards.Card({
     name: 'Witch',
     cost: 5,
     effects: [
@@ -447,14 +447,14 @@ var Witch = new cards.Card({
     set: SetName
 });
 
-var Woodcutter = new cards.Card({
+export var Woodcutter = new cards.Card({
     name: 'Woodcutter',
     cost: 3,
     effects: [new e.GainCoinsEffect(2), new e.GainBuysEffect(1)],
     set: SetName
 });
 
-var Workshop = new cards.Card({
+export var Workshop = new cards.Card({
     name: 'Workshop',
     cost: 3,
     effects: [new e.GainCardWithCostEffect(0, 4)],

@@ -1,3 +1,4 @@
+/// <reference path="../typings/underscore/underscore.d.ts" />
 import _ = require('underscore');
 
 export function mapSum<T>(list:T[], f:(t:T)=>number) : number {
@@ -8,16 +9,6 @@ export function mapSum<T>(list:T[], f:(t:T)=>number) : number {
 
 export function reverse<T>(list:T[]) : T[] {
     return list.concat().reverse();
-}
-
-export function count(list:any[], target:any) : number {
-    var c = 0;
-    for (var i = 0; i < list.length; ++i){
-        if (list[i] === target) {
-            c++;
-        }
-    }
-    return c;
 }
 
 export function isClient() : boolean {

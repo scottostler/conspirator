@@ -177,8 +177,12 @@ export function filterByType(cards:Card[], cardType:Type) : Card[] {
     return filter(cards, makeIsTypePredicate(cardType));
 }
 
-export function filterByCard(cards:Card[], card:Card) {
+export function filterByCard(cards:Card[], card:Card) : Card[] {
     return filter(cards, makeIsCardPredicate(card));
+}
+
+export function countByCard(cards:Card[], card:Card) : number {
+    return filterByCard(cards, card).length;
 }
 
 export function getActions(cards:Card[]) : Card[] {
