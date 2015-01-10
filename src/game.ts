@@ -206,6 +206,61 @@ class Game extends base.BaseGame {
         return false;
     }
 
+    handleActionPhase() {
+        var playableActions = this.currentlyPlayableActions();
+        var actionDecision = decisions.makePlayActionDecision(playableActions);
+        // TODO?: adapt to single card
+        var resolution = this.activePlayer.promptForCardDecision(actionDecision, cs => {
+            if (cs.length > 0) {
+                return this.playAction(cs[0]);
+            } else {
+                this.turnState.phase = base.TurnPhase.Buy;
+                this.stateUpdated();
+                return Resolution.Advance;
+            }
+        });
+        this.checkEffectResolution(resolution);
+    }
+
+    handleBuyPhase() {
+        var buyablePiles = this.currentlyBuyablePiles();
+        if (buyablePiles.length == 0) {
+            this.turnState.phase = base.TurnPhase.Cleanup;
+            this.stateUpdated();
+            this.advanceGameState();
+        } else {
+            // TODO: split out treasure and buy choices
+            var buyableCards = cards.cardsFromPiles(buyablePiles);
+            var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
+            // TODO?: adapt to single card
+            var resolution = this.activePlayer.promptForCardDecision(buyDecision, cs => {
+                if (cs.length > 0) {
+                    return this.buyCard(cs[0]);
+                } else {
+                    return Resolution.Advance;
+                }
+            });
+            this.checkEffectResolution(resolution);
+        }
+    }
+
+    handleCleanupPhase() {
+        this.activePlayer.discard = this.activePlayer.discard.concat(this.inPlay);
+        this.inPlay = [];
+
+        this.gameListener.playAreaEmptied();
+
+        this.discardHand(this.activePlayer);
+        this.drawCards(this.activePlayer, HandSize);
+        this.advanceTurn();
+
+        if (this.hasGameEnded) {
+            this.endGame();
+        } else {
+            this.advanceGameState();
+        }
+    }
+
     advanceGameState() {
         if (this.hasGameEnded) {
             throw new Error('Game already ended');
@@ -214,62 +269,16 @@ class Game extends base.BaseGame {
         if (this.eventStack.length > 0) {
             var event = this.eventStack.pop();
             var resolution = event();
-
-            if (_.isUndefined(resolution)) {
-                console.error(event, 'did not return a resolution');
-            } else if (resolution === Resolution.Advance) {
-                this.advanceGameState();
-            }
-
+            this.checkEffectResolution(resolution);
             return;
         }
 
         if (this.turnState.phase == base.TurnPhase.Action) {
-            var playableActions = this.currentlyPlayableActions();
-            var actionDecision = decisions.makePlayActionDecision(playableActions);
-            // TODO?: adapt to single card
-            this.activePlayer.promptForCardDecision(actionDecision, cs => {
-                if (cs.length > 0) {
-                    return this.playAction(cs[0]);
-                } else {
-                    this.turnState.phase = base.TurnPhase.Buy;
-                    this.stateUpdated();
-                    return Resolution.Advance;
-                }
-            });
+            this.handleActionPhase();
         } else if (this.turnState.phase == base.TurnPhase.Buy) {
-            var buyablePiles = this.currentlyBuyablePiles();
-            if (buyablePiles.length == 0) {
-                this.turnState.phase = base.TurnPhase.Cleanup;
-                this.stateUpdated();
-                this.advanceGameState();
-            } else {
-                var buyableCards = cards.cardsFromPiles(buyablePiles);
-                var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
-                // TODO?: adapt to single card
-                this.activePlayer.promptForCardDecision(buyDecision, cs => {
-                    if (cs.length > 0) {
-                        return this.buyCard(cs[0]);
-                    } else {
-                        return Resolution.Advance;
-                    }
-                });
-            }
+            this.handleBuyPhase();
         } else if (this.turnState.phase == base.TurnPhase.Cleanup) {
-            this.activePlayer.discard = this.activePlayer.discard.concat(this.inPlay);
-            this.inPlay = [];
-
-            this.gameListener.playAreaEmptied();
-
-            this.discardHand(this.activePlayer);
-            this.drawCards(this.activePlayer, HandSize);
-            this.advanceTurn();
-
-            if (this.hasGameEnded) {
-                this.endGame();
-            } else {
-                this.advanceGameState();
-            }
+            this.handleCleanupPhase();
         } else {
             throw new Error('Illegal turn phase: ' + this.turnState.phase);
         }
@@ -278,21 +287,10 @@ class Game extends base.BaseGame {
     checkEffectResolution(resolution:Resolution) {
         if (resolution == Resolution.Advance) {
             this.advanceGameState();
+        } else if (resolution !== Resolution.Wait) {
+            throw new Error('Unexpected resolution: ' + resolution);
         }
     }
-
-    skipActions() {
-        this.turnState.actionCount = 0;
-        this.stateUpdated();
-        this.advanceGameState();
-    }
-
-    skipBuys = function() {
-        this.turnState.buyCount = 0;
-        this.stateUpdated();
-        this.advanceGameState();
-    }
-
 
     revealPlayerHand(player:Player) {
         this.log(player, 'reveals hand:', player.hand);
@@ -571,11 +569,12 @@ class Game extends base.BaseGame {
         return Resolution.Advance;
     }
 
-    playClonedActionWithoutAdvance(card:cards.Card, playCount:number) {
+    playClonedAction(card:cards.Card, playCount:number) {
         this.log(this.activePlayer, 'plays', card.name, '(' + playCount + ')');
         this.turnState.playedActionCount++;
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
+        return Resolution.Advance;
     }
 
     givePlayerAttackImmunity(player:Player) {
@@ -726,9 +725,9 @@ class Game extends base.BaseGame {
 
     // TODO: assert cleared by turn end
     discardSetAsideCards(player:Player) {
-
-
+        player.discard = player.discard.concat(this.setAside);
         this.setAside = [];
+        // TODO?: gameListener event
     }
 
     discardCardsFromDeck(player:Player, num:number) : cards.Card[] {
@@ -779,8 +778,7 @@ class Game extends base.BaseGame {
 
         var playEvents = _.times(num, (i) => {
             return () => {
-                this.playClonedActionWithoutAdvance(card, i);
-                return Resolution.Advance;
+                return this.playClonedAction(card, i);
             };
         });
 

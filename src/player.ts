@@ -15,19 +15,6 @@ function startingDeck() : cards.Card[] {
         true);
 }
 
-function optionToKey(o:any) {
-    if (o instanceof cards.Card) {
-        return o.name;
-    } else if (o._optionString) {
-        return o._optionString;
-    } else if (_.isString(o)) {
-        return o;
-    } else {
-        console.error('Unable to convert option to key', o);
-        return null;
-    }
-};
-
 class Player extends base.BasePlayer {
 
     name:string;
@@ -204,7 +191,7 @@ class Player extends base.BasePlayer {
     promptForDecision(decision:decisions.Decision, onDecide:effects.StringsCallback) : effects.Resolution {
         if (decision.options.length <= decision.minSelections) {
             onDecide(decision.options);
-            return effects.Resolution.Wait;
+            return effects.Resolution.Advance;
         }
 
         this.decider.promptForDecision(decision, xs => {

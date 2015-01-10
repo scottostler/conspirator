@@ -32,38 +32,6 @@ class PlayerInterface implements decider.Decider {
 
     // Prompting
 
-    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
-        this.assertPlayer();
-        this.gameView.showStatusMessage(label);
-
-        this.gameView.offerPileSelection(this.player, piles, allowTreasures, allowCancel, (card, treasures) => {
-            if (card) {
-                // Auto-play basic treasures when buying.
-                var basicTreasures = allowTreasures ? cards.getBasicTreasures(this.player.getHand()) : [];
-                onSelect(card, basicTreasures);
-            } else if (treasures) {
-                onSelect(null, treasures);
-            } else {
-                onSelect(null, []);
-            }
-        });
-    }
-
-    fullHandSelectionLabel(min:number, max:number, label:string) : string {
-        return 'Select ' + util.labelRange(min, max) + ' ' + util.pluralize('card', max) + ' to ' + label;
-    }
-
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
-        this.assertPlayer();
-        this.gameView.showStatusMessage(this.fullHandSelectionLabel(min, max, label));
-        this.gameView.offerMultipleHandSelection(this.player, min, max, cards, onSelect);
-    }
-
-    promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
-        this.assertPlayer();
-        this.gameView.offerCardOrdering(this.player, cards, onOrder);
-    }
-
     promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
         this.assertPlayer();
         this.gameView.offerOptions('Make a decision', decision.options, onDecide);
