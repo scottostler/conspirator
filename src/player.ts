@@ -1,11 +1,12 @@
 import _ = require("underscore");
-import util = require('./util');
-import cards = require('./cards');
 import base = require('./base');
+import cardlist = require('./sets/cardlist');
+import cards = require('./cards');
 import decider = require('./decider');
 import decisions = require('./decisions');
 import effects = require('./effects');
 import Game = require('./game');
+import util = require('./util');
 
 function startingDeck() : cards.Card[] {
     return _.flatten(
@@ -126,7 +127,7 @@ class Player extends base.BasePlayer {
         var card:cards.Card = null;
 
         while (card = this.takeCardFromDeck()) {
-            if (!card || predicate(card)) {
+            if (predicate(card)) {
                 return {
                     foundCard:card,
                     otherCards:takenCards
@@ -135,6 +136,11 @@ class Player extends base.BasePlayer {
                 takenCards.push(card)
             }
         }
+
+        return {
+            foundCard:null,
+            otherCards:takenCards
+        };
     }
 
     putCardsOnDeck(cards:cards.Card[]) {
@@ -147,10 +153,16 @@ class Player extends base.BasePlayer {
         this.game.logPlayerShuffle(this);
     }
 
-    shuffleCompletely() { 
+    shuffleCompletely() {
         this.deck = _.shuffle<cards.Card>(this.deck.concat(this.discard));
         this.discard = [];
         this.game.logPlayerShuffle(this);
+    }
+
+    putDeckIntoDiscard() {
+        this.deck = [];
+        this.discard = this.discard.concat(this.deck);
+        this.game.log(this, 'puts deck into discard');
     }
 
     getFullDeck() : cards.Card[] {
@@ -177,158 +189,52 @@ class Player extends base.BasePlayer {
 
     // Prompts
 
-    promptForAction(game:Game, actions:cards.Card[]) : effects.Resolution {
-        var onAction = (action:cards.Card) => {
-            if (action) {
-                game.playAction(action);
-            } else {
-                game.skipActions();
+    assertValidResults(xs:string[], decision:decisions.Decision) {
+        if (xs.length > decision.maxSelections) {
+            throw new Error('Too many results picked: ' + xs.length + ', max is ' + decision.maxSelections);
+        }            
+
+        xs.forEach(x => {
+            if (!_.contains(decision.options, x)) {
+                throw new Error('Invalid result: ' + x);
             }
+        });
+    }
+
+    promptForDecision(decision:decisions.Decision, onDecide:effects.StringsCallback) : effects.Resolution {
+        if (decision.options.length <= decision.minSelections) {
+            onDecide(decision.options);
+            return effects.Resolution.Wait;
         }
 
-        this.decider.promptForHandSelection(0, 1, actions, 'play', util.adaptListToOption(onAction));
-        return effects.Resolution.Wait;
-    }
-
-    promptForBuy(game:Game, buyablePiles:cards.Pile[], allowTreasures:boolean) : effects.Resolution {
-        var onBuy:cards.PurchaseCallback = (cardToBuy, treasures) => {
-            _.each(treasures, _.bind(game.playTreasure, game));
-
-            if (cardToBuy) {
-                game.buyCard(cardToBuy);
-            } else if (treasures.length === 0) {
-                game.skipBuys();
-            } else {
-                game.advanceGameState();
-            }
-        };
-
-        this.decider.promptForPileSelection(buyablePiles, allowTreasures, true, 'Buy card', onBuy);
-        return effects.Resolution.Wait;
-    }
-
-    promptForGain(game:Game, piles:cards.Pile[], onGain?:effects.CardCallback, label:string=null, gainingPlayer:Player=null) : effects.Resolution {
-        if (piles.length === 0) { throw new Error('Cannot gain from empty piles'); }
-
-        gainingPlayer = gainingPlayer || this;
-        label = label || 'Gain card';
-
-        this.decider.promptForPileSelection(piles, false, false, label, (gainedCard:cards.Card, treasures:cards.Card[]) => {
-            game.playerGainsCard(gainingPlayer, gainedCard);
-
-            if (onGain) {
-                game.checkEffectResolution(onGain(gainedCard))
-            } else {
-                game.advanceGameState();
-            }
+        this.decider.promptForDecision(decision, xs => {
+            this.assertValidResults(xs, decision);
+            this.game.checkEffectResolution(onDecide(xs));
         });
         return effects.Resolution.Wait;
     }
 
-    promptForCardNaming(game:Game, onSelect:cards.PurchaseCallback) : effects.Resolution {
-        this.decider.promptForPileSelection(game.kingdomPiles, false, false, 'Name card', onSelect);
-        return effects.Resolution.Wait;
-    }
-
-    promptForPileSelection(game:Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
-        this.decider.promptForPileSelection(piles, false, false, label, (c, ts) => {
-            game.checkEffectResolution(onSelect(c, ts));
+    promptForCardDecision(decision:decisions.Decision, onDecide:effects.CardsCallback) : effects.Resolution {
+        return this.promptForDecision(decision, xs => {
+            return onDecide(cardlist.getCardsByNames(xs));
         });
-        return effects.Resolution.Wait;
     }
 
-    promptForPileSelectionWithCancel(game:Game, piles:cards.Pile[], label:string, onSelect:effects.PurchaseCallback) : effects.Resolution {
-        this.decider.promptForPileSelection(piles, false, true, label, (c, ts) => {
-            game.checkEffectResolution(onSelect(c, ts));
-        });
-        return effects.Resolution.Wait;
-    }
-
-    promptForDiscard(game:Game, min:number, max:number, cards:cards.Card[],
-                     destination:base.DiscardDestination=base.DiscardDestination.Discard,
-                     onDiscard?:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, 'discard', (cards) => {
-            if (cards.length > 0) {
-                game.discardCards(this, cards, destination);
-            }
-            if (onDiscard) {
-                game.checkEffectResolution(onDiscard(cards));
-            } else {
-                game.advanceGameState();
-            }
-        });
-
-        return effects.Resolution.Wait;
-    }
-
-    promptForTrashing(game:Game, min:number, max:number, cards:cards.Card[], onTrash?:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, 'trash', (cards) => {
-            if (cards.length > 0) {
-                game.trashCards(this, cards);
-            }
-
-            if (onTrash) {
-                game.checkEffectResolution(onTrash(cards));
-            } else {
-                game.advanceGameState();
-            }
-        });
-
-        return effects.Resolution.Wait;
-    }
-
-    promptForHandSelection(game:Game, min:number, max:number, cards:cards.Card[], label:string, onSelect:effects.CardsCallback) : effects.Resolution {
-        this.decider.promptForHandSelection(min, max, cards, label, (cards) => {
-            game.checkEffectResolution(onSelect(cards));
-        });
-        return effects.Resolution.Wait;
-    }
-
-    promptForReaction(game:Game, reactions:cards.Card[]) : effects.Resolution {
-        this.decider.promptForHandSelection(0, 1, reactions, 'react', (cards) => {
-            var reaction = _.first(cards);
-            if (reaction) {
-                game.playerRevealsReaction(this, reaction);
-            }
-
-            game.advanceGameState();
-        });
-        return effects.Resolution.Wait;
-    }
-
-    promptForCardOrdering(game:Game, cards:cards.Card[], onSelect:effects.CardsCallback) : effects.Resolution {
-        if (this.hand.length == 0) {
-            throw new Error('Empty hand for promptForCardOrdering');
-        }
-        this.decider.promptForCardOrdering(cards, (cards) => {
-            game.checkEffectResolution(onSelect(cards));
-        });
-        return effects.Resolution.Wait;
-    }
-
-    promptForDecision(game:Game, decision:decisions.Decision, onDecide:effects.DecisionCallback) : effects.Resolution {
-        this.decider.promptForDecision(decision, d => {
-            game.checkEffectResolution(onDecide(d));
-        });
-        return effects.Resolution.Wait;
-    }
-
-    promptForEffectChoice(game:Game, card:cards.Card, es:effects.LabelledEffect[], numChoices:number) : effects.Resolution {
-        var decision = decisions.chooseEffect(es);
-        return this.promptForDecision(game, decision, (e:effects.LabelledEffect) => {
-            game.log(this.name, 'chooses', e.getLabel());
-            game.pushEvent(() => {
-                return e.process(game, this, card);
+    promptForEffectDecision(decision:decisions.Decision, es:effects.LabelledEffect[], onDecide:effects.LabelledEffectsCallback) : effects.Resolution {
+        return this.promptForDecision(decision, xs => {
+            var chosen = _.map<string, effects.LabelledEffect>(xs, x => {
+                var idx = decision.options.indexOf(x);
+                return es[idx];
             });
-
-            if (numChoices <= 1) {
-                return effects.Resolution.Advance;
-            } else {
-                return this.promptForEffectChoice(game, card, _.without(es, e), numChoices - 1);
-            }
+            return onDecide(chosen);
         });
     }
 
+    promptForBooleanDecision(decision:decisions.Decision, onDecide:effects.BooleanCallback) : effects.Resolution {
+        return this.promptForDecision(decision, xs => {
+            return onDecide(xs[0] === decisions.Yes);
+        });
+    }
 }
 
 export = Player;

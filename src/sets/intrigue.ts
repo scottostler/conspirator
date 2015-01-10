@@ -1,32 +1,35 @@
 import _ = require('underscore');
-import util = require('../util');
+
 import base = require('../base');
-import Game = require('../game');
 import cards = require('../cards');
-import Player = require('../player');
 import decisions = require('../decisions');
 import effects = require('../effects');
+import Game = require('../game');
+import Player = require('../player');
+import util = require('../util');
 
+import DiscardDestination = base.DiscardDestination;
 import e = effects;
+import GainDestination = base.GainDestination;
+import Resolution = effects.Resolution;
+
 var SetName = 'intrigue';
 
 class BaronDiscardEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var matchingCards = cards.filterByCard(player.hand, cards.Estate);
-        if (matchingCards.length === 0) {
-            return e.Resolution.Advance;
-        }
-
-        return player.promptForDiscard(game, 0, 1, matchingCards, base.DiscardDestination.Discard, (discards:cards.Card[]) => {
-            if (discards.length === 1) {
+        var decision = decisions.makeDiscardCardDecision(player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                // TODO?: roll discardCards functionality into DiscardCard decision
+                game.discardCards(player, cs);
                 game.incrementCoinCount(4)
             } else {
                 game.playerGainsCard(player, cards.Estate);
             }
-
             return e.Resolution.Advance;
         });
     }
@@ -37,7 +40,7 @@ class ConspiratorGainEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         if (game.turnState.playedActionCount >= 3) {
             game.drawCards(player, 1);
             game.incrementActionCount(1);
@@ -51,7 +54,7 @@ class CoppersmithEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         game.increaseCopperValueBy(1);
         return e.Resolution.Advance;
     }
@@ -67,26 +70,28 @@ class IronworksEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        var piles = game.filterGainablePiles(0, 4, cards.Type.All);
-        if (piles.length === 0) {
-            return e.Resolution.Advance;
-        }
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4, cards.Type.All));
+        var decision = decisions.makeGainDecision(player, gainableCards, trigger, GainDestination.Discard);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                var gainedCard = cs[0];
+                game.playerGainsCard(player, gainedCard);
 
-        return player.promptForGain(game, piles, (gainedCard:cards.Card) => {
-            if (gainedCard.isAction()) {
-                game.incrementActionCount(1);
+                if (gainedCard.isAction()) {
+                    game.incrementActionCount(1);
+                }
+
+                if (gainedCard.isTreasure()) {
+                    game.incrementCoinCount(1);
+                }
+
+                if (gainedCard.isVictory()) {
+                    game.drawCards(player, 1);
+                }
             }
 
-            if (gainedCard.isTreasure()) {
-                game.incrementCoinCount(1);
-            }
-
-            if (gainedCard.isVictory()) {
-                game.drawCards(player, 1);
-            }
-
-            return e.Resolution.Advance;
+            return Resolution.Advance;
         });
     }
 }
@@ -95,19 +100,19 @@ class MiningVillageTrashEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) : e.Resolution {
-        var trashDecision = decisions.trashOrKeepCard(MiningVillage);
-        var onDecide = (d:string) => {
-            if (d === decisions.Options.Trash) {
-                if (game.trashCardFromPlay(player, card)) {
-                    game.incrementCoinCount(2);
-                }
+    process(game:Game, player:Player, trigger:cards.Card) {
+        if (!game.isCardInPlay(trigger)) {
+            return Resolution.Advance;
+        }
+
+        var decision = decisions.makeTrashInPlayCardDecision(player, trigger, trigger);
+        player.promptForCardDecision(decision, cs => {
+            if (game.trashCardFromPlay(player, trigger)) {
+                game.incrementCoinCount(2);
             }
 
-            return e.Resolution.Advance;
-        };
-
-        return player.promptForDecision(game, trashDecision, onDecide);
+            return Resolution.Advance;
+        });
     }
 }
 
@@ -116,7 +121,7 @@ class MinionDiscardEffect implements e.LabelledEffect {
     getTarget() { return e.Target.AllPlayers; }
     getLabel() { return 'Discard and draw'; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         if (game.isActivePlayer(player) || player.hand.length >= 5) {
             game.discardHand(player);
             game.drawCards(player, 4);
@@ -130,8 +135,8 @@ class SaboteurEffect implements e.Effect {
     
     getTarget() { return e.Target.OtherPlayers; }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        var results = player.takeCardsFromDeckUntil((c:cards.Card) => game.effectiveCardCost(c) >= 3);
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var results = player.takeCardsFromDeckUntil(c => game.effectiveCardCost(c) >= 3);
         game.addCardsToDiscard(player, results.otherCards);
 
         if (!results.foundCard) {
@@ -146,7 +151,7 @@ class SaboteurEffect implements e.Effect {
         }
 
         game.addCardToTrash(player, results.foundCard);
-        return game.playerGainsFromPiles(player, piles);
+        return game.playerGainsFromPiles(player, piles, trigger, base.GainDestination.Discard);
     }
 }
 
@@ -154,7 +159,7 @@ class ScoutEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var revealedCards = player.takeCardsFromDeck(4);
 
         if (revealedCards.length == 0) {
@@ -163,17 +168,15 @@ class ScoutEffect implements e.Effect {
 
         var victoryCards = cards.getVictories(revealedCards);
         var remaining = cards.difference(revealedCards, victoryCards);
-
         victoryCards.forEach(c => game.drawTakenCard(player, c, true));
 
-        if (remaining.length > 0) {
+        var decision = decisions.makeOrderCardsDecision(remaining, trigger);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                game.putCardsOnDeck(player, cs);
+            }
             return e.Resolution.Advance;
-        } else {
-            return player.promptForCardOrdering(game, remaining, orderedCards => {
-                game.putCardsOnDeck(player, orderedCards);
-                return e.Resolution.Advance;
-            });
-        }
+        });
     }
 }
 
@@ -181,7 +184,7 @@ class ShantyTownEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         game.revealPlayerHand(player);
 
         if (cards.getActions(player.hand).length === 0) {
@@ -197,20 +200,19 @@ class SwindlerEffect implements e.Effect {
 
     getTarget() { return e.Target.OtherPlayers; }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        var card = game.playerTrashedCardFromDeck(player);
+    process(game:Game, targetPlayer:Player, card:cards.Card) {
+        var card = game.playerTrashedCardFromDeck(targetPlayer);
         if (!card) {
             return e.Resolution.Advance;
         }
 
         var cost = game.effectiveCardCost(card);
-        var piles = game.filterGainablePiles(cost, cost);
-
-        if (piles.length == 0) {
+        var cs = cards.cardsFromPiles(game.filterGainablePiles(cost, cost));
+        var decision = decisions.makeGainDecision(targetPlayer, cs, card, GainDestination.Discard);
+        return game.activePlayer.promptForCardDecision(decision, cs => {
+            // TODO?: make callback optional
             return e.Resolution.Advance;
-        } else {
-            return game.activePlayer.promptForGain(game, piles, null, 'Choose card to give', player);
-        }
+        });
     }
 }
 
@@ -218,7 +220,7 @@ class TributeEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var discardingPlayer = game.playerLeftOf(player);
         var discarded = cards.uniq(discardingPlayer.discardCardsFromDeck(2));
 
@@ -244,21 +246,19 @@ class WishingWellEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        var onSelect:e.PurchaseCallback = (picked:cards.Card, _:cards.Card[]) => {
-            game.log(player, 'wishes for', picked);
-
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var cs = cards.cardsFromPiles(game.kingdomPiles);
+        var decision = decisions.makeNameCardDecision(cs, trigger);
+        // TODO?: prompt variant for single card
+        return player.promptForCardDecision(decision, cs => {
+            var namedCard = cs[0];
             var revealed = game.revealCardFromDeck(player);
-            if (revealed && revealed.isSameCard(picked)) {
+            if (revealed && revealed.isSameCard(namedCard)) {
                 game.drawCards(player, 1);
             }
-
             return e.Resolution.Advance;
-        };
-
-        return player.promptForPileSelection(game, game.kingdomPiles, 'Wish for card', onSelect);
+        });
     }
-
 }
 
 // Game.prototype.masqueradeEffect = function(activePlayer, otherPlayers) {

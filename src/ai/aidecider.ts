@@ -13,34 +13,18 @@ export class AIDecider implements decider.Decider {
 
     assertPlayer() {
         if (!this.player) {
-            console.error('Missing valid player', this);
+            throw new Error('Missing valid player');
         }
     }
 
-    setPlayer(player:Player) {
+    setPlayer(player:Player):void {
         this.player = player;
     }
 
-    promptForPileSelection(piles:any, allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
+    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback):void {
         this.assertPlayer();
-        var treasures = allowTreasures ? cards.getTreasures(this.player.getHand()) : [];
-        var selection:any = _.head(_.shuffle(piles));
-        onSelect(selection.card, treasures);
-    }
-
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
-        this.assertPlayer();
-        onSelect(_.sample<cards.Card>(cards, _.random(min, max)));
-    }
-
-    promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
-        this.assertPlayer();
-        onOrder(_.shuffle<cards.Card>(cards));
-    }
-
-    promptForDecision(decision:decisions.Decision, onDecide:util.AnyCallback) {
-        this.assertPlayer();
-        onDecide(_.sample(decision.options));
+        var count = _.random(decision.minSelections, decision.maxSelections);
+        onDecide(_.sample<string>(decision.options, count));
     }
 }
 

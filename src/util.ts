@@ -81,5 +81,9 @@ export function onEnter($input:any, f:()=>void) {
 }
 
 export interface AnyCallback {
-    (x:any) : void;
+    (x:any):void;
+}
+
+export interface StringArrayCallback {
+    (xs:string[]):void;
 }

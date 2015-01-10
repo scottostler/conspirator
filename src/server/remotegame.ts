@@ -4,6 +4,7 @@ import util = require('../util');
 import cards = require('../cards');
 import base = require('../base');
 import decider = require('../decider');
+import decisions = require('../decisions');
 import Player = require('../player');
 import serialization = require('./serialization');
 import PlayerInterface = require('ui/playerinterface');
@@ -44,15 +45,9 @@ export class RemoteGame extends base.BaseGame {
         });
 
         var decisionCallback = _.bind(this.emitDecision, this);
-        _.each(decider.DecisionEvents, decisionName => {
-            this.socket.on(decisionName, () => {
-                this.assertListenerProperty(decisionName);
-
-                var args:any[] = serialization.deserialize(_.toArray(arguments));
-                args.push(decisionCallback);
-
-                (<any>this.localDecider)[decisionName].apply(this.localDecider, args);
-            });
+        this.socket.on('promptForDecision', (d:decisions.Decision) => {
+            // TODO: deserialize d
+            this.localDecider.promptForDecision(d, decisionCallback);
         });
     }
 
@@ -64,9 +59,8 @@ export class RemoteGame extends base.BaseGame {
         }
     }
 
-    emitDecision(decisionArgs:any) {
-        var eventArgs = ['decision'].concat(serialization.serialize(decisionArgs));
-        this.socket.emit.apply(this.socket, eventArgs);
+    emitDecision(results:string[]) {
+        this.socket.emit('decision', results);
     }
 
     lookupAndUpdatePlayer(o:any) {

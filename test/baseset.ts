@@ -5,13 +5,13 @@ import _ = require('underscore');
 import chai = require('chai');
 
 import base = require('../src/base');
-import util = require('../src/util');
+import baseset = require('../src/sets/baseset');
+import cards = require('../src/cards');
 import decider = require('../src/decider');
 import decisions = require('../src/decisions');
-import cards = require('../src/cards');
 import Game = require('../src/game');
 import Player = require('../src/player');
-import baseset = require('../src/sets/baseset');
+import util = require('../src/util');
 
 import expect = chai.expect;
 
@@ -41,59 +41,31 @@ class TestingGameListener implements base.BaseGameListener {
 
 class TestingDecider implements decider.Decider {
 
+    pendingCallback:util.StringArrayCallback;
+    pendingDecision:decisions.Decision;
+
     setPlayer(player:base.BasePlayer) {}
 
-    pileSelectionCallback:cards.PurchaseCallback;
-    handSelectionCallback:cards.CardsCallback;
-    cardOrderingCallback:cards.CardsCallback;
-    decisionCallback:util.AnyCallback;
-
-    assertNoCallback() {
-        if (this.pileSelectionCallback) {
-            throw new Error('TestingDecider.pileSelectionCallback is not null');
+    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
+        if (this.pendingCallback) {
+            throw new Error('TestingDecider already has pending callback');
         }
 
-        if (this.handSelectionCallback) {
-            throw new Error('TestingDecider.handSelectionCallback is not null');
-        }
-
-        if (this.cardOrderingCallback) {
-            throw new Error('TestingDecider.cardOrderingCallback is not null');
-        }
-
-        if (this.decisionCallback) {
-            throw new Error('TestingDecider.decisionCallback is not null');
-        }
-    }
-
-    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
-        this.assertNoCallback();
-        this.pileSelectionCallback = onSelect;
-    }
-
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
-        this.assertNoCallback();
-        this.handSelectionCallback = onSelect;
-    }
-
-    promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
-        this.assertNoCallback();
-        this.cardOrderingCallback = onOrder;
-    }
-
-    promptForDecision(decision:decisions.Decision, onDecide:util.AnyCallback) {
-        this.assertNoCallback();
-        this.decisionCallback = onDecide;
+        this.pendingCallback = onDecide;
+        this.pendingDecision = decision;
     }
 
     playAction(card:cards.Card) {
-        if (this.handSelectionCallback === null) {
-            throw new Error('TestingDecider.handSelectionCallback is null, cannot play action');
+        if (this.pendingCallback === null) {
+            throw new Error('TestingDecider has no pending callback');
         }
 
-        var callback = this.handSelectionCallback;
-        this.handSelectionCallback = null;
-        callback([card]);
+        // TODO: assert decision type
+
+        var callback = this.pendingCallback;
+        this.pendingCallback = null;
+        this.pendingDecision = null;
+        callback([card.name]);
     }
 
 }
@@ -130,7 +102,7 @@ describe('feast', () => {
 
         game.start();
         decider1.playAction(baseset.Feast);
-        if (decider1.pileSelectionCallback === null) {
+        if (decider1.pendingCallback === null) {
             throw new Error('Player1 missing pileSelectionCallback');
         }
 

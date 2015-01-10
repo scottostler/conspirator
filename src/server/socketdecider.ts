@@ -56,30 +56,7 @@ export class SocketDecider implements decider.Decider {
         this.player = player;
     }
 
-    // Prompts
-
-    promptForPileSelection(piles:cards.Pile[], allowTreasures:boolean, allowCancel:boolean, label:string, onSelect:cards.PurchaseCallback) {
-        this.assertPlayer();
-        this.assertNoCallback();
-        this.pendingRequestCallback = onSelect;
-        this.socket.emit('promptForPileSelection', serialization.serialize(piles), allowTreasures, allowCancel);
-    }
-
-    promptForHandSelection(min:number, max:number, cards:cards.Card[], label:string, onSelect:cards.CardsCallback) {
-        this.assertPlayer();
-        this.assertNoCallback();
-        this.pendingRequestCallback = onSelect;
-        this.socket.emit('promptForHandSelection', min, max, label, serialization.serialize(cards));
-    }
-
-    promptForCardOrdering(cards:cards.Card[], onOrder:cards.CardsCallback) {
-        this.assertPlayer();
-        this.assertNoCallback();
-        this.pendingRequestCallback = onOrder;
-        this.socket.emit('promptForCardOrdering', serialization.serialize(cards));
-    }
-
-    promptForDecision(decision:decisions.Decision, onDecide:util.AnyCallback) {
+    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
         this.assertPlayer();
         this.assertNoCallback();
         this.pendingRequestCallback = onDecide;

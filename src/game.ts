@@ -1,12 +1,14 @@
 import _ = require('underscore');
 import util = require('./util');
+
 import base = require('./base');
-import TurnState = require('./turnstate');
-import Player = require('./player');
-import cards = require('./cards')
-import effects = require('./effects')
-import scoring = require('./scoring')
 import cardlist = require('./sets/cardlist');
+import cards = require('./cards')
+import decisions = require('./decisions');
+import effects = require('./effects')
+import Player = require('./player');
+import scoring = require('./scoring')
+import TurnState = require('./turnstate');
 
 import Resolution = effects.Resolution;
 import Target = effects.Target;
@@ -62,10 +64,12 @@ class Game extends base.BaseGame {
     kingdomCards:cards.Card[];
     kingdomPileGroups:cards.Pile[][];
     kingdomPiles:cards.Pile[];
-    trash:cards.Card[];
-
     turnCount:number;
-    playArea:cards.Card[];
+
+    trash:cards.Card[];
+    inPlay:cards.Card[];
+    setAside:cards.Card[];
+
     eventStack:EventFunction[];
     hasGameEnded:boolean;
 
@@ -89,7 +93,8 @@ class Game extends base.BaseGame {
         this.turnCount = 0;
         this.players = players;
 
-        this.playArea = [];
+        this.inPlay = [];
+        this.setAside = [];
         this.eventStack = [];
         this.hasGameEnded = false;
         this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
@@ -177,6 +182,10 @@ class Game extends base.BaseGame {
             return;
         }
 
+        if (this.setAside.length > 0) {
+            throw new Error('Ending turn with uncleared set aside cards: ' + this.setAside.join(', '));
+        }
+
         this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
         this.activePlayer = this.players[this.activePlayerIndex];
         this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
@@ -217,13 +226,17 @@ class Game extends base.BaseGame {
 
         if (this.turnState.phase == base.TurnPhase.Action) {
             var playableActions = this.currentlyPlayableActions();
-            if (playableActions.length == 0) {
-                this.turnState.phase = base.TurnPhase.Buy;
-                this.stateUpdated();
-                this.advanceGameState();
-            } else {
-                this.activePlayer.promptForAction(this, playableActions);
-            }
+            var actionDecision = decisions.makePlayActionDecision(playableActions);
+            // TODO?: adapt to single card
+            this.activePlayer.promptForCardDecision(actionDecision, cs => {
+                if (cs.length > 0) {
+                    return this.playAction(cs[0]);
+                } else {
+                    this.turnState.phase = base.TurnPhase.Buy;
+                    this.stateUpdated();
+                    return Resolution.Advance;
+                }
+            });
         } else if (this.turnState.phase == base.TurnPhase.Buy) {
             var buyablePiles = this.currentlyBuyablePiles();
             if (buyablePiles.length == 0) {
@@ -231,11 +244,20 @@ class Game extends base.BaseGame {
                 this.stateUpdated();
                 this.advanceGameState();
             } else {
-                this.activePlayer.promptForBuy(this, buyablePiles, !this.turnState.cardBought);
+                var buyableCards = cards.cardsFromPiles(buyablePiles);
+                var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
+                // TODO?: adapt to single card
+                this.activePlayer.promptForCardDecision(buyDecision, cs => {
+                    if (cs.length > 0) {
+                        return this.buyCard(cs[0]);
+                    } else {
+                        return Resolution.Advance;
+                    }
+                });
             }
         } else if (this.turnState.phase == base.TurnPhase.Cleanup) {
-            this.activePlayer.discard = this.activePlayer.discard.concat(this.playArea);
-            this.playArea = [];
+            this.activePlayer.discard = this.activePlayer.discard.concat(this.inPlay);
+            this.inPlay = [];
 
             this.gameListener.playAreaEmptied();
 
@@ -331,11 +353,14 @@ class Game extends base.BaseGame {
                 return () => {
                     // TODO: handle multiple reveals
                     var reactions = cards.getReactions(p.hand);
-                    if (reactions.length > 0) {
-                        return p.promptForReaction(this, reactions);
-                    } else {
-                        return Resolution.Advance;
-                    }
+                    var decision = decisions.makeRevealCardDecision(reactions, card);
+                    return p.promptForCardDecision(decision, cs => {
+                        if (cs.length > 0) {
+
+                        } else {
+                            return Resolution.Advance;
+                        }
+                    });
                 }
             }));
         }
@@ -360,7 +385,7 @@ class Game extends base.BaseGame {
     }
 
     allBuyablePiles() : cards.Pile[] {
-        return this.kingdomPiles.filter(function(pile) {
+        return this.kingdomPiles.filter(pile => {
             return pile.count > 0;
         });
     }
@@ -431,7 +456,7 @@ class Game extends base.BaseGame {
         this.log(this.activePlayer, 'plays', card);
 
         this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
-        this.playArea.push(card);
+        this.inPlay.push(card);
 
         if (card.isSameCard(cards.Copper)) {
             this.turnState.coinCount += this.turnState.copperValue;
@@ -456,7 +481,7 @@ class Game extends base.BaseGame {
         return _.clone(pile.card);
     }
 
-    buyCard(card:cards.Card) {
+    buyCard(card:cards.Card) : Resolution {
         this.log(this.activePlayer.name, 'buys', card.name);
 
         var cost = this.effectiveCardCost(card);
@@ -482,7 +507,7 @@ class Game extends base.BaseGame {
         this.stateUpdated();
         this.gameListener.playerGainedCard(this.activePlayer, card, pile.count, base.GainDestination.Discard);
 
-        this.advanceGameState();
+        return Resolution.Advance;
     }
 
     playerGainsCard(player:Player, card:cards.Card, dest:base.GainDestination=base.GainDestination.Discard) {
@@ -507,17 +532,15 @@ class Game extends base.BaseGame {
         this.gameListener.playerGainedCard(player, card, pile.count, dest);
     }
 
-    playerGainsFromPiles(player:Player, piles:cards.Pile[],
-                         dest:base.GainDestination=base.GainDestination.Discard) : Resolution {
-        if (piles.length > 1) {
-            return player.promptForGain(this, piles);
-        } else if (piles.length === 1) {
-            this.playerGainsCard(player, piles[0].card, dest);
+    playerGainsFromPiles(player:Player, piles:cards.Pile[], trigger:cards.Card, dest:base.GainDestination) : Resolution {
+        var decision = decisions.makeGainDecision(player, cards.cardsFromPiles(piles), trigger, dest);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                this.playerGainsCard(player, cs[0], dest);
+            }
+
             return Resolution.Advance;
-        } else {
-            console.error(player.name, 'cannot gain from empty piles');
-            return Resolution.Advance;
-        }
+        });
     }
 
     playerGainsFromTrash(player:Player, card:cards.Card) {
@@ -533,19 +556,19 @@ class Game extends base.BaseGame {
         this.gameListener.playerPassedCard(sourcePlayer, targetPlayer, card);
     }
 
-    playAction(card:cards.Card) {
+    playAction(card:cards.Card) : Resolution {
         this.log(this.activePlayer.name, 'plays', card.name);
 
         this.turnState.playedActionCount++;
         this.turnState.actionCount--;
 
         this.activePlayer.hand = cards.removeFirstIdentical(this.activePlayer.hand, card);
-        this.playArea.push(card);
+        this.inPlay.push(card);
 
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
         this.stateUpdated();
-        this.advanceGameState();
+        return Resolution.Advance;
     }
 
     playClonedActionWithoutAdvance(card:cards.Card, playCount:number) {
@@ -610,9 +633,13 @@ class Game extends base.BaseGame {
         this.gameListener.addCardToTrash(card);
     }
 
+    isCardInPlay(card:cards.Card) : boolean {
+        return cards.containsIdentical(this.inPlay, card);
+    }
+
     trashCardFromPlay(player:Player, card:cards.Card) : boolean {
-        if (cards.containsIdentical(this.playArea, card)) {
-            this.playArea = cards.removeFirstIdentical(this.playArea, card);
+        if (cards.containsIdentical(this.inPlay, card)) {
+            this.inPlay = cards.removeFirstIdentical(this.inPlay, card);
             this.baseTrashCard(player, card);
             this.gameListener.trashCardFromPlay(card);
             return true;
@@ -693,6 +720,17 @@ class Game extends base.BaseGame {
         this.gameListener.playerDiscardedCards(player, cards);
     }
 
+    setAsideCard(player:Player, card:cards.Card) {
+        this.setAside.push(card);
+    }
+
+    // TODO: assert cleared by turn end
+    discardSetAsideCards(player:Player) {
+
+
+        this.setAside = [];
+    }
+
     discardCardsFromDeck(player:Player, num:number) : cards.Card[] {
         var discarded = player.discardCardsFromDeck(num);
 
@@ -735,9 +773,9 @@ class Game extends base.BaseGame {
         this.log(player.name, 'puts', cards, 'onto their deck');
     }
 
-    playActionMultipleTimes(card:cards.Card, num:number) {
+    playActionMultipleTimes(card:cards.Card, num:number) : Resolution {
         this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
-        this.playArea.push(card);
+        this.inPlay.push(card);
 
         var playEvents = _.times(num, (i) => {
             return () => {
@@ -748,6 +786,7 @@ class Game extends base.BaseGame {
 
         this.pushEvents(playEvents);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
+        return Resolution.Advance;
     }
 
     increaseCopperValueBy(num:number) {
@@ -791,7 +830,6 @@ class Game extends base.BaseGame {
 
         this.gameListener.gameEnded(fullDecks);
     }
-
 }
 
 export = Game;

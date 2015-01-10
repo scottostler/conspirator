@@ -19,14 +19,15 @@ class PlayerInterface implements decider.Decider {
         }
     }
 
-    // Must be set before any prompting
-    setPlayer(player:base.BasePlayer) {
-        this.player = player;
-    }
-
     // TODO: this method solves a circular dependency between this and the gameView :(
     setGameView(gameView:gameview.GameView) {
         this.gameView = gameView;
+    }
+
+
+    // Must be set before any prompting
+    setPlayer(player:base.BasePlayer) {
+        this.player = player;
     }
 
     // Prompting
@@ -63,9 +64,9 @@ class PlayerInterface implements decider.Decider {
         this.gameView.offerCardOrdering(this.player, cards, onOrder);
     }
 
-    promptForDecision(decision:decisions.Decision, onDecide:util.AnyCallback) {
+    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
         this.assertPlayer();
-        this.gameView.offerOptions(decision.title, decision.options, onDecide);
+        this.gameView.offerOptions('Make a decision', decision.options, onDecide);
     }
 
 };

@@ -13,3 +13,7 @@ export function getCardByName(cardName:string) : cards.Card {
     }
     return card;
 }
+
+export function getCardsByNames(cardNames:string[]) : cards.Card[] {
+    return _.map(cardNames, getCardByName);
+}

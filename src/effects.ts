@@ -1,10 +1,12 @@
 import _ = require('underscore');
-import util = require('./util');
+
+import base = require('./base');
+import cards = require('./cards');
+import cardlist = require('./sets/cardlist');
+import decisions = require('./decisions');
 import Game = require('./game');
 import Player = require('./player');
-import cards = require('./cards');
-import decisions = require('./decisions');
-import base = require('./base');
+import util = require('./util');
 
 import DiscardDestination = base.DiscardDestination;
 import GainDestination = base.GainDestination;
@@ -143,10 +145,24 @@ export class DrawEffect implements LabelledEffect {
         return '+' + this.numCards + ' ' + util.pluralize('card', this.numCards);
     }
 
-    process(game:Game, player:Player, card:cards.Card) : Resolution {
+    process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         game.drawCards(player, this.numCards);
         return Resolution.Advance;
     }
+}
+
+function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, numToDiscard:number) : Resolution {
+    if (numToDiscard < 0) {
+        throw new Error('Invalid numToDiscard: ' + numToDiscard);
+    }
+
+    var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, numToDiscard, numToDiscard, this.destination);
+    return player.promptForDecision(decision, cs => {
+        if (cs.length > 0) {
+            game.discardCards(player, cardlist.getCardsByNames(cs));
+        }
+        return Resolution.Advance;
+    });
 }
 
 export class DiscardEffect implements LabelledEffect {
@@ -165,13 +181,9 @@ export class DiscardEffect implements LabelledEffect {
         return 'Discard ' + this.numCards + ' ' + util.pluralize('card', this.numCards);
     }
 
-    process(game:Game, player:Player, card:cards.Card) : Resolution {
+    process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var numToDiscard = Math.min(this.numCards, player.hand.length);
-        if (numToDiscard > 0) {
-            return player.promptForDiscard(game, numToDiscard, numToDiscard, player.hand, this.destination);
-        } else {
-            return Resolution.Advance;
-        }
+        return promptPlayerForDiscard(game, trigger, player, numToDiscard);
     }
 }
 
@@ -186,13 +198,9 @@ export class DiscardToEffect implements Effect {
 
     getTarget() { return this.target; }
 
-    process(game:Game, player:Player, card:cards.Card) : Resolution {
+    process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var numToDiscard = Math.max(0, player.hand.length - this.targetNumCards);
-        if (numToDiscard > 0) {
-            return player.promptForDiscard(game, numToDiscard, numToDiscard, player.hand);
-        } else {
-            return Resolution.Advance;
-        }
+        return promptPlayerForDiscard(game, trigger, player, numToDiscard);
     }
 }
 
@@ -218,17 +226,16 @@ export class TrashEffect implements LabelledEffect {
             + util.pluralize('card', this.max);
     }
 
-    process(game:Game, player:Player, card:cards.Card) : Resolution {
+    process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var matchingCards = cards.filterByType(player.hand, this.cardType);
-        if (matchingCards.length < this.min) {
-            if (matchingCards.length > 0) {
-                game.trashCards(player, matchingCards);
+        var decision = decisions.makeTrashCardDecision(player, matchingCards, trigger, this.min, this.max);
+        return player.promptForDecision(decision, cs => {
+            if (cs.length > 0) {
+                game.trashCards(player, cardlist.getCardsByNames(cs));
             }
 
             return Resolution.Advance;
-        } else {
-            return player.promptForTrashing(game, this.min, this.max, matchingCards);
-        }
+        });
     }
 }
 
@@ -247,7 +254,7 @@ export class GainCardEffect implements LabelledEffect {
     getTarget() { return this.target; }
     getLabel() { return 'Gain ' + this.card.name; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var pile = game.pileForCard(this.card);
         if (pile.count > 0) {
             game.playerGainsCard(player, this.card, this.destination);
@@ -276,9 +283,9 @@ export class GainCardWithCostEffect implements Effect {
 
     getTarget() { return this.target; }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var piles = game.filterGainablePiles(this.minCost, this.maxCost, this.cardType);
-        return game.playerGainsFromPiles(player, piles, this.destination);
+        return game.playerGainsFromPiles(player, piles, trigger, this.destination);
     }
 }
 
@@ -307,17 +314,20 @@ export class TrashToGainPlusCostEffect implements Effect {
         this.costRestriction = costRestriction;
     }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var trashableCards = cards.filterByType(player.getHand(), this.cardType);
-        return player.promptForTrashing(game, 1, 1, trashableCards, (selectedCards) => {
-            if (selectedCards.length === 1) {
-                var maxCost = game.effectiveCardCost(selectedCards[0]) + this.plusCost;
-                var minCost = this.costRestriction === GainCostRestriction.UpToCost ? 0 : maxCost;
-                var piles = game.filterGainablePiles(minCost, maxCost, this.cardType);
-                return game.playerGainsFromPiles(player, piles, this.destination);
-            } else {
+        var decision = decisions.makeTrashCardDecision(player, trashableCards, trigger, 1, 1);
+        // TODO?: adapt to single card
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length === 0) {
                 return Resolution.Advance;
             }
+
+            var trashedCard = cs[0];
+            var maxCost = game.effectiveCardCost(trashedCard) + this.plusCost;
+            var minCost = this.costRestriction === GainCostRestriction.UpToCost ? 0 : maxCost;
+            var piles = game.filterGainablePiles(minCost, maxCost, this.cardType);
+            return game.playerGainsFromPiles(player, piles, trigger, this.destination);
         });
     }
 }
@@ -336,21 +346,17 @@ export class TrashForEffect implements Effect {
         this.n = n;
     }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        var hand = player.getHand();
-        if (hand.length > 0) {
-            return player.promptForTrashing(game, this.n, this.n, hand, (cards) => {
-                if (cards.length == this.n) {
-                    game.pushEvent(() => {
-                        return this.effect.process(game, player, card);
-                    });
-                }
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var decision = decisions.makeTrashCardDecision(player, player.hand, trigger, this.n, this.n);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length == this.n) {
+                game.pushEvent(() => {
+                    return this.effect.process(game, player, trigger);
+                });
+            }
 
-                return Resolution.Advance;
-            });
-        } else {
             return Resolution.Advance;
-        }
+        });
     }
 }
 
@@ -362,17 +368,16 @@ export class PlayActionManyTimesEffect implements Effect {
         this.num = num;
     }
 
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         var actions = cards.getActions(player.getHand());
-        if (actions.length > 0) {
-            // TODO: replace label with 'Play action'
-            return player.promptForHandSelection(game, 1, 1, actions, 'play', (actions) => {
-                game.playActionMultipleTimes(actions[0], this.num);
+        var decision = decisions.makePlayMultipliedActionDecision(actions, trigger, this.num);
+        return player.promptForDecision(decision, cs => {
+            if (cs.length > 0) {
+                return game.playActionMultipleTimes(cardlist.getCardByName(cs[0]), this.num);
+            } else {
                 return Resolution.Advance;
-            });
-        } else {
-            return Resolution.Advance;
-        }
+            }
+        });
     }
 }
 
@@ -390,22 +395,33 @@ export class EffectChoiceEffect implements Effect {
         this.numChoices = numChoices;
     }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        return player.promptForEffectChoice(game, card, this.effects, this.numChoices);
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var decision = decisions.makeEffectsDecision(this.effects, trigger, this.numChoices);
+        return player.promptForEffectDecision(decision, this.effects, es => {
+            if (es.length > 0) {
+                // TODO?: move into game class
+                var labels = _.map(es, e => e.getLabel());
+                game.log(player.name, 'chooses', labels.join(', '));
+                es.forEach(e => {
+                    game.pushEvent(() => {
+                        return e.process(game, player, trigger);
+                    });
+                });
+            }
+
+            return Resolution.Advance;
+        });
     }
 }
 
 export class DiscardForCoinsEffect implements Effect {
     getTarget() { return Target.ActivePlayer; }
 
-    process(game:Game, player:Player, card:cards.Card) {
-        if (player.hand.length === 0) {
-            return Resolution.Advance;
-        }
-
-        return player.promptForDiscard(game, 0, player.hand.length, player.hand, DiscardDestination.Discard, (cards) => {
-            if (cards.length > 0) {
-                game.incrementCoinCount(cards.length);
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                game.incrementCoinCount(cs.length);
             }
             return Resolution.Advance;
         });
@@ -418,12 +434,12 @@ export enum ReactionTrigger {
 
 export interface ReactionEffect {
     getTrigger() : ReactionTrigger;
-    process(game:Game, player:Player, card:cards.Card) : Resolution;
+    process(game:Game, player:Player, trigger:cards.Card) : Resolution;
 }
 
 export class MoatReaction implements ReactionEffect {
     getTrigger() { return ReactionTrigger.OnAttack; }
-    process(game:Game, player:Player, card:cards.Card) {
+    process(game:Game, player:Player, trigger:cards.Card) {
         game.givePlayerAttackImmunity(player);
         return Resolution.Advance;
     }
@@ -431,8 +447,14 @@ export class MoatReaction implements ReactionEffect {
 
 // Callback Types
 
+// TODO?: replace with generics
+
 export interface DecisionCallback {
     (choice:any) : Resolution;
+}
+
+export interface BooleanCallback {
+    (choice:boolean) : Resolution;
 }
 
 export interface CardCallback {
@@ -443,10 +465,14 @@ export interface CardsCallback {
     (cards:cards.Card[]) : Resolution;
 }
 
-export interface LabelledEffectCallback {
-    (effect:LabelledEffect) : Resolution;
+export interface LabelledEffectsCallback {
+    (effect:LabelledEffect[]) : Resolution;
 }
 
 export interface PurchaseCallback {
     (card:cards.Card, treasures:cards.Card[]) : Resolution;
+}
+
+export interface StringsCallback {
+    (xs:string[]) : Resolution;
 }

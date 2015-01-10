@@ -207,6 +207,10 @@ export function getBasicTreasures(cards:Card[]) : Card[] {
     });
 }
 
+export function getNames(cards:Card[]) : string[] {
+    return _.pluck(cards, 'name');
+}
+
 export function contains(cards:Card[], card:Card) {
     return _.some<Card>(cards, makeIsCardPredicate(card));
 }
@@ -306,6 +310,10 @@ export class Pile {
         this.card = card;
         this.count = count;
     }
+}
+
+export function cardsFromPiles(piles:Pile[]) : Card[] {
+    return _.pluck(piles, 'card');
 }
 
 export interface CardSearchResult {
