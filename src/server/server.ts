@@ -10,6 +10,8 @@ import serialization = require('./serialization');
 declare function require(name:string):any;
 declare var process:any;
 
+// TODO: wrap server startup code in a function
+
 var crypto = require('crypto');
 var http = require('http');
 var express = require('express');

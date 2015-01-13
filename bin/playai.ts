@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import Player = require('../player');
 import cards = require('../cards')
 import base = require('../base');

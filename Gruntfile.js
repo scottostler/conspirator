@@ -29,7 +29,7 @@ module.exports = function (grunt) {
                     module: 'commonjs',
                     sourceMap: false
                 },
-                src: ["src/**/*.ts", "test/**/*.ts"],
+                src: ["src/**/*.ts", "test/**/*.ts", "!src/ui/*.ts", "!src/server/*.ts"],
                 html: ['src/html/*.tpl.html'],
                 outDir: 'build_test',
             }

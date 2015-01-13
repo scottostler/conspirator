@@ -2,7 +2,26 @@
 <head>
     <title>Conspirator</title>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="assets/lib/require.js" data-main="build/config.js" type="text/javascript"></script>
+    <script src="assets/lib/require.js" data-main="build/ui/main.js" type="text/javascript"></script>
+    <script>
+        requirejs.config({
+        paths: {
+            'underscore': '../../assets/lib/underscore-min',
+            'jquery': '../../assets/lib/jquery-2.0.3.min',
+            'jquery.transit': '../../assets/lib/jquery.transit-0.9.9.min',
+            'bootstrap': '../../assets/bootstrap/bootstrap.min'
+        },
+        shim: {
+            'underscore': {
+                exports: '_'
+            },
+            'jquery.transit': ['jquery'],
+            'bootstrap': ['jquery'],
+        }
+    });
+
+    requirejs(['jquery.transit', 'bootstrap', 'main']);
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/bootstrap/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen">
     <link href="assets/game.css" rel="stylesheet" type="text/css">

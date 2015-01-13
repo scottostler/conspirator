@@ -1,18 +1,18 @@
-/// <reference path="../typings/jquery/jquery.d.ts" />
-/// <reference path="../typings/underscore/underscore.d.ts" />
+/// <reference path="../../typings/jquery/jquery.d.ts" />
+/// <reference path="../../typings/underscore/underscore.d.ts" />
 
 import _ = require('underscore');
 import $ = require('jquery');
 
-import util = require('./util');
-import Game = require('./game');
-import Player = require('./player');
-import ai = require('ai/aidecider');
-import remotegame = require('server/remotegame');
+import util = require('../util');
+import Game = require('../game');
+import Player = require('../player');
+import ai = require('../ai/aidecider');
+import remotegame = require('../server/remotegame');
 
-import PlayerInterface = require('ui/playerinterface');
-import gameview = require('ui/gameview');
-import ChatView = require('ui/chatview');
+import PlayerInterface = require('./playerinterface');
+import gameview = require('./gameview');
+import ChatView = require('./chatview');
 
 window.conspirator = {};
 

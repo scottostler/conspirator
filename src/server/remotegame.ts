@@ -7,8 +7,6 @@ import decider = require('../decider');
 import decisions = require('../decisions');
 import Player = require('../player');
 import serialization = require('./serialization');
-import PlayerInterface = require('ui/playerinterface');
-
 
 // RemoteGame acts as a local proxy for a server-hosted game.
 export class RemoteGame extends base.BaseGame {
