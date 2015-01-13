@@ -289,7 +289,7 @@ export class GameView extends View implements base.BaseGameListener {
         this.offerHandSelection(player, minCards, maxCards, autoConfirm, selectableCards, onSelect);
     }
 
-    offerOptions(title:string, options:string[], onDecide:util.AnyCallback) {
+    offerOptions(title:string, options:any[], onDecide:util.AnyCallback) {
         if (options.length < 1) {
             console.log('Invalid generic choice args', title, options);
         }

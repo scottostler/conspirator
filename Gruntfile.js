@@ -1,6 +1,9 @@
 module.exports = function (grunt) {
     "use strict";
 
+    grunt.loadNpmTasks("grunt-ts");
+    grunt.loadNpmTasks('grunt-mocha-test');
+
     grunt.initConfig({
         ts: {
             options: {
@@ -19,10 +22,28 @@ module.exports = function (grunt) {
                 html: ['src/html/*.tpl.html'],
                 outDir: 'build',
                 watch: 'src',
+            },
+
+            test: {
+                options: {
+                    module: 'commonjs',
+                },
+                src: ["src/**/*.ts", "test/**/*.ts"],
+                html: ['src/html/*.tpl.html'],
+                outDir: 'build_test',
             }
         },
+
+        mochaTest: {
+            test: {
+                options: {
+                },
+                src: ['build_test/**/*.js']
+            },
+        }
+
     });
 
-    grunt.loadNpmTasks("grunt-ts");
     grunt.registerTask("default", ["ts:build"]);
+    grunt.registerTask("test", ["ts:test", 'mochaTest:test']);
 };

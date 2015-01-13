@@ -2,7 +2,9 @@
 node_modules/
 bundle.js
 .idea
+.tscache/
 build/
+build_test/
 typings/
 tmp/
 
