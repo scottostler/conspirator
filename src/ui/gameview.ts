@@ -289,7 +289,7 @@ export class GameView extends View implements base.BaseGameListener {
         this.offerHandSelection(player, minCards, maxCards, autoConfirm, selectableCards, onSelect);
     }
 
-    offerOptions(title:string, options:any[], onDecide:util.AnyCallback) {
+    offerOptions(title:string, options:string[], onDecide:util.AnyCallback) {
         if (options.length < 1) {
             console.log('Invalid generic choice args', title, options);
         }
@@ -301,8 +301,7 @@ export class GameView extends View implements base.BaseGameListener {
         $footer.empty();
 
         _.each(options, option => {
-            var label = option['getLabel'] ? option.getLabel() : option.toString();
-            var $button = $('<button>').addClass('btn btn-primary').text(label).click(function() {
+            var $button = $('<button>').addClass('btn btn-primary').text(option).click(function() {
                 (<any>$modal).modal('hide');
                 onDecide(option);
             });
