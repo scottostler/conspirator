@@ -27,6 +27,7 @@ module.exports = function (grunt) {
             test: {
                 options: {
                     module: 'commonjs',
+                    sourceMap: false
                 },
                 src: ["src/**/*.ts", "test/**/*.ts"],
                 html: ['src/html/*.tpl.html'],

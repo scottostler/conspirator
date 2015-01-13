@@ -3,8 +3,10 @@ import cards = require('../cards')
 import baseset = require('./baseset');
 import intrigue = require('./intrigue');
 
-export var AllCards:cards.Card[] = baseset.Cardlist.concat(
-    intrigue.Cardlist);
+export var AllKingdomCards:cards.Card[] = [].concat(
+    baseset.Cardlist, intrigue.Cardlist);
+
+export var AllCards:cards.Card[] = AllKingdomCards.concat(cards.BaseCards);
 
 export function getCardByName(cardName:string) : cards.Card {
     var card = _.find<cards.Card>(AllCards, c => c.name === cardName);

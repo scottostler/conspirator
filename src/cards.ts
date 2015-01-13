@@ -312,6 +312,8 @@ export class Pile {
     }
 }
 
+export var BaseCards = [Copper, Silver, Gold, Estate, Duchy, Province, Curse];
+
 export function cardsFromPiles(piles:Pile[]) : Card[] {
     return _.pluck(piles, 'card');
 }

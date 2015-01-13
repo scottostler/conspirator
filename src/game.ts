@@ -25,7 +25,7 @@ var randomizedKingdomCards = function(forcedCards:cards.Card[], numCards:number)
         return forcedCards;
     }
 
-    var randomOptions = _.difference<cards.Card>(cardlist.AllCards, forcedCards);
+    var randomOptions = _.difference<cards.Card>(cardlist.AllKingdomCards, forcedCards);
     var randomCards = _.sample<cards.Card>(randomOptions, numCards - forcedCards.length);
     return forcedCards.concat(randomCards);
 };
