@@ -12,6 +12,7 @@ import util = require('../src/util');
 import expect = chai.expect;
 
 import BasePlayer = base.BasePlayer;
+import DecisionType = decisions.DecisionType;
 import GainDestination = base.GainDestination;
 import GameState = base.GameState;
 
@@ -47,53 +48,58 @@ export class TestingDecider implements decider.Decider {
     setPlayer(player:base.BasePlayer) {}
 
     promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
-        if (this.pendingDecision) {
-            throw new Error('TestingDecider already has pending decision');
-        }
-
+        expect(this.pendingDecision).to.not.exist;
         this.pendingCallback = onDecide;
         this.pendingDecision = decision;
     }
 
-    playAction(card:cards.Card) {
-        expect(this.pendingDecision).not.to.be.null;
-        expect(this.pendingDecision.decisionType).to.eql(decisions.DecisionType.PlayAction);
+    makeCardsDecision(d:DecisionType, cs:cards.Card[]) {
+        expect(this.pendingDecision).to.exist;
+        expect(this.pendingDecision.decisionType).to.eql(d);
 
         var callback = this.pendingCallback;
         this.pendingCallback = null;
         this.pendingDecision = null;
-        callback([card.name]);
+        callback(cards.getNames(cs));
+    }
+
+
+    makeCardDecision(d:DecisionType, card:cards.Card) {
+        this.makeCardsDecision(d, card !== null ? [card] : []);
+    }
+
+    playAction(card:cards.Card) {
+        this.makeCardDecision(DecisionType.PlayAction, card);
     }
 
     canGain(cs:cards.Card[]) {
         expect(this.pendingDecision).not.to.be.null;
-        expect(this.pendingDecision.decisionType).to.eql(decisions.DecisionType.GainCard);
+        expect(this.pendingDecision.decisionType).to.eql(DecisionType.GainCard);
         expectEqualCardNames(this.pendingDecision.options, cs);
     }
 
     gainCard(card:cards.Card) {
-        expect(this.pendingDecision).not.to.be.null;
-        expect(this.pendingDecision.decisionType).to.eql(decisions.DecisionType.GainCard);
+        this.makeCardDecision(DecisionType.GainCard, card);
+    }
 
-        var callback = this.pendingCallback;
-        this.pendingCallback = null;
-        this.pendingDecision = null;
-        callback([card.name]);
+    discardCards(cs:cards.Card[]) {
+        this.makeCardsDecision(DecisionType.DiscardCard, cs);
     }
 }
 
 export function setupTwoPlayerGame(kingdomCards:cards.Card[], decider1:TestingDecider, decider2:TestingDecider, hand1:cards.Card[]=null, hand2:cards.Card[]=null) : Game {
     var player1 = new Player('Player 1', decider1);
-    if (hand1 !== null) {
-        player1.hand = hand1;
-    }
-
     var player2 = new Player('Player 2', decider2);
-    if (hand2 !== null) {
-        player2.hand = hand2;
-    }
-
     var game = new Game([player1, player2], kingdomCards);
     game.gameListener = new TestingGameListener();
+
+    if (hand1 !== null) {
+        player1.hand = hand1.concat();
+    }
+
+    if (hand2 !== null) {
+        player2.hand = hand2.concat();
+    }
+
     return game;
 }

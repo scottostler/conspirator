@@ -192,6 +192,9 @@ class Player extends base.BasePlayer {
         if (decision.options.length <= decision.minSelections) {
             onDecide(decision.options);
             return effects.Resolution.Advance;
+        } else if (decision.maxSelections === 0) {
+            onDecide([]);
+            return effects.Resolution.Advance;
         }
 
         this.decider.promptForDecision(decision, xs => {

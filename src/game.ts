@@ -123,7 +123,10 @@ class Game extends base.BaseGame {
 
     drawInitialHands() {
         _.each(this.players, player => {
-            this.drawCards(player, HandSize);
+            // May already be populated in tests or other artificial scenarios
+            if (player.hand.length === 0) {
+                this.drawCards(player, HandSize);
+            }
         });
     }
 
