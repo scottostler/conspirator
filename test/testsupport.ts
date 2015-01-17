@@ -53,9 +53,14 @@ export class TestingDecider implements decider.Decider {
         this.pendingDecision = decision;
     }
 
+    hasSelectionCounts(minSelections:number, maxSelections:number) {
+        expect(this.pendingDecision.minSelections).to.eql(minSelections);
+        expect(this.pendingDecision.maxSelections).to.eql(maxSelections);
+    }
+
     makeCardsDecision(d:DecisionType, cs:cards.Card[]) {
         expect(this.pendingDecision).to.exist;
-        expect(this.pendingDecision.decisionType).to.eql(d);
+        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[d]);
 
         var callback = this.pendingCallback;
         this.pendingCallback = null;
@@ -72,6 +77,10 @@ export class TestingDecider implements decider.Decider {
         this.makeCardDecision(DecisionType.PlayAction, card);
     }
 
+    playTreasures(cs:cards.Card[]) {
+        this.makeCardsDecision(DecisionType.PlayTreasure, cs);
+    }
+
     canGain(cs:cards.Card[]) {
         expect(this.pendingDecision).not.to.be.null;
         expect(this.pendingDecision.decisionType).to.eql(DecisionType.GainCard);
@@ -85,6 +94,14 @@ export class TestingDecider implements decider.Decider {
     discardCards(cs:cards.Card[]) {
         this.makeCardsDecision(DecisionType.DiscardCard, cs);
     }
+
+    trashCard(c:cards.Card) {
+        this.makeCardDecision(DecisionType.TrashCard, c);
+    }
+
+    trashCards(cs:cards.Card[]) {
+        this.makeCardsDecision(DecisionType.TrashCard, cs);
+    }
 }
 
 export function setupTwoPlayerGame(kingdomCards:cards.Card[], decider1:TestingDecider, decider2:TestingDecider, hand1:cards.Card[]=null, hand2:cards.Card[]=null) : Game {
@@ -94,11 +111,11 @@ export function setupTwoPlayerGame(kingdomCards:cards.Card[], decider1:TestingDe
     game.gameListener = new TestingGameListener();
 
     if (hand1 !== null) {
-        player1.hand = hand1.concat();
+        player1.hand = cards.clone(hand1);
     }
 
     if (hand2 !== null) {
-        player2.hand = hand2.concat();
+        player2.hand = cards.clone(hand2);
     }
 
     return game;

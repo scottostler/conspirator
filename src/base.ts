@@ -3,7 +3,8 @@ import TurnState = require('./turnstate');
 
 export enum TurnPhase {
     Action,
-    Buy,
+    BuyPlayTreasure,
+    BuyPurchaseCard,
     Cleanup
 }
 

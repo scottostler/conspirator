@@ -104,6 +104,16 @@ export function makePlayMultipliedActionDecision(cs:Card[], trigger:Card, playCo
     };
 }
 
+export function makePlayTreasureDecision(player:Player, cs:Card[]) : PlayTreasureDecision {
+    return {
+        decisionType:DecisionType.PlayTreasure,
+        trigger:'Buy Phase',
+        minSelections:0,
+        maxSelections:cs.length,
+        options:cards.getNames(cs),
+    };
+}
+
 export function makeBuyDecision(player:Player, cs:Card[]) : GainCardDecision {
     return {
         decisionType:DecisionType.GainCard,

@@ -205,8 +205,6 @@ class Game extends base.BaseGame {
 
         this.log(this.activePlayer + ' begins turn ' + this.turnCount);
         this.stateUpdated();
-
-        return false;
     }
 
     handleActionPhase() {
@@ -217,7 +215,7 @@ class Game extends base.BaseGame {
             if (cs.length > 0) {
                 return this.playAction(cs[0]);
             } else {
-                this.turnState.phase = base.TurnPhase.Buy;
+                this.turnState.phase = base.TurnPhase.BuyPlayTreasure;
                 this.stateUpdated();
                 return Resolution.Advance;
             }
@@ -225,26 +223,38 @@ class Game extends base.BaseGame {
         this.checkEffectResolution(resolution);
     }
 
-    handleBuyPhase() {
-        var buyablePiles = this.currentlyBuyablePiles();
-        if (buyablePiles.length == 0) {
-            this.turnState.phase = base.TurnPhase.Cleanup;
+    handleBuyPlayTresaurePhase() {
+        var treasures = cards.getTreasures(this.activePlayer.hand);
+        var decision = decisions.makePlayTreasureDecision(this.activePlayer, treasures);
+        var resolution = this.activePlayer.promptForCardDecision(decision, cs => {
+            // TODO: this won't work for effectful Treasures like Horn of Plenty
+            if (cs.length > 0) {
+                cs.forEach(c => {
+                    this.playTreasure(c);
+                });
+            }
+
+            this.turnState.phase = base.TurnPhase.BuyPurchaseCard;
             this.stateUpdated();
-            this.advanceGameState();
-        } else {
-            // TODO: split out treasure and buy choices
-            var buyableCards = cards.cardsFromPiles(buyablePiles);
-            var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
-            // TODO?: adapt to single card
-            var resolution = this.activePlayer.promptForCardDecision(buyDecision, cs => {
-                if (cs.length > 0) {
-                    return this.buyCard(cs[0]);
-                } else {
-                    return Resolution.Advance;
-                }
-            });
-            this.checkEffectResolution(resolution);
-        }
+            return Resolution.Advance;
+        });
+        this.checkEffectResolution(resolution);
+    }
+
+    handleBuyGainCardPhase() {
+        var buyableCards = cards.cardsFromPiles(this.currentlyBuyablePiles());
+        var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
+        // TODO?: adapt to single card
+        var resolution = this.activePlayer.promptForCardDecision(buyDecision, cs => {
+            if (cs.length > 0) {
+                return this.buyCard(cs[0]);
+            } else {
+                this.turnState.phase = base.TurnPhase.Cleanup;
+                this.stateUpdated();
+                return Resolution.Advance;
+            }
+        });
+        this.checkEffectResolution(resolution);
     }
 
     handleCleanupPhase() {
@@ -255,6 +265,7 @@ class Game extends base.BaseGame {
 
         this.discardHand(this.activePlayer);
         this.drawCards(this.activePlayer, HandSize);
+
         this.advanceTurn();
 
         if (this.hasGameEnded) {
@@ -276,14 +287,19 @@ class Game extends base.BaseGame {
             return;
         }
 
-        if (this.turnState.phase == base.TurnPhase.Action) {
-            this.handleActionPhase();
-        } else if (this.turnState.phase == base.TurnPhase.Buy) {
-            this.handleBuyPhase();
-        } else if (this.turnState.phase == base.TurnPhase.Cleanup) {
-            this.handleCleanupPhase();
-        } else {
-            throw new Error('Illegal turn phase: ' + this.turnState.phase);
+        switch (this.turnState.phase) {
+            case base.TurnPhase.Action:
+                this.handleActionPhase();
+                return;
+            case base.TurnPhase.BuyPlayTreasure:
+                this.handleBuyPlayTresaurePhase();
+                return;
+            case base.TurnPhase.BuyPurchaseCard:
+                this.handleBuyGainCardPhase();
+                return;
+            case base.TurnPhase.Cleanup:
+                this.handleCleanupPhase();
+                return;
         }
     }
 
@@ -563,7 +579,7 @@ class Game extends base.BaseGame {
         this.turnState.playedActionCount++;
         this.turnState.actionCount--;
 
-        this.activePlayer.hand = cards.removeFirstIdentical(this.activePlayer.hand, card);
+        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
         this.inPlay.push(card);
 
         this.pushEventsForActionEffects(card);
@@ -595,11 +611,11 @@ class Game extends base.BaseGame {
     discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
         var ontoDeck = destination === base.DiscardDestination.Deck;
         _.each(cs, card => {
-            if (!cards.containsIdentical(player.hand, card)) {
+            if (!cards.contains(player.hand, card)) {
                 console.error('Player unable to discard', player, card);
                 return;
             }
-            player.hand = cards.removeFirstIdentical(player.hand, card);
+            player.hand = cards.removeFirst(player.hand, card);
             if (ontoDeck) {
                 player.deck.push(card);
             } else {
@@ -636,12 +652,12 @@ class Game extends base.BaseGame {
     }
 
     isCardInPlay(card:cards.Card) : boolean {
-        return cards.containsIdentical(this.inPlay, card);
+        return cards.contains(this.inPlay, card);
     }
 
     trashCardFromPlay(player:Player, card:cards.Card) : boolean {
-        if (cards.containsIdentical(this.inPlay, card)) {
-            this.inPlay = cards.removeFirstIdentical(this.inPlay, card);
+        if (cards.contains(this.inPlay, card)) {
+            this.inPlay = cards.removeFirst(this.inPlay, card);
             this.baseTrashCard(player, card);
             this.gameListener.trashCardFromPlay(card);
             return true;

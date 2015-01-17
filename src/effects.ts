@@ -347,7 +347,8 @@ export class TrashForEffect implements Effect {
     }
 
     process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeTrashCardDecision(player, player.hand, trigger, this.n, this.n);
+        var trashableCards = cards.filter(player.hand, this.cardPredicate);
+        var decision = decisions.makeTrashCardDecision(player, trashableCards, trigger, this.n, this.n);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length == this.n) {
                 game.pushEvent(() => {

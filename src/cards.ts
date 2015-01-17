@@ -161,6 +161,10 @@ export function difference(first:Card[], second:Card[]) : Card[] {
     return _.difference<Card>(first, second);
 }
 
+export function clone(cards:Card[]) : Card[] {
+    return _.map(cards, c => _.clone(c));
+}
+
 export function matchNone(cardType:Type) : CardsPredicate {
     return function(cards:Card[]) {
         return !_.some(cards, function(c:Card) {
