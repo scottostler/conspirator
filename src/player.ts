@@ -147,8 +147,8 @@ class Player extends base.BasePlayer {
     }
 
     putDeckIntoDiscard() {
-        this.deck = [];
         this.discard = this.discard.concat(this.deck);
+        this.deck = [];
         this.game.log(this, 'puts deck into discard');
     }
 

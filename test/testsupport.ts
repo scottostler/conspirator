@@ -58,6 +58,17 @@ export class TestingDecider implements decider.Decider {
         expect(this.pendingDecision.maxSelections).to.eql(maxSelections);
     }
 
+    makeDiscardDeckDecision(result:boolean) {
+        expect(this.pendingDecision).to.exist;
+        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[DecisionType.DiscardDeck]);
+
+        var callback = this.pendingCallback;
+        this.pendingCallback = null;
+        this.pendingDecision = null;
+        callback([result ? decisions.Yes : decisions.No]);
+    }
+
+
     makeCardsDecision(d:DecisionType, cs:cards.Card[]) {
         expect(this.pendingDecision).to.exist;
         expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[d]);
@@ -67,7 +78,6 @@ export class TestingDecider implements decider.Decider {
         this.pendingDecision = null;
         callback(cards.getNames(cs));
     }
-
 
     makeCardDecision(d:DecisionType, card:cards.Card) {
         this.makeCardsDecision(d, card !== null ? [card] : []);
