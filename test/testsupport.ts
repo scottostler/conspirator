@@ -5,6 +5,7 @@ import base = require('../src/base');
 import cards = require('../src/cards');
 import decider = require('../src/decider');
 import decisions = require('../src/decisions');
+import scoring = require('../src/scoring');
 import Game = require('../src/game');
 import Player = require('../src/player');
 import util = require('../src/util');
@@ -18,6 +19,15 @@ import GameState = base.GameState;
 
 function expectEqualCardNames(a:string[], b:cards.Card[]) {
     expect(a.concat().sort()).to.eql(cards.getNames(b).concat().sort());
+}
+
+export function expectDeckScore(cs:cards.Card[], score:number) {
+    expect(scoring.calculateScore(cs)).to.eql(score);
+}
+
+export function expectTopDeckCard(player:Player, c:cards.Card) {
+    expect(player.deck).to.have.length.of.at.least(1);
+    expect(_.last(player.deck)).to.equal(c);
 }
 
 export class TestingGameListener implements base.BaseGameListener {
@@ -103,6 +113,10 @@ export class TestingDecider implements decider.Decider {
 
     discardCards(cs:cards.Card[]) {
         this.makeCardsDecision(DecisionType.DiscardCard, cs);
+    }
+
+    discardCard(c:cards.Card) {
+        this.makeCardDecision(DecisionType.DiscardCard, c);
     }
 
     trashCard(c:cards.Card) {

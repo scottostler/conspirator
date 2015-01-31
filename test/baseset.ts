@@ -6,16 +6,55 @@ import chai = require('chai');
 
 import baseset = require('../src/sets/baseset');
 import cards = require('../src/cards');
-import scoring = require('../src/scoring');
 import testsupport = require('./testsupport');
 import util = require('../src/util');
 
 import expect = chai.expect;
+import expectDeckScore = testsupport.expectDeckScore;
+import expectTopDeckCard = testsupport.expectTopDeckCard;
 
 var copperHand = util.duplicate(cards.Copper, 5);
+var copperEstateHand = util.duplicate(cards.Copper, 3).concat(util.duplicate(cards.Estate, 2));
 var threeCopperHand = util.duplicate(cards.Copper, 3);
 
-// TODO: Adventurer, Bureaucrat
+describe('Adventurer', () => {
+    it('should draw two treasures', (done) => {
+        var kingdomCards = [
+            baseset.Adventurer, baseset.Festival, baseset.Gardens, baseset.Market,
+            baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
+            baseset.Moneylender, baseset.Militia];
+
+        var adventurerHand = [baseset.Adventurer, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, adventurerHand, copperHand);
+        game.start();
+        decider1.playAction(baseset.Adventurer);
+        decider1.playTreasures([cards.Copper, cards.Copper]);
+        done();
+    });
+});
+
+describe('Bureaucrat', () => {
+    it('should gain silver and attack opponent', (done) => {
+        var kingdomCards = [
+            baseset.Bureaucrat, baseset.Festival, baseset.Gardens, baseset.Market,
+            baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
+            baseset.Moneylender, baseset.Militia];
+
+        var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, bureaucratHand, copperEstateHand);
+        game.start();
+
+        decider1.playAction(baseset.Bureaucrat);
+        decider2.discardCard(cards.Estate);
+        expect(game.players[1].hand).to.have.length(4);
+        expectTopDeckCard(game.players[1], cards.Estate);
+        done();
+    });
+});
 
 describe('Cellar', () => {
     it('should allow discard for draw', (done) => {
@@ -24,7 +63,7 @@ describe('Cellar', () => {
             baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
             baseset.Moneylender, baseset.Militia];
 
-        var cellarHand = [baseset.Cellar, cards.Estate, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
+        var cellarHand = [baseset.Cellar, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, cellarHand, copperHand);
@@ -32,7 +71,7 @@ describe('Cellar', () => {
 
         decider1.playAction(baseset.Cellar);
         decider1.discardCards([cards.Estate, cards.Estate, cards.Estate, cards.Estate]);
-        expect(game.players[0].hand).to.have.length(5);
+        expect(game.players[0].hand).to.have.length(4);
         expect(game.turnState.actionCount).to.eql(1);
         done();
     });
@@ -168,10 +207,6 @@ describe('Festival', () => {
         done();
     });
 });
-
-function expectDeckScore(cs:cards.Card[], score:number) {
-    expect(scoring.calculateScore(cs)).to.eql(score);
-}
 
 describe('Gardens', () => {
     it('should give 1 VP per 10 cards', (done) => {
@@ -408,7 +443,25 @@ describe('Village', () => {
     });
 });
 
-// Witch
+describe('Witch', () => {
+    var witchHand = [baseset.Witch].concat(util.duplicate(cards.Copper, 4));
+    it('should curse opponent and give +2 cards', (done) => {
+        var kingdomCards = [
+            baseset.Feast, baseset.Festival, baseset.Gardens, baseset.Market,
+            baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
+            baseset.Smithy, baseset.Witch];
+
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, witchHand, copperHand);
+        game.start();
+
+        decider1.playAction(baseset.Witch);
+        expect(game.activePlayer.hand).to.have.length(6);
+        expectDeckScore(game.players[1].getFullDeck(), 2);
+        done();
+    });
+});
 
 describe('Woodcutter', () => {
     it('should let player buy twice', (done) => {
