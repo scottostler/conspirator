@@ -47,6 +47,7 @@ export interface BaseGameListener {
     playerTrashedCards(player:BasePlayer, cards:cards.Card[]):void;
     playerTrashedCardFromDeck(player:BasePlayer, card:cards.Card):void;
     playerDrewAndDiscardedCards(player:BasePlayer, drawn:cards.Card[], discard:cards.Card[]):void;
+    playerRevealedCards(player:BasePlayer, cards:cards.Card[]):void;
     trashCardFromPlay(card:cards.Card):void;
     addCardToTrash(card:cards.Card):void;
     gameEnded(decks:cards.Card[][]):void;

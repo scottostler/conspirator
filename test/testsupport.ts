@@ -21,6 +21,10 @@ function expectEqualCardNames(a:string[], b:cards.Card[]) {
     expect(a.concat().sort()).to.eql(cards.getNames(b).concat().sort());
 }
 
+function expectEqualCards(a:cards.Card[], b:cards.Card[]) {
+    expectEqualCardNames(cards.getNames(a), b);
+}
+
 export function expectDeckScore(cs:cards.Card[], score:number) {
     expect(scoring.calculateScore(cs)).to.eql(score);
 }
@@ -31,6 +35,8 @@ export function expectTopDeckCard(player:Player, c:cards.Card) {
 }
 
 export class TestingGameListener implements base.BaseGameListener {
+    revealedCards:cards.Card[];
+
     log(msg:string) {}
     stateUpdated(state:GameState) {}
     playAreaEmptied() {}
@@ -45,9 +51,19 @@ export class TestingGameListener implements base.BaseGameListener {
     playerTrashedCards(player:BasePlayer, cards:cards.Card[]) {}
     playerTrashedCardFromDeck(player:BasePlayer, card:cards.Card) {}
     playerDrewAndDiscardedCards(player:BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {}
+    playerRevealedCards(player:BasePlayer, cards:cards.Card[]) {
+        this.revealedCards = cards;
+    }
     trashCardFromPlay(card:cards.Card) {}
     addCardToTrash(card:cards.Card) {}
     gameEnded(decks:cards.Card[][]) {}
+}
+
+export function expectRevealedCards(game:Game, cs:cards.Card[]) {
+    var revealed = (<TestingGameListener>game.gameListener).revealedCards;
+    expect(revealed).to.be.not.null;
+    expectEqualCards(revealed, cs);
+    (<TestingGameListener>game.gameListener).revealedCards = null;
 }
 
 export class TestingDecider implements decider.Decider {

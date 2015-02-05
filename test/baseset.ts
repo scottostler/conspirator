@@ -11,6 +11,7 @@ import util = require('../src/util');
 
 import expect = chai.expect;
 import expectDeckScore = testsupport.expectDeckScore;
+import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 
 var copperHand = util.duplicate(cards.Copper, 5);
@@ -36,7 +37,7 @@ describe('Adventurer', () => {
 });
 
 describe('Bureaucrat', () => {
-    it('should gain silver and attack opponent', (done) => {
+    it('should gain silver and make opponent discard', (done) => {
         var kingdomCards = [
             baseset.Bureaucrat, baseset.Festival, baseset.Gardens, baseset.Market,
             baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
@@ -52,6 +53,24 @@ describe('Bureaucrat', () => {
         decider2.discardCard(cards.Estate);
         expect(game.players[1].hand).to.have.length(4);
         expectTopDeckCard(game.players[1], cards.Estate);
+        done();
+    });
+
+    it('should make opponent w/o victory cards reveal their hand', (done) => {
+        var kingdomCards = [
+            baseset.Bureaucrat, baseset.Festival, baseset.Gardens, baseset.Market,
+            baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moat,
+            baseset.Moneylender, baseset.Militia];
+
+        var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, bureaucratHand, copperHand);
+        game.start();
+
+        decider1.playAction(baseset.Bureaucrat);
+        expect(game.players[1].hand).to.have.length(5);
+        expectRevealedCards(game, copperHand);
         done();
     });
 });
@@ -260,7 +279,7 @@ describe('Market', () => {
 
         expect(game.activePlayer.hand).to.have.length(5);
         decider1.playAction(baseset.Market);
-        expect(game.isCardInPlay(market)).to.be.true;
+        expect(game.isExactCardInPlay(market)).to.be.true;
         expect(game.turnState.actionCount).to.eql(1)
         expect(game.turnState.buyCount).to.eql(2);
         expect(game.turnState.coinCount).to.eql(1);

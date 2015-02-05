@@ -311,12 +311,16 @@ class Game extends base.BaseGame {
         }
     }
 
+    revealPlayerCards(player:Player, cs:cards.Card[]) {
+        this.gameListener.playerRevealedCards(player, cs);
+    }
+
     revealPlayerHand(player:Player) {
-        this.log(player, 'reveals hand:', player.hand);
+        this.revealPlayerCards(player, player.hand);
     }
 
     playerRevealsReaction(player:Player, card:cards.Card) {
-        this.log(player.name, 'reveals', card.name);
+        this.revealPlayerCards(player, [card]);
         this.pushEventForOtherEffect(card, card.reaction, player);
     }
 
@@ -651,7 +655,8 @@ class Game extends base.BaseGame {
         this.gameListener.addCardToTrash(card);
     }
 
-    isCardInPlay(card:cards.Card) : boolean {
+    // Checks if this exact object is in play.
+    isExactCardInPlay(card:cards.Card) : boolean {
         return cards.contains(this.inPlay, card);
     }
 

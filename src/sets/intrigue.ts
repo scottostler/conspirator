@@ -101,7 +101,7 @@ class MiningVillageTrashEffect implements e.Effect {
     getTarget() { return e.Target.ActivePlayer; }
 
     process(game:Game, player:Player, trigger:cards.Card) {
-        if (!game.isCardInPlay(trigger)) {
+        if (!game.isExactCardInPlay(trigger)) {
             return Resolution.Advance;
         }
 
