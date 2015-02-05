@@ -21,3 +21,7 @@ To get started:
 4) open index.html to start!
 
 5) run tests with: `grunt test`
+
+# Development
+
+1) to automatically run tests on commit, run `echo "grunt test" > .git/hooks/pre-commit`
