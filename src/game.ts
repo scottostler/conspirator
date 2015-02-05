@@ -36,12 +36,8 @@ function groupKingdomCards(kingdomCards:cards.Card[], kingdomCount:number, vpCou
     var kingdomCardCount = kingdomCards.length;
     var coinCount = 99;
 
-    var kingdomPiles:cards.Pile[] = sortedKingdomCards.map((card:cards.Card) => {
-        if (card.isVictory()) {
-            return new cards.Pile(card, vpCount);
-        } else {
-            return new cards.Pile(card, kingdomCount);
-        }
+    var kingdomPiles:cards.Pile[] = sortedKingdomCards.map(c => {
+        return new cards.Pile(c, c.isVictory() ? vpCount : kingdomCount);
     });
 
     kingdomPileGroups.push(kingdomPiles);
@@ -314,7 +310,9 @@ class Game extends base.BaseGame {
     }
 
     revealPlayerCards(player:Player, cs:cards.Card[]) {
-        this.gameListener.playerRevealedCards(player, cs);
+        if (cs.length > 0) {
+            this.gameListener.playerRevealedCards(player, cs);
+        }
     }
 
     revealPlayerHand(player:Player) {
@@ -766,21 +764,12 @@ class Game extends base.BaseGame {
         return discarded;
     }
 
-    revealCardFromDeck(player:Player) : cards.Card {
-        var card = player.revealCardFromDeck();
-        if (card) {
-            this.log(player, 'reveals', card);
-        } else {
-            this.log(player, 'has no cards in deck');
-        }
-        return card;
-    }
-
     // This method assumes the cards have already been 'taken' from the deck.
     drawAndDiscardFromDeck(player:Player, draw:cards.Card[], discard:cards.Card[]) {
         player.hand = player.hand.concat(draw);
         player.discard = player.discard.concat(discard);
 
+        // TODO: add listener method
         if (draw.length > 0 && discard.length > 0) {
             this.log(player, 'draws', draw, 'and discards', discard);
         } else if (draw.length > 0) {
@@ -795,6 +784,14 @@ class Game extends base.BaseGame {
     putCardsOnDeck(player:Player, cards:cards.Card[]) {
         player.putCardsOnDeck(cards);
         this.log(player.name, 'puts', cards, 'onto their deck');
+    }
+
+    revealCardFromDeck(player:Player) : cards.Card {
+        var card = player.topCardOfDeck();
+        if (card) {
+            this.revealPlayerCards(player, [card]);
+        }
+        return card;
     }
 
     playActionMultipleTimes(card:cards.Card, num:number) : Resolution {

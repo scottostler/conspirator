@@ -21,6 +21,12 @@ module.exports = function (grunt) {
                 src: ["src/**/*.ts"],
                 html: ['src/html/*.tpl.html'],
                 outDir: 'build',
+            },
+
+            watch: {
+                src: ["src/**/*.ts"],
+                html: ['src/html/*.tpl.html'],
+                outDir: 'build',
                 watch: 'src',
             },
 
@@ -46,5 +52,6 @@ module.exports = function (grunt) {
     });
 
     grunt.registerTask("default", ["ts:build"]);
+    grunt.registerTask("watch", ["ts:watch"]);
     grunt.registerTask("test", ["ts:test", 'mochaTest:test']);
 };

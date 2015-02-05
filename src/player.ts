@@ -87,28 +87,6 @@ class Player extends base.BasePlayer {
         return _.head(this.takeCardsFromDeck(1));
     }
 
-    discardCardsFromDeck(num:number) : cards.Card[] {
-        var cards = this.takeCardsFromDeck(num);
-        this.discard = this.discard.concat(cards);
-        return cards;
-    }
-
-    discardCardFromDeck() : cards.Card {
-        return _.head(this.discardCardsFromDeck(1));
-    }
-
-    revealCardsFromDeck(n:number) : cards.Card[] {
-        if (this.deck.length < n) {
-            this.shuffleKeepingDeckOnTop();
-        }
-
-        return _.last(this.deck, n);
-    }
-
-    revealCardFromDeck() : cards.Card {
-        return _.head(this.revealCardsFromDeck(1));
-    }
-
     takeCardsFromDeckUntil(predicate:cards.CardPredicate) : cards.CardSearchResult {
         var takenCards:cards.Card[] = [];
         var card:cards.Card = null;
@@ -128,6 +106,28 @@ class Player extends base.BasePlayer {
             foundCard:null,
             otherCards:takenCards
         };
+    }
+
+    discardCardsFromDeck(num:number) : cards.Card[] {
+        var cards = this.takeCardsFromDeck(num);
+        this.discard = this.discard.concat(cards);
+        return cards;
+    }
+
+    discardCardFromDeck() : cards.Card {
+        return _.head(this.discardCardsFromDeck(1));
+    }
+
+    topCardsOfDeck(n:number) : cards.Card[] {
+        if (this.deck.length < n) {
+            this.shuffleKeepingDeckOnTop();
+        }
+
+        return _.last(this.deck, n);
+    }
+
+    topCardOfDeck() : cards.Card {
+        return _.head(this.topCardsOfDeck(1));
     }
 
     putCardsOnDeck(cards:cards.Card[]) {
@@ -183,7 +183,7 @@ class Player extends base.BasePlayer {
 
         xs.forEach(x => {
             if (!_.contains(decision.options, x)) {
-                throw new Error('Invalid result: ' + x);
+                throw new Error('Invalid result: ' + x + ', options: ' + decision.options.join(', '));
             }
         });
     }

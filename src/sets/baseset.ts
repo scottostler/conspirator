@@ -75,6 +75,7 @@ class BureaucratDiscardEffect implements Effect {
                     throw new Error('Unexpected decision response: ' + cs.join(', '));
                 }
 
+                game.revealPlayerCards(player, cs);
                 game.discardCards(player, cs, DiscardDestination.Deck);
                 return Resolution.Advance;
             });
@@ -179,8 +180,6 @@ class ThiefTrashEffect implements Effect {
         game.addCardToTrash(targetPlayer, card);
     }
 
-    // TODO?: delay discarding until end of effects
-
     process(game:Game, targetPlayer:Player, trigger:cards.Card) {
         var attackingPlayer = game.activePlayer;
         var numCards = 2;
@@ -190,6 +189,8 @@ class ThiefTrashEffect implements Effect {
         var matchingCards = cards.filterByType(takenCards, cardType);
         var nonMatchingCards = _.difference(takenCards, matchingCards);
 
+        // TODO?: delay discarding non-matching cards until trash?
+        game.revealPlayerCards(targetPlayer, takenCards);
         targetPlayer.addCardsToDiscard(nonMatchingCards);
 
         var decision = decisions.makeTrashCardDecision(targetPlayer, matchingCards, trigger, 1, 1, TrashCardSource.CardSet);

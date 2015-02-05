@@ -18,10 +18,15 @@ To get started:
 
     grunt
 
+3a) or to automatically re-generate on changes
+
+    grunt watch
+
 4) open index.html to start!
 
 5) run tests with: `grunt test`
 
 # Development
 
-1) to automatically run tests on commit, run `echo "grunt test" > .git/hooks/pre-commit`
+1) to automatically test compilation and run tests on commit:
+    echo "grunt && grunt test" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
