@@ -21,7 +21,7 @@ function expectEqualCardNames(a:string[], b:cards.Card[]) {
     expect(a.concat().sort()).to.eql(cards.getNames(b).concat().sort());
 }
 
-function expectEqualCards(a:cards.Card[], b:cards.Card[]) {
+export function expectEqualCards(a:cards.Card[], b:cards.Card[]) {
     expectEqualCardNames(cards.getNames(a), b);
 }
 
@@ -32,6 +32,16 @@ export function expectDeckScore(cs:cards.Card[], score:number) {
 export function expectTopDeckCard(player:Player, c:cards.Card) {
     expect(player.deck).to.have.length.of.at.least(1);
     expect(_.last(player.deck)).to.equal(c);
+}
+
+export function expectTopDiscardCard(player:Player, c:cards.Card) {
+    expect(player.discard).to.have.length.of.at.least(1);
+    expect(_.last(player.discard).name).to.equal(c.name);
+}
+
+export function setPlayerDeck(game:Game, player:Player, cs:cards.Card[]) {
+    expect(game.hasGameStarted).to.be.false;
+    player.deck = cards.clone(cs);
 }
 
 export class TestingGameListener implements base.BaseGameListener {
@@ -141,6 +151,10 @@ export class TestingDecider implements decider.Decider {
 
     trashCards(cs:cards.Card[]) {
         this.makeCardsDecision(DecisionType.TrashCard, cs);
+    }
+
+    setAsideCard(c:cards.Card) {
+        this.makeCardDecision(DecisionType.SetAsideCard, c);
     }
 }
 

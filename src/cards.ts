@@ -142,6 +142,10 @@ export function makeIsTypePredicate(cardType:Type) : CardPredicate {
     return (c:Card) => { return c.matchesType(cardType); }
 }
 
+export function makeIsCostPredicate(lower:number, upper:number) : CardPredicate {
+    return (c:Card) => { return c.cost >= lower && c.cost <= upper; }
+}
+
 export var treasurePredicate:CardPredicate = makeIsTypePredicate(Type.Treasure)
 export var allCardsPredicate:CardPredicate = makeIsTypePredicate(Type.All);
 
@@ -159,6 +163,10 @@ export function areUnique(cards:Card[]) : boolean {
 
 export function difference(first:Card[], second:Card[]) : Card[] {
     return _.difference<Card>(first, second);
+}
+
+export function without(cs:Card[], c:Card) : Card[] {
+    return difference(cs, [c]);
 }
 
 export function clone(cards:Card[]) : Card[] {
@@ -183,6 +191,10 @@ export function filterByType(cards:Card[], cardType:Type) : Card[] {
 
 export function filterByCard(cards:Card[], card:Card) : Card[] {
     return filter(cards, makeIsCardPredicate(card));
+}
+
+export function filterByCost(cards:Card[], lower:number, upper:number) : Card[] {
+    return filter(cards, makeIsCostPredicate(lower, upper));
 }
 
 export function countByCard(cards:Card[], card:Card) : number {

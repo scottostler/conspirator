@@ -426,6 +426,10 @@ export class GameView extends View implements base.BaseGameListener {
         this.viewForPlayer(player).drawCards(drawn);
     }
 
+    playerRevealedCards(player:base.BasePlayer, cards:cards.Card[]) {
+        this.log(player.getName() + ' reveals ' + cards.join(', '));
+    }
+
     trashCardFromPlay(card:cards.Card) {
         var cardView = this.viewForInPlayCard(card);
         this.inPlayViews = util.removeFirst(this.inPlayViews, cardView);

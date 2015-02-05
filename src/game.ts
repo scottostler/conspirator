@@ -71,6 +71,7 @@ class Game extends base.BaseGame {
     setAside:cards.Card[];
 
     eventStack:EventFunction[];
+    hasGameStarted:boolean;
     hasGameEnded:boolean;
 
     activePlayerIndex:number;
@@ -96,6 +97,7 @@ class Game extends base.BaseGame {
         this.inPlay = [];
         this.setAside = [];
         this.eventStack = [];
+        this.hasGameStarted = false;
         this.hasGameEnded = false;
         this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
 
@@ -747,7 +749,6 @@ class Game extends base.BaseGame {
         this.setAside.push(card);
     }
 
-    // TODO: assert cleared by turn end
     discardSetAsideCards(player:Player) {
         player.discard = player.discard.concat(this.setAside);
         this.setAside = [];
@@ -832,6 +833,7 @@ class Game extends base.BaseGame {
     // Blast off!
 
     start() {
+        this.hasGameStarted = true;
         this.log('The game is afoot!');
         this.drawInitialHands();
         this.advanceTurn();

@@ -1,8 +1,8 @@
 # Conspirator
 
 Conspirator is a Dominion game engine implemented in TypeScript,
-including a HTML 5 front-end. Currently, the original set
-and Intrigue (save Masquerade) are implemented.
+including an HTML UI. Currently, the Base set and Intrigue are
+implemented.
 
 To get started:
 
