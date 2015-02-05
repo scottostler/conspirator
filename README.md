@@ -1,7 +1,7 @@
 # Conspirator
 
 Conspirator is a Dominion game engine implemented in TypeScript,
-including an HTML UI. Currently, the Base set and Intrigue are
+including an HTML UI. Currently, the Baseset and Intrigue are
 implemented.
 
 To get started:
@@ -14,19 +14,22 @@ To get started:
 
     npm install
 
-3) generate javascript
+3a) generate javascript
 
     grunt
 
-3a) or to automatically re-generate on changes
+3b) or to automatically re-generate the javascript on source code changes
 
     grunt watch
 
 4) open index.html to start!
 
-5) run tests with: `grunt test`
-
 # Development
 
 1) to automatically test compilation and run tests on commit:
+
     echo "grunt && grunt test" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+2) to manually run tests
+
+    run tests with: `grunt test`
