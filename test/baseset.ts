@@ -198,7 +198,6 @@ describe('Gardens', () => {
     });
 });
 
-
 describe('Laboratory', () => {
     it('should give +2 cards, +1 action', (done) => {
         var labHand = [baseset.Laboratory, baseset.Laboratory].concat(util.duplicate(cards.Copper, 3));

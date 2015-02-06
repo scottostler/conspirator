@@ -108,8 +108,38 @@ describe('Coppersmith', () => {
 
 
 // Courtyard,
-// Duke,
-// GreatHall,
+
+describe('Duke', () => {
+    it('should give 1 VP per Duchy', (done) => {
+        expectDeckScore([intrigue.Duke], 0);
+        expectDeckScore([intrigue.Duke].concat([cards.Duchy]), 4);
+        expectDeckScore([intrigue.Duke, intrigue.Duke].concat([cards.Duchy, cards.Duchy]), 10);
+        done();
+    });
+});
+
+describe('Great Hall', () => {
+    it('should give 1 VP', (done) => {
+        expectDeckScore([intrigue.GreatHall], 1);
+        expectDeckScore([intrigue.GreatHall, intrigue.GreatHall], 2);
+        done();
+    });
+
+    it('should give +1 action, +1 card', (done) => {
+        var hand = [intrigue.GreatHall, cards.Copper, cards.Copper, cards.Copper, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.GreatHall), decider1, decider2, hand);
+
+        game.start();
+        decider1.playAction(intrigue.GreatHall);
+        expect(game.turnState.actionCount).to.eql(1);
+        expect(game.activePlayer.hand).to.have.length(5);
+        done();
+    });
+});
+
 // Harem,
 // Ironworks,
 // Masquerade,

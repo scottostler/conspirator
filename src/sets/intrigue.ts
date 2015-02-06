@@ -338,7 +338,7 @@ export var Courtyard = new cards.Card({
 export var Duke = new cards.Card({
     name: 'Duke',
     cost: 5,
-    vp: new e.BasicVPEffect(1),
+    vp: new DukeVPEffect(),
     set: SetName
 });
 
