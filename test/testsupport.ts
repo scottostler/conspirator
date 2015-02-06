@@ -2,6 +2,7 @@ import _ = require('underscore');
 import chai = require('chai');
 
 import base = require('../src/base');
+import baseset = require('../src/sets/baseset');
 import cards = require('../src/cards');
 import decider = require('../src/decider');
 import decisions = require('../src/decisions');
@@ -17,6 +18,17 @@ import Card = cards.Card;
 import DecisionType = decisions.DecisionType;
 import GainDestination = base.GainDestination;
 import GameState = base.GameState;
+
+// A list of action cards that only impact the game while played.
+var neutralKingdomCards = [
+    baseset.Cellar, baseset.Festival, baseset.Gardens, baseset.Market,
+    baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moneylender,
+    baseset.Militia, baseset.Smithy, baseset.Village];
+
+export function neutralCardsWith(c:cards.Card) : cards.Card[] {
+    var withoutCards = cards.without(neutralKingdomCards, c);
+    return _.sample<cards.Card>(withoutCards, 9).concat([c]);
+}
 
 function expectEqualCardNames(a:string[], b:Card[]) {
     expect(a.concat().sort()).to.eql(cards.getNames(b).concat().sort());

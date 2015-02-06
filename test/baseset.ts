@@ -15,21 +15,11 @@ import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
+import neutralCardsWith = testsupport.neutralCardsWith;
 
 var copperHand = util.duplicate(cards.Copper, 5);
 var copperEstateHand = util.duplicate(cards.Copper, 3).concat(util.duplicate(cards.Estate, 2));
 var threeCopperHand = util.duplicate(cards.Copper, 3);
-
-// A list of action cards that only impact the game while played.
-var neutralKingdomCards = [
-    baseset.Cellar, baseset.Festival, baseset.Gardens, baseset.Market,
-    baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moneylender,
-    baseset.Militia, baseset.Smithy, baseset.Village];
-
-function neutralCardsWith(c:cards.Card) : cards.Card[] {
-    var withoutCards = cards.without(neutralKingdomCards, c);
-    return _.sample<cards.Card>(withoutCards, 9).concat([c]);
-}
 
 describe('Adventurer', () => {
     it('should draw two treasures', (done) => {
@@ -236,7 +226,6 @@ describe('Library', () => {
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
             neutralCardsWith(baseset.Library), decider1, decider2, libraryHand);
-
 
         testsupport.setPlayerDeck(game, game.players[0], deck);
         game.start();

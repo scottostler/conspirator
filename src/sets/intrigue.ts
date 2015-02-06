@@ -290,7 +290,10 @@ class WishingWellEffect implements e.Effect {
 export var Baron = new cards.Card({
     name: 'Baron',
     cost: 4,
-    effects: [new BaronDiscardEffect()],
+    effects: [
+        new e.GainBuysEffect(1),
+        new BaronDiscardEffect()
+    ],
     set: SetName
 });
 
