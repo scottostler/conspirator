@@ -151,7 +151,7 @@ export class DrawEffect implements LabelledEffect {
     }
 }
 
-function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, numToDiscard:number) : Resolution {
+function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, numToDiscard:number, dest:DiscardDestination) : Resolution {
     if (numToDiscard < 0) {
         throw new Error('Invalid numToDiscard: ' + numToDiscard);
     }
@@ -159,7 +159,7 @@ function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, nu
     var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, numToDiscard, numToDiscard, this.destination);
     return player.promptForDecision(decision, cs => {
         if (cs.length > 0) {
-            game.discardCards(player, cardlist.getCardsByNames(cs));
+            game.discardCards(player, cardlist.getCardsByNames(cs), dest);
         }
         return Resolution.Advance;
     });
@@ -183,24 +183,26 @@ export class DiscardEffect implements LabelledEffect {
 
     process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var numToDiscard = Math.min(this.numCards, player.hand.length);
-        return promptPlayerForDiscard(game, trigger, player, numToDiscard);
+        return promptPlayerForDiscard(game, trigger, player, numToDiscard, this.destination);
     }
 }
 
 export class DiscardToEffect implements Effect {
     target:Target;
     targetNumCards:number;
+    destination:DiscardDestination;
 
-    constructor(target:Target, targetNumCards:number) {
+    constructor(target:Target, targetNumCards:number, destination:DiscardDestination=DiscardDestination.Discard) {
         this.target = target;
         this.targetNumCards = targetNumCards;
+        this.destination = destination;
     }
 
     getTarget() { return this.target; }
 
     process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var numToDiscard = Math.max(0, player.hand.length - this.targetNumCards);
-        return promptPlayerForDiscard(game, trigger, player, numToDiscard);
+        return promptPlayerForDiscard(game, trigger, player, numToDiscard, this.destination);
     }
 }
 

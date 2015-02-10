@@ -139,7 +139,9 @@ describe('Courtyard', () => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(intrigue.Coppersmith), decider1, decider2, courtyardHand);
+            neutralCardsWith(intrigue.Courtyard), decider1, decider2, courtyardHand);
+
+        testsupport.setPlayerDeck(game, game.players[0], [cards.Estate, cards.Estate, cards.Estate]);
 
         game.start();
         decider1.playAction(intrigue.Courtyard);
@@ -182,7 +184,27 @@ describe('Great Hall', () => {
     });
 });
 
-// Harem,
+describe('Harem', () => {
+    it('should give 2 VP', done => {
+        expectDeckScore([intrigue.Harem], 2);
+        expectDeckScore([intrigue.Harem, intrigue.Harem], 4);
+        done();
+    });
+
+    var haremHand = [intrigue.Harem, cards.Copper, cards.Copper, cards.Copper, cards.Estate];
+    it('should give +2 coin', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Harem), decider1, decider2, haremHand);
+
+        game.start();
+        decider1.playTreasures([intrigue.Harem, cards.Copper, cards.Copper, cards.Copper]);
+        expect(game.turnState.coinCount).to.eql(5);
+        done();
+    });
+});
+
 // Ironworks,
 // Masquerade,
 // MiningVillage,
