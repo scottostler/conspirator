@@ -318,7 +318,20 @@ describe('Mine', () => {
     });
 });
 
-// TODO: Moat
+describe('Moat', () => {
+    var moatHand = [baseset.Moat, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+    it('should give +2 cards', (done) => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.Mine), decider1, decider2, moatHand);
+        game.start();
+
+        decider1.playAction(baseset.Moat);
+        expect(game.activePlayer.hand).to.have.length(6);
+        done();
+    });
+});
 
 describe('Moneylender', () => {
     var moneylenderHand = [baseset.Moneylender].concat(util.duplicate(cards.Copper, 4));
