@@ -5,6 +5,7 @@ import _ = require('underscore');
 import chai = require('chai');
 
 import cards = require('../src/cards');
+import baseset = require('../src/sets/baseset');
 import intrigue = require('../src/sets/intrigue');
 import testsupport = require('./testsupport');
 import util = require('../src/util');
@@ -36,7 +37,7 @@ describe('Baron', () => {
         done();
     });
 
-    it('should otherwise gain Estate', (done) => {
+    it('should otherwise gain an Estate', (done) => {
         var baronHand = [intrigue.Baron, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
@@ -54,22 +55,41 @@ describe('Baron', () => {
 });
 
 describe('Bridge', () => {
-    it('should give +1 buy and decrease card cost by 1', (done) => {
-        var bridgeHand = [intrigue.Bridge, cards.Copper, cards.Copper, cards.Estate, cards.Estate];
+    it('should give +1 buy and decrease card cost by 1', done => {
+        var hand = [intrigue.Bridge, cards.Copper, cards.Copper, cards.Copper, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(intrigue.Bridge), decider1, decider2, bridgeHand);
+            neutralCardsWith(intrigue.Bridge), decider1, decider2, hand);
 
         game.start();
         decider1.playAction(intrigue.Bridge);
         expectBuyCount(game, 2);
         expectCoinCount(game, 1);
-        decider1.playTreasures([cards.Copper, cards.Copper]);
+        decider1.playTreasures([cards.Copper, cards.Copper, cards.Copper]);
+        decider1.gainCard(cards.Duchy);
         done();
     });
 
-    // TODO: test with Throne Room
+    it('should stack with multiple plays', done => {
+        var hand = [intrigue.Bridge, intrigue.Bridge, baseset.ThroneRoom, cards.Copper, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Bridge), decider1, decider2, hand);
+
+        game.start();
+        game.incrementActionCount(1);
+        decider1.playAction(baseset.ThroneRoom);
+        decider1.playAction(intrigue.Bridge);
+        decider1.playAction(intrigue.Bridge);
+
+        expectBuyCount(game, 4);
+        expectCoinCount(game, 3);
+        decider1.playTreasures([]);
+        decider1.gainCard(cards.Gold);
+        done();
+    });
 });
 
 describe('Conspirator', () => {
