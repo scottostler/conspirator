@@ -15,6 +15,9 @@ import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
+import expectActionCount = testsupport.expectActionCount;
+import expectBuyCount = testsupport.expectBuyCount;
+import expectCoinCount = testsupport.expectCoinCount;
 import neutralCardsWith = testsupport.neutralCardsWith;
 
 var copperHand = util.duplicate(cards.Copper, 5);
@@ -82,7 +85,7 @@ describe('Cellar', () => {
         decider1.playAction(baseset.Cellar);
         decider1.discardCards([cards.Estate, cards.Estate, cards.Estate, cards.Estate]);
         expect(game.players[0].hand).to.have.length(4);
-        expect(game.turnState.actionCount).to.eql(1);
+        expectActionCount(game, 1);
         done();
     });
 });
@@ -131,7 +134,7 @@ describe('Council Room', () => {
         game.start();
 
         decider1.playAction(baseset.CouncilRoom);
-        expect(game.turnState.buyCount).to.eql(2);
+        expectBuyCount(game, 2);
         expect(game.activePlayer.hand).to.have.length(8);
         expect(game.players[1].hand).to.have.length(6);
         decider1.playTreasures([]);
@@ -150,7 +153,7 @@ describe('Council Room', () => {
         game.start();
 
         decider1.playAction(baseset.CouncilRoom);
-        expect(game.turnState.buyCount).to.eql(2);
+        expectBuyCount(game, 2);
         expect(game.activePlayer.hand).to.have.length(8);
         expect(game.players[1].hand).to.have.length(5);
         decider1.playTreasures([]);
@@ -185,9 +188,9 @@ describe('Festival', () => {
         game.start();
 
         decider1.playAction(baseset.Festival);
-        expect(game.turnState.actionCount).to.eql(2);
-        expect(game.turnState.buyCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(2);
+        expectActionCount(game, 2);
+        expectBuyCount(game, 2);
+        expectCoinCount(game, 2);
         expect(game.activePlayer.hand).to.have.length(4);
         done();
     });
@@ -215,7 +218,7 @@ describe('Laboratory', () => {
         expect(game.activePlayer.hand).to.have.length(5);
         decider1.playAction(baseset.Laboratory);
         decider1.playAction(baseset.Laboratory);
-        expect(game.turnState.actionCount).to.eql(1)
+        expectActionCount(game, 1);
         expect(game.activePlayer.hand).to.have.length(7);
         done();
     });
@@ -260,9 +263,10 @@ describe('Market', () => {
         expect(game.activePlayer.hand).to.have.length(5);
         decider1.playAction(baseset.Market);
         expect(game.isExactCardInPlay(market)).to.be.true;
-        expect(game.turnState.actionCount).to.eql(1)
-        expect(game.turnState.buyCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(1);
+
+        expectActionCount(game, 1);
+        expectBuyCount(game, 2);
+        expectCoinCount(game, 1);
         expect(game.activePlayer.hand).to.have.length(5);
         done();
     });
@@ -350,7 +354,7 @@ describe('Moneylender', () => {
 
         decider1.playAction(baseset.Moneylender);
         decider1.trashCard(cards.Copper);
-        expect(game.turnState.coinCount).to.eql(3);
+        expectCoinCount(game, 3);
         done();
     });
 
@@ -362,7 +366,7 @@ describe('Moneylender', () => {
         game.start();
 
         decider1.playAction(baseset.Moneylender);
-        expect(game.turnState.coinCount).to.eql(0);
+        expectCoinCount(game, 0);
         decider1.gainCard(cards.Copper);
         done();
     });
@@ -412,7 +416,7 @@ describe('Spy', () => {
         game.start();
 
         decider1.playAction(baseset.Spy);
-        expect(game.turnState.actionCount).to.eql(1);
+        expectActionCount(game, 1);
         expect(game.activePlayer.hand).to.have.length(5);
 
         var player1TopCard = game.players[0].topCardOfDeck();
@@ -430,7 +434,23 @@ describe('Spy', () => {
     });
 });
 
-// TODO: ThroneRoom
+describe('Throne Room', () => {
+    it('should play action twice', done => {
+        var hand = [baseset.ThroneRoom, baseset.Festival, baseset.Market];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.ThroneRoom), decider1, decider2, hand);
+        game.start();
+
+        decider1.playAction(baseset.ThroneRoom);
+        decider1.playAction(baseset.Festival);
+        expectActionCount(game, 4);
+        expectBuyCount(game, 3);
+        expectCoinCount(game, 4);
+        done();
+    });
+});
 
 describe('Thief', () => {
     var thiefHand = [baseset.Thief].concat(util.duplicate(cards.Copper, 4));
@@ -472,7 +492,7 @@ describe('Village', () => {
         decider1.playAction(baseset.Village);
         decider1.playAction(baseset.Village);
         expect(game.activePlayer.hand).to.have.length(5);
-        expect(game.turnState.actionCount).to.eql(3);
+        expectActionCount(game, 3);
         decider1.playTreasures([]);
         done();
     });
@@ -504,7 +524,7 @@ describe('Woodcutter', () => {
         game.start();
 
         decider1.playAction(baseset.Woodcutter);
-        expect(game.turnState.buyCount).to.eql(2);
+        expectBuyCount(game, 2);
         decider1.playTreasures([]);
         decider1.gainCard(cards.Estate);
         decider1.gainCard(cards.Copper);

@@ -69,7 +69,8 @@ class BureaucratDiscardEffect implements Effect {
     process(game:Game, player:Player, trigger:cards.Card) {
         var matchingCards = cards.getVictories(player.getHand());
         if (matchingCards.length > 0) {
-            var decision = decisions.makeDiscardCardDecision(player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
+            var decision = decisions.makeDiscardCardDecision(
+                player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
             return player.promptForCardDecision(decision, cs => {
                 if (cs.length !== 1) {
                     throw new Error('Unexpected decision response: ' + cs.join(', '));
@@ -90,7 +91,8 @@ class DiscardToDrawEffect implements Effect{
     getTarget() { return Target.ActivePlayer; }
 
     process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
+        var decision = decisions.makeDiscardCardDecision(
+            player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
                 game.discardCards(player, cs, DiscardDestination.Discard);
@@ -157,7 +159,8 @@ class SpyAttackEffect implements Effect {
     process(game:Game, targetPlayer:Player, card:cards.Card) {
         var attackingPlayer = game.activePlayer;
         var revealedCard = game.revealCardFromDeck(targetPlayer);
-        var decision = decisions.makeDiscardCardDecision(targetPlayer, [revealedCard], card, 0, 1, DiscardDestination.Discard);
+        var decision = decisions.makeDiscardCardDecision(
+            targetPlayer, [revealedCard], card, 0, 1, DiscardDestination.Discard);
 
         return attackingPlayer.promptForCardDecision(decision, cs => {
             if (cs.length === 1) {
@@ -194,7 +197,8 @@ class ThiefTrashEffect implements Effect {
         game.revealPlayerCards(targetPlayer, takenCards);
         targetPlayer.addCardsToDiscard(nonMatchingCards);
 
-        var decision = decisions.makeTrashCardDecision(targetPlayer, matchingCards, trigger, 1, 1, TrashCardSource.CardSet);
+        var decision = decisions.makeTrashCardDecision(
+            targetPlayer, matchingCards, trigger, 1, 1, TrashCardSource.CardSet);
         return attackingPlayer.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
                 var cardToTrash = cs[0];

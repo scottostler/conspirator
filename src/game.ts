@@ -377,7 +377,7 @@ class Game extends base.BaseGame {
                     var decision = decisions.makeRevealCardDecision(reactions, card);
                     return p.promptForCardDecision(decision, cs => {
                         if (cs.length > 0) {
-
+                            // TODO: handle player reveal
                         } else {
                             return Resolution.Advance;
                         }
@@ -578,6 +578,12 @@ class Game extends base.BaseGame {
     }
 
     playAction(card:cards.Card) : Resolution {
+        if (this.turnState.actionCount <= 0) {
+            throw new Error('Unable to play ' + card.name + ' with action count ' + this.turnState.actionCount);
+        } else if (!cards.contains(this.activePlayer.hand, card)) {
+            throw new Error('Unable to play ' + card.name + ', card is not in hand');
+        }
+
         this.log(this.activePlayer.name, 'plays', card.name);
 
         this.turnState.playedActionCount++;
@@ -795,7 +801,11 @@ class Game extends base.BaseGame {
     }
 
     playActionMultipleTimes(card:cards.Card, num:number) : Resolution {
-        this.activePlayer.hand = util.removeFirst(this.activePlayer.hand, card);
+        if (!cards.contains(this.activePlayer.hand, card)) {
+            throw new Error('Unable to play ' + card.name + ' multiple times, card is not in hand');
+        }
+
+        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
         this.inPlay.push(card);
 
         var playEvents = _.times(num, (i) => {

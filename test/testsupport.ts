@@ -52,6 +52,18 @@ export function expectTopDiscardCard(player:Player, c:Card) {
     expect(_.last(player.discard).name).to.equal(c.name);
 }
 
+export function expectActionCount(game:Game, count:number) {
+    expect(game.turnState.actionCount).to.eql(count, 'Action count should be ' + count);
+}
+
+export function expectBuyCount(game:Game, count:number) {
+    expect(game.turnState.buyCount).to.eql(count, 'Buy count should be ' + count);
+}
+
+export function expectCoinCount(game:Game, count:number) {
+    expect(game.turnState.coinCount).to.eql(count, 'Coin count should be ' + count);
+}
+
 export function setPlayerDeck(game:Game, player:Player, cs:Card[]) {
     expect(game.hasGameStarted).to.be.false;
     player.deck = cards.clone(cs);
@@ -125,7 +137,7 @@ export class TestingDecider implements decider.Decider {
 
     makeCardsDecision(d:DecisionType, cs:Card[]) {
         expect(this.pendingDecision).to.exist;
-        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[d]);
+        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[d], 'Wrong decision type');
 
         var callback = this.pendingCallback;
         this.pendingCallback = null;
