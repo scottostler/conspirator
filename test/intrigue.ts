@@ -15,6 +15,9 @@ import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
+import expectActionCount = testsupport.expectActionCount;
+import expectBuyCount = testsupport.expectBuyCount;
+import expectCoinCount = testsupport.expectCoinCount;
 import neutralCardsWith = testsupport.neutralCardsWith;
 
 describe('Baron', () => {
@@ -28,8 +31,8 @@ describe('Baron', () => {
         game.start();
         decider1.playAction(intrigue.Baron);
         decider1.discardCard(cards.Estate);
-        expect(game.turnState.buyCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(4);
+        expectBuyCount(game, 2);
+        expectCoinCount(game, 4);
         done();
     });
 
@@ -43,8 +46,8 @@ describe('Baron', () => {
         game.start();
         decider1.playAction(intrigue.Baron);
         decider1.discardCard(null);
-        expect(game.turnState.buyCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(0);
+        expectBuyCount(game, 2);
+        expectCoinCount(game, 0);
         expectTopDiscardCard(game.activePlayer, cards.Estate);
         done();
     });
@@ -60,8 +63,8 @@ describe('Bridge', () => {
 
         game.start();
         decider1.playAction(intrigue.Bridge);
-        expect(game.turnState.buyCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(1);
+        expectBuyCount(game, 2);
+        expectCoinCount(game, 1);
         decider1.playTreasures([cards.Copper, cards.Copper]);
         done();
     });
@@ -81,18 +84,18 @@ describe('Conspirator', () => {
         game.incrementActionCount(2);
 
         decider1.playAction(intrigue.Conspirator);
-        expect(game.turnState.actionCount).to.eql(2);
-        expect(game.turnState.coinCount).to.eql(2);
+        expectActionCount(game, 2);
+        expectCoinCount(game, 2);
         expect(game.activePlayer.hand).to.have.length(4);
 
         decider1.playAction(intrigue.Conspirator);
-        expect(game.turnState.actionCount).to.eql(1);
-        expect(game.turnState.coinCount).to.eql(4);
+        expectActionCount(game, 1);
+        expectCoinCount(game, 4);
         expect(game.activePlayer.hand).to.have.length(3);
 
         decider1.playAction(intrigue.Conspirator);
-        expect(game.turnState.actionCount).to.eql(1);
-        expect(game.turnState.coinCount).to.eql(6);
+        expectActionCount(game, 1);
+        expectCoinCount(game, 6);
         expect(game.activePlayer.hand).to.have.length(3);
 
         done();
@@ -109,9 +112,9 @@ describe('Coppersmith', () => {
 
         game.start();
         decider1.playAction(intrigue.Coppersmith);
-        expect(game.turnState.coinCount).to.eql(0);
+        expectCoinCount(game, 0);
         decider1.playTreasures([cards.Copper, cards.Copper]);
-        expect(game.turnState.coinCount).to.eql(4);
+        expectCoinCount(game, 4);
         done();
     });
 
@@ -126,9 +129,9 @@ describe('Coppersmith', () => {
         game.incrementActionCount(1);
         decider1.playAction(intrigue.Coppersmith);
         decider1.playAction(intrigue.Coppersmith);
-        expect(game.turnState.coinCount).to.eql(0);
+        expectCoinCount(game, 0);
         decider1.playTreasures([cards.Copper, cards.Copper]);
-        expect(game.turnState.coinCount).to.eql(6);
+        expectCoinCount(game, 6);
         done();
     });
 });
@@ -178,7 +181,7 @@ describe('Great Hall', () => {
 
         game.start();
         decider1.playAction(intrigue.GreatHall);
-        expect(game.turnState.actionCount).to.eql(1);
+        expectActionCount(game, 1);
         expect(game.activePlayer.hand).to.have.length(5);
         done();
     });
@@ -200,7 +203,7 @@ describe('Harem', () => {
 
         game.start();
         decider1.playTreasures([intrigue.Harem, cards.Copper, cards.Copper, cards.Copper]);
-        expect(game.turnState.coinCount).to.eql(5);
+        expectCoinCount(game, 5);
         done();
     });
 });
