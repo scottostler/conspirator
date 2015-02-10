@@ -44,7 +44,7 @@ export function expectDeckScore(cs:Card[], score:number) {
 
 export function expectTopDeckCard(player:Player, c:Card) {
     expect(player.deck).to.have.length.of.at.least(1);
-    expect(_.last(player.deck)).to.equal(c);
+    expect(_.last(player.deck).name).to.equal(c.name);
 }
 
 export function expectTopDiscardCard(player:Player, c:Card) {

@@ -78,7 +78,7 @@ describe('Conspirator', () => {
             neutralCardsWith(intrigue.Conspirator), decider1, decider2, conspiratorHand);
 
         game.start();
-        game.turnState.actionCount = 3;
+        game.incrementActionCount(2);
 
         decider1.playAction(intrigue.Conspirator);
         expect(game.turnState.actionCount).to.eql(2);
@@ -133,8 +133,23 @@ describe('Coppersmith', () => {
     });
 });
 
+describe('Courtyard', () => {
+    var courtyardHand = [intrigue.Courtyard, cards.Copper, cards.Copper, cards.Estate, cards.Estate];
+    it('should draw 3 cards, discard 1 to deck', (done) => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Coppersmith), decider1, decider2, courtyardHand);
 
-// Courtyard,
+        game.start();
+        decider1.playAction(intrigue.Courtyard);
+        expect(game.activePlayer.hand).to.have.length(7);
+        decider1.discardCard(cards.Copper);
+        expectTopDeckCard(game.players[0], cards.Copper);
+        expect(game.activePlayer.hand).to.have.length(6);
+        done();
+    });
+});
 
 describe('Duke', () => {
     it('should give 1 VP per Duchy', (done) => {
