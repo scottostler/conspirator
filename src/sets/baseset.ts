@@ -127,6 +127,7 @@ class AdventurerDrawEffect implements Effect {
         var revealedCards:cards.Card[] = [];
 
         while (selectedCards.length < num && player.canDraw()) {
+            game.revealCardFromDeck(player);
             var card = player.takeCardFromDeck();
             if (card.matchesType(cardType)) {
                 selectedCards.push(card);

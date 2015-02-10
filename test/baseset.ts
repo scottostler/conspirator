@@ -23,14 +23,19 @@ var threeCopperHand = util.duplicate(cards.Copper, 3);
 
 describe('Adventurer', () => {
     it('should draw two treasures', (done) => {
-        // TODO: test revealing
         var adventurerHand = [baseset.Adventurer, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
             neutralCardsWith(baseset.Adventurer), decider1, decider2, adventurerHand);
+
+        testsupport.setPlayerDeck(game, game.players[0], [cards.Copper, cards.Estate, cards.Copper]);
+
         game.start();
         decider1.playAction(baseset.Adventurer);
+        expectRevealedCards(game, [cards.Copper]);
+        expectRevealedCards(game, [cards.Estate]);
+        expectRevealedCards(game, [cards.Copper]);
         decider1.playTreasures([cards.Copper, cards.Copper]);
         done();
     });
