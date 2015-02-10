@@ -69,8 +69,35 @@ describe('Bridge', () => {
     // TODO: test with Throne Room
 });
 
-// TODO:
-// Conspirator,
+describe('Conspirator', () => {
+    var conspiratorHand = [intrigue.Conspirator, intrigue.Conspirator, intrigue.Conspirator, cards.Estate, cards.Estate];
+    it('should give +2 coin, and +1 card, +1 action if 3+ actions were played', (done) => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Conspirator), decider1, decider2, conspiratorHand);
+
+        game.start();
+        game.turnState.actionCount = 3;
+
+        decider1.playAction(intrigue.Conspirator);
+        expect(game.turnState.actionCount).to.eql(2);
+        expect(game.turnState.coinCount).to.eql(2);
+        expect(game.activePlayer.hand).to.have.length(4);
+
+        decider1.playAction(intrigue.Conspirator);
+        expect(game.turnState.actionCount).to.eql(1);
+        expect(game.turnState.coinCount).to.eql(4);
+        expect(game.activePlayer.hand).to.have.length(3);
+
+        decider1.playAction(intrigue.Conspirator);
+        expect(game.turnState.actionCount).to.eql(1);
+        expect(game.turnState.coinCount).to.eql(6);
+        expect(game.activePlayer.hand).to.have.length(3);
+
+        done();
+    });
+});
 
 describe('Coppersmith', () => {
     it('should increase Copper value by 1', (done) => {
