@@ -228,7 +228,30 @@ describe('Harem', () => {
     });
 });
 
-// Ironworks,
+describe('Ironworks', () => {
+    it('should gain 0-4 cost card and give benefit', done => {
+        var ironworksHand = [intrigue.Ironworks, intrigue.Ironworks, intrigue.Ironworks, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Ironworks, intrigue.GreatHall), decider1, decider2, ironworksHand);
+
+        game.start();
+        decider1.playAction(intrigue.Ironworks);
+        decider1.gainCard(intrigue.GreatHall);
+        expectActionCount(game, 1);
+        expect(game.activePlayer.hand).to.have.length(5);
+
+        decider1.playAction(intrigue.Ironworks)
+        decider1.gainCard(cards.Silver);
+        expectActionCount(game, 0);
+        expectCoinCount(game, 1);
+        expect(game.activePlayer.hand).to.have.length(4);
+
+        done();
+    });
+});
+
 // Masquerade,
 // MiningVillage,
 // Minion,

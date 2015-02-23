@@ -349,6 +349,26 @@ class Game extends base.BaseGame {
         this.eventStack = this.eventStack.concat(util.reverse(events));
     }
 
+    promptPlayerForReaction(trigger:cards.Card, targetPlayer:Player) : Resolution {
+        var reactions = cards.getReactions(targetPlayer.hand);
+        var decision = decisions.makeRevealCardDecision(reactions, trigger);
+        return targetPlayer.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                var reaction = cs[0].reaction;
+                if (!reaction) {
+                    throw new Error('Card ' + cs[0].name + ' has no reaction');
+                }
+
+                this.pushEvent(() => {
+                    return this.promptPlayerForReaction(trigger, targetPlayer);
+                });
+                return reaction.process(this, targetPlayer, trigger);
+            } else {
+                return Resolution.Advance;
+            }
+        });
+    }
+
     pushEventsForActionEffects(card:cards.Card) {
         var events:EventFunction[] = [];
 
@@ -372,16 +392,7 @@ class Game extends base.BaseGame {
             this.attackImmunity = [];
             this.pushEvents(otherPlayers.map(p => {
                 return () => {
-                    // TODO: handle multiple reveals
-                    var reactions = cards.getReactions(p.hand);
-                    var decision = decisions.makeRevealCardDecision(reactions, card);
-                    return p.promptForCardDecision(decision, cs => {
-                        if (cs.length > 0) {
-                            // TODO: handle player reveal
-                        } else {
-                            return Resolution.Advance;
-                        }
-                    });
+                    return this.promptPlayerForReaction(card, p);
                 }
             }));
         }

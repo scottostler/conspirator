@@ -273,7 +273,7 @@ describe('Market', () => {
 });
 
 describe('Militia', () => {
-    var militiaHand = [baseset.Militia].concat(util.duplicate(cards.Copper, 4));
+    var militiaHand = [baseset.Militia, baseset.Militia].concat(util.duplicate(cards.Copper, 3));
     it('should cause opponent w/ 5 cards to discard', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
@@ -303,7 +303,29 @@ describe('Militia', () => {
         done();
     });
 
-    // TODO: test against Moat
+    it('should be prevented by Moat', done => {
+        var moatHand = [baseset.Moat, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.Militia), decider1, decider2, militiaHand, moatHand);
+        game.start();
+
+        game.incrementActionCount(1);
+
+        decider1.playAction(baseset.Militia);
+        decider2.revealCard(baseset.Moat);
+        decider2.revealCard(null);
+        expect(game.players[1].hand.length).to.eql(5);
+
+        decider1.playAction(baseset.Militia);
+        decider2.revealCard(null);
+        decider2.discardCards([cards.Copper, cards.Copper]);
+        expect(game.players[1].hand.length).to.eql(3);
+
+        decider1.playTreasures([cards.Copper]);
+        done();
+    });
 });
 
 describe('Mine', () => {

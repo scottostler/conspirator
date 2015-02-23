@@ -19,15 +19,17 @@ import DecisionType = decisions.DecisionType;
 import GainDestination = base.GainDestination;
 import GameState = base.GameState;
 
+var NumKingdomCards = 10;
+
 // A list of action cards that only impact the game while played.
 var neutralKingdomCards = [
-    baseset.Cellar, baseset.Festival, baseset.Gardens, baseset.Market,
-    baseset.Laboratory, baseset.Library, baseset.Mine, baseset.Moneylender,
-    baseset.Militia, baseset.Smithy, baseset.Village];
+    baseset.Cellar, baseset.Festival, baseset.Market, baseset.Laboratory,
+    baseset.Library, baseset.Mine, baseset.Moneylender, baseset.Militia,
+    baseset.Smithy, baseset.Village, baseset.Woodcutter];
 
-export function neutralCardsWith(c:cards.Card) : cards.Card[] {
-    var withoutCards = cards.without(neutralKingdomCards, c);
-    return _.sample<cards.Card>(withoutCards, 9).concat([c]);
+export function neutralCardsWith(...cs:cards.Card[]) : cards.Card[] {
+    var withoutCards = cards.difference(neutralKingdomCards, cs);
+    return _.sample<cards.Card>(withoutCards, NumKingdomCards - cs.length).concat(cs);
 }
 
 function expectEqualCardNames(a:string[], b:Card[]) {
@@ -108,10 +110,19 @@ export function expectRevealedCards(game:Game, cs:Card[]) {
 
 export class TestingDecider implements decider.Decider {
 
+    player:base.BasePlayer;
     pendingCallback:util.StringArrayCallback;
     pendingDecision:decisions.Decision;
 
-    setPlayer(player:base.BasePlayer) {}
+    constructor() {
+        this.player = null;
+        this.pendingCallback = null;
+        this.pendingDecision = null;
+    }
+
+    setPlayer(player:base.BasePlayer) {
+        this.player = player;
+    }
 
     promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
         expect(this.pendingDecision).to.not.exist;
@@ -124,10 +135,16 @@ export class TestingDecider implements decider.Decider {
         expect(this.pendingDecision.maxSelections).to.eql(maxSelections);
     }
 
-    makeDiscardDeckDecision(result:boolean) {
-        expect(this.pendingDecision).to.exist;
-        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[DecisionType.DiscardDeck]);
+    expectPendingDecisionType(d:DecisionType) {
+        var dType = DecisionType[d];
+        expect(this.pendingDecision).to.not.eql(
+            null, 'No pending decision of type ' + dType + ' for ' + this.player.getName());
+        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(
+            DecisionType[d], 'Wrong decision type');
+    }
 
+    makeDiscardDeckDecision(result:boolean) {
+        this.expectPendingDecisionType(DecisionType.DiscardDeck);
         var callback = this.pendingCallback;
         this.pendingCallback = null;
         this.pendingDecision = null;
@@ -136,9 +153,7 @@ export class TestingDecider implements decider.Decider {
 
 
     makeCardsDecision(d:DecisionType, cs:Card[]) {
-        expect(this.pendingDecision).to.exist;
-        expect(DecisionType[this.pendingDecision.decisionType]).to.eql(DecisionType[d], 'Wrong decision type');
-
+        this.expectPendingDecisionType(d);
         var callback = this.pendingCallback;
         this.pendingCallback = null;
         this.pendingDecision = null;
@@ -181,6 +196,10 @@ export class TestingDecider implements decider.Decider {
 
     trashCards(cs:Card[]) {
         this.makeCardsDecision(DecisionType.TrashCard, cs);
+    }
+
+    revealCard(c:Card) {
+        this.makeCardDecision(DecisionType.RevealCard, c);
     }
 
     setAsideCard(c:Card) {

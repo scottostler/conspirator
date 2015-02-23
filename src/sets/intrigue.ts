@@ -21,7 +21,8 @@ class BaronDiscardEffect implements e.Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var matchingCards = cards.filterByCard(player.hand, cards.Estate);
-        var decision = decisions.makeDiscardCardDecision(player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
+        var decision = decisions.makeDiscardCardDecision(
+            player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
                 // TODO?: roll discardCards functionality into DiscardCard decision
@@ -72,7 +73,8 @@ class IronworksEffect implements e.Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4, cards.Type.All));
-        var decision = decisions.makeGainDecision(player, gainableCards, trigger, GainDestination.Discard);
+        var decision = decisions.makeGainDecision(
+            player, gainableCards, trigger, GainDestination.Discard);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
                 var gainedCard = cs[0];
@@ -224,7 +226,7 @@ class TributeEffect implements e.Effect {
         var discardingPlayer = game.playerLeftOf(player);
         var discarded = cards.uniq(discardingPlayer.discardCardsFromDeck(2));
 
-        discarded.forEach((c:cards.Card) => {
+        discarded.forEach(c => {
             if (c.isAction()) {
                 game.incrementActionCount(2);
             }
@@ -249,7 +251,6 @@ class WishingWellEffect implements e.Effect {
     process(game:Game, player:Player, trigger:cards.Card) {
         var cs = cards.cardsFromPiles(game.kingdomPiles);
         var decision = decisions.makeNameCardDecision(cs, trigger);
-        // TODO?: prompt variant for single card
         return player.promptForCardDecision(decision, cs => {
             var namedCard = cs[0];
             var revealed = game.revealCardFromDeck(player);
@@ -412,7 +413,8 @@ export var Pawn = new cards.Card({
     name: 'Pawn',
     cost: 2,
     effects: [new e.EffectChoiceEffect([
-        new e.GainActionsEffect(1), new e.DrawEffect(1), new e.GainBuysEffect(1), new e.GainCoinsEffect(1)
+        new e.GainActionsEffect(1), new e.DrawEffect(1),
+        new e.GainBuysEffect(1), new e.GainCoinsEffect(1)
         ], e.Target.ActivePlayer, 2)],
     set: SetName
 });
