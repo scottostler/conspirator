@@ -20,9 +20,9 @@ import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
 import neutralCardsWith = testsupport.neutralCardsWith;
 
-var copperHand = util.duplicate(cards.Copper, 5);
-var copperEstateHand = util.duplicate(cards.Copper, 3).concat(util.duplicate(cards.Estate, 2));
-var threeCopperHand = util.duplicate(cards.Copper, 3);
+import copperHand = testsupport.copperHand;
+import copperEstateHand = testsupport.copperEstateHand;
+import threeCopperHand = testsupport.threeCopperHand;
 
 describe('Adventurer', () => {
     it('should draw two treasures', (done) => {

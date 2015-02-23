@@ -1,3 +1,4 @@
+import _ = require("underscore");
 import base = require('./base');
 import cards = require('./cards');
 import effects = require('./effects');
@@ -202,7 +203,7 @@ export function makeRevealCardDecision(cs:Card[], trigger:Card) : RevealCardDeci
 
 export function makeEffectsDecision(es:effects.LabelledEffect[], trigger:Card, num:number) : ChooseEffectDecision{
     return {
-        decisionType:DecisionType.RevealCard,
+        decisionType:DecisionType.ChooseEffect,
         trigger:trigger.name,
         minSelections:num,
         maxSelections:num,

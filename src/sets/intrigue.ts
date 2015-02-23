@@ -37,7 +37,7 @@ class BaronDiscardEffect implements e.Effect {
 
 }
 
-class ConspiratorGainEffect implements e.Effect {
+class ConspiratorDrawEffect implements e.Effect {
 
     getTarget() { return e.Target.ActivePlayer; }
 
@@ -118,10 +118,12 @@ class MiningVillageTrashEffect implements e.Effect {
     }
 }
 
+export var MinionDiscardEffectLabel = 'Discard and draw';
+
 class MinionDiscardEffect implements e.LabelledEffect {
 
     getTarget() { return e.Target.AllPlayers; }
-    getLabel() { return 'Discard and draw'; }
+    getLabel() { return MinionDiscardEffectLabel; }
 
     process(game:Game, player:Player, trigger:cards.Card) {
         if (game.isActivePlayer(player) || player.hand.length >= 5) {
@@ -303,7 +305,7 @@ export var Bridge = new cards.Card({
     cost: 4,
     effects: [
         new e.GainBuysEffect(1),
-        new e.GainCoinsEffect(1),
+        e.GainOneCoin,
         new e.CardDiscountEffect(1)
     ],
     set: SetName
@@ -313,8 +315,8 @@ export var Conspirator = new cards.Card({
     name: 'Conspirator',
     cost: 4,
     effects: [
-        new e.GainCoinsEffect(2),
-        new ConspiratorGainEffect()
+        e.GainTwoCoins,
+        new ConspiratorDrawEffect()
     ],
     set: SetName
 });
@@ -392,7 +394,7 @@ export var Minion = new cards.Card({
     effects: [
         new e.GainActionsEffect(1),
         new e.EffectChoiceEffect([
-            new e.GainCoinsEffect(2),
+            e.GainTwoCoins,
             new MinionDiscardEffect()]),
     ],
     attack: true,
@@ -414,7 +416,7 @@ export var Pawn = new cards.Card({
     cost: 2,
     effects: [new e.EffectChoiceEffect([
         new e.GainActionsEffect(1), new e.DrawEffect(1),
-        new e.GainBuysEffect(1), new e.GainCoinsEffect(1)
+        new e.GainBuysEffect(1), e.GainOneCoin
         ], e.Target.ActivePlayer, 2)],
     set: SetName
 });
@@ -460,7 +462,7 @@ export var Steward = new cards.Card({
     effects: [
         new e.EffectChoiceEffect([
             new e.DrawEffect(2),
-            new e.GainCoinsEffect(2),
+            e.GainTwoCoins,
             new e.TrashEffect(e.Target.ActivePlayer, 2, 2)])
     ],
     set: SetName
@@ -470,7 +472,7 @@ export var Swindler = new cards.Card({
     name: 'Swindler',
     cost: 3,
     effects: [
-        new e.GainCoinsEffect(2),
+        e.GainTwoCoins,
         new SwindlerEffect()],
     attack: true,
     set: SetName

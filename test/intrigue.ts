@@ -4,8 +4,9 @@
 import _ = require('underscore');
 import chai = require('chai');
 
-import cards = require('../src/cards');
 import baseset = require('../src/sets/baseset');
+import cards = require('../src/cards');
+import effects = require('../src/effects');
 import intrigue = require('../src/sets/intrigue');
 import testsupport = require('./testsupport');
 import util = require('../src/util');
@@ -19,7 +20,12 @@ import expectTopDiscardCard = testsupport.expectTopDiscardCard;
 import expectActionCount = testsupport.expectActionCount;
 import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
+import expectPlayerHandSize = testsupport.expectPlayerHandSize;
 import neutralCardsWith = testsupport.neutralCardsWith;
+
+import copperHand = testsupport.copperHand;
+import copperEstateHand = testsupport.copperEstateHand;
+import threeCopperHand = testsupport.threeCopperHand;
 
 describe('Baron', () => {
     it('should allow discarding an Estate for +4 coin', (done) => {
@@ -106,17 +112,17 @@ describe('Conspirator', () => {
         decider1.playAction(intrigue.Conspirator);
         expectActionCount(game, 2);
         expectCoinCount(game, 2);
-        expect(game.activePlayer.hand).to.have.length(4);
+        expectPlayerHandSize(game.activePlayer, 4);
 
         decider1.playAction(intrigue.Conspirator);
         expectActionCount(game, 1);
         expectCoinCount(game, 4);
-        expect(game.activePlayer.hand).to.have.length(3);
+        expectPlayerHandSize(game.activePlayer, 3);
 
         decider1.playAction(intrigue.Conspirator);
         expectActionCount(game, 1);
         expectCoinCount(game, 6);
-        expect(game.activePlayer.hand).to.have.length(3);
+        expectPlayerHandSize(game.activePlayer, 3);
 
         done();
     });
@@ -168,10 +174,10 @@ describe('Courtyard', () => {
 
         game.start();
         decider1.playAction(intrigue.Courtyard);
-        expect(game.activePlayer.hand).to.have.length(7);
+        expectPlayerHandSize(game.activePlayer, 7);
         decider1.discardCard(cards.Copper);
         expectTopDeckCard(game.players[0], cards.Copper);
-        expect(game.activePlayer.hand).to.have.length(6);
+        expectPlayerHandSize(game.activePlayer, 6);
         done();
     });
 });
@@ -202,7 +208,7 @@ describe('Great Hall', () => {
         game.start();
         decider1.playAction(intrigue.GreatHall);
         expectActionCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         done();
     });
 });
@@ -240,13 +246,13 @@ describe('Ironworks', () => {
         decider1.playAction(intrigue.Ironworks);
         decider1.gainCard(intrigue.GreatHall);
         expectActionCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
 
         decider1.playAction(intrigue.Ironworks)
         decider1.gainCard(cards.Silver);
         expectActionCount(game, 0);
         expectCoinCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(4);
+        expectPlayerHandSize(game.activePlayer, 4);
 
         done();
     });
@@ -265,14 +271,14 @@ describe('Mining Village', () => {
         game.start();
 
         decider1.playAction(intrigue.MiningVillage);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         expectActionCount(game, 2);
 
         decider1.trashCard(intrigue.MiningVillage);
         expectCoinCount(game, 2);
 
         decider1.playAction(intrigue.MiningVillage);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         expectActionCount(game, 3);
 
         decider1.trashCard(null);
@@ -298,13 +304,50 @@ describe('Mining Village', () => {
 
         expectActionCount(game, 5);
         expectCoinCount(game, 2);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         decider1.playTreasures([]);
         done();
     });
 });
 
-// Minion,
+describe('Minion', () => {
+    var hand = [intrigue.Minion, intrigue.Minion, cards.Copper, cards.Copper, cards.Estate];
+    it('should give +1 action, and +2 coin or discard attack', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Minion), decider1, decider2, hand);
+
+        testsupport.setPlayerDeck(game, game.players[0], [intrigue.Minion, intrigue.Minion, cards.Estate, cards.Estate]);
+
+        game.start();
+
+        decider1.playAction(intrigue.Minion);
+        decider1.chooseEffect(effects.GainTwoCoins.getLabel());
+        expectCoinCount(game, 2);
+        expectPlayerHandSize(game.players[1], 5);
+
+        decider1.playAction(intrigue.Minion);
+        decider1.chooseEffect(intrigue.MinionDiscardEffectLabel);
+
+        expectActionCount(game, 1);
+        expectCoinCount(game, 2);
+        expectPlayerHandSize(game.activePlayer, 4);
+        expectPlayerHandSize(game.players[1], 4);
+
+        decider1.playAction(intrigue.Minion);
+        decider1.chooseEffect(effects.GainTwoCoins.getLabel());
+        expectCoinCount(game, 4);
+
+        var p2Hand = game.players[1].hand;
+        decider1.playAction(intrigue.Minion);
+        decider1.chooseEffect(intrigue.MinionDiscardEffectLabel);
+        expectEqualCards(game.players[1].hand, p2Hand);
+
+        done();
+    });
+});
+
 // Nobles,
 // Pawn,
 // Saboteur,

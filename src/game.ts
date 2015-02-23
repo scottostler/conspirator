@@ -167,8 +167,7 @@ class Game extends base.BaseGame {
             return this.players.slice(index + 1).concat(
                 this.players.slice(0, index));
         } else {
-            console.error('unable to find player', player);
-            return [];
+            throw new Error('Unable to find player ' + player.name);
         }
     }
 
@@ -369,27 +368,28 @@ class Game extends base.BaseGame {
         });
     }
 
-    pushEventsForActionEffects(card:cards.Card) {
-        var events:EventFunction[] = [];
+    pushEventsForSingleEffect(e:effects.Effect, trigger:cards.Card) {
+        var players = this.playersForTarget(e.getTarget());
+        var events = players.map(p => {
+            return () => {
+                if (_.contains(this.attackImmunity, p)) {
+                    return Resolution.Advance;
+                } else {
+                    return e.process(this, p, trigger);
+                }
+            };
+        });
+        this.pushEvents(events);
+    }
 
-        card.effects.forEach(e => {
-            this.playersForTarget(e.getTarget()).forEach(p => {
-                events.push(() => {
-                    if (_.contains(this.attackImmunity, p)) {
-                        return Resolution.Advance;
-                    } else {
-                        return e.process(this, p, card);
-                    }
-                });
-            });
+    pushEventsForActionEffects(card:cards.Card) {
+        util.reverse(card.effects).forEach(e => {
+            this.pushEventsForSingleEffect(e, card);
         });
 
-        this.pushEvents(events);
-
+        this.attackImmunity = [];
         if (card.isAttack()) {
             var otherPlayers = this.playersForTarget(Target.OtherPlayers);
-
-            this.attackImmunity = [];
             this.pushEvents(otherPlayers.map(p => {
                 return () => {
                     return this.promptPlayerForReaction(card, p);
@@ -428,7 +428,7 @@ class Game extends base.BaseGame {
         });
 
         if (!pile) {
-            console.error('No pile for card', card);
+            throw new Error('No pile for card ' + card.name);
         }
 
         return pile;
@@ -626,7 +626,7 @@ class Game extends base.BaseGame {
 
     discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
         var ontoDeck = destination === base.DiscardDestination.Deck;
-        _.each(cs, card => {
+        _.each(_.clone(cs), card => {
             var card = cards.removeFirst(player.hand, card);
             if (ontoDeck) {
                 player.deck.push(card);
@@ -635,13 +635,15 @@ class Game extends base.BaseGame {
             }
         });
 
-        this.log(player, 'discards', cs.join(', '), ontoDeck ? 'onto deck' : '');
+        this.log(player.name, 'discards', cards.getNames(cs).join(', '), ontoDeck ? 'onto deck' : '');
         this.gameListener.playerDiscardedCards(player, cs);
     }
 
+    // TODO?: consolidate logic for trashing from different containers
+
     // Trash cards from a player's hand.
     trashCards(player:Player, cs:cards.Card[]) {
-        _.each(cs, card => {
+        _.each(_.clone(cs), card => {
             var card = cards.removeFirst(player.hand, card);
             this.trash.push(card);
         });
@@ -650,27 +652,19 @@ class Game extends base.BaseGame {
         this.gameListener.playerTrashedCards(player, cs);
     }
 
-    baseTrashCard(player:Player, card:cards.Card) {
-        this.log(player.name, 'trashes', card.name);
-        this.trash.push(card);
-    }
-
     // For use with 'floating' cards, e.g. cards revealed by thief.
     // Normal trashing from hand should use trashCards.
     addCardToTrash(player:Player, card:cards.Card) {
-        this.baseTrashCard(player, card);
+        this.log(player.name, 'trashes', card.name);
+        this.trash.push(card);
         this.gameListener.addCardToTrash(card);
-    }
-
-    // Checks if this exact object is in play.
-    isExactCardInPlay(card:cards.Card) : boolean {
-        return cards.containsIdentical(this.inPlay, card);
     }
 
     trashCardFromPlay(player:Player, card:cards.Card) : boolean {
         if (this.isExactCardInPlay(card)) {
             cards.removeIdentical(this.inPlay, card);
-            this.baseTrashCard(player, card);
+            this.log(player.name, 'trashes', card.name);
+            this.trash.push(card);
             this.gameListener.trashCardFromPlay(card);
             return true;
         } else {
@@ -684,9 +678,15 @@ class Game extends base.BaseGame {
             return null;
         }
 
-        this.baseTrashCard(player, card);
+        this.log(player.name, 'trashes', card.name);
+        this.trash.push(card);
         this.gameListener.playerTrashedCardFromDeck(player, card);
         return card;
+    }
+
+    // Checks if this exact object is in play.
+    isExactCardInPlay(card:cards.Card) : boolean {
+        return cards.containsIdentical(this.inPlay, card);
     }
 
     // Methods to increment active player's turn counts.
@@ -727,15 +727,15 @@ class Game extends base.BaseGame {
     // Used when card is taken from deck, and optionally drawn.
     // Assumes that the card has already been removed from the deck!
     // The cards may or may not be revealed to all players.
-    drawTakenCards(player:Player, cards:cards.Card[], revealCards:boolean) {
-        player.addCardsToHand(cards);
+    drawTakenCards(player:Player, cs:cards.Card[], revealCards:boolean) {
+        player.addCardsToHand(cs);
         if (revealCards) {
-            this.log(player, 'draws', cards.join(', '));
+            this.log(player, 'draws', cs.join(', '));
         } else {
-            this.log(player, 'draws', util.pluralize('card', cards.length));
+            this.log(player, 'draws', util.pluralize('card', cs.length));
         }
 
-        this.gameListener.playerDrewCards(player, cards);
+        this.gameListener.playerDrewCards(player, cs);
     }
 
     // Used when player reveals cards, and discards some.

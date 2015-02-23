@@ -235,6 +235,10 @@ export function containsIdentical(cards:Card[], card:Card) {
     return _.contains(cards, card);
 }
 
+// TODO:
+// Mutating the removeFirst/removeIdentical input arrays shortens caller code, but
+// can cause bugs due to mutating shared state.
+
 // Removes a card of the same type.
 // Throws an error if the card isn't present.
 export function removeFirst(cards:Card[], card:Card) : Card {

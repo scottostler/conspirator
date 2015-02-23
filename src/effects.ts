@@ -405,9 +405,7 @@ export class EffectChoiceEffect implements Effect {
                 var labels = _.map(es, e => e.getLabel());
                 game.log(player.name, 'chooses', labels.join(', '));
                 es.forEach(e => {
-                    game.pushEvent(() => {
-                        return e.process(game, player, trigger);
-                    });
+                    game.pushEventsForSingleEffect(e, trigger);
                 });
             }
 
@@ -478,3 +476,7 @@ export interface PurchaseCallback {
 export interface StringsCallback {
     (xs:string[]) : Resolution;
 }
+
+
+export var GainOneCoin = new GainCoinsEffect(1);
+export var GainTwoCoins = new GainCoinsEffect(2);

@@ -19,6 +19,10 @@ import DecisionType = decisions.DecisionType;
 import GainDestination = base.GainDestination;
 import GameState = base.GameState;
 
+export var copperHand = util.duplicate(cards.Copper, 5);
+export var copperEstateHand = util.duplicate(cards.Copper, 3).concat(util.duplicate(cards.Estate, 2));
+export var threeCopperHand = util.duplicate(cards.Copper, 3);
+
 var NumKingdomCards = 10;
 
 // A list of action cards that only impact the game while played.
@@ -26,6 +30,7 @@ var neutralKingdomCards = [
     baseset.Cellar, baseset.Festival, baseset.Market, baseset.Laboratory,
     baseset.Library, baseset.Mine, baseset.Moneylender, baseset.Militia,
     baseset.Smithy, baseset.Village, baseset.Woodcutter];
+
 
 export function neutralCardsWith(...cs:cards.Card[]) : cards.Card[] {
     var withoutCards = cards.difference(neutralKingdomCards, cs);
@@ -64,6 +69,10 @@ export function expectBuyCount(game:Game, count:number) {
 
 export function expectCoinCount(game:Game, count:number) {
     expect(game.turnState.coinCount).to.eql(count, 'Coin count should be ' + count);
+}
+
+export function expectPlayerHandSize(player:Player, size:number) {
+    expect(player.hand).to.have.length(size, player.name + ' should have hand size of ' + size);
 }
 
 export function setPlayerDeck(game:Game, player:Player, cs:Card[]) {
@@ -151,6 +160,13 @@ export class TestingDecider implements decider.Decider {
         callback([result ? decisions.Yes : decisions.No]);
     }
 
+    makeEffectsDecision(labels:string[]) {
+        this.expectPendingDecisionType(DecisionType.ChooseEffect);
+        var callback = this.pendingCallback;
+        this.pendingCallback = null;
+        this.pendingDecision = null;
+        callback(labels);
+    }
 
     makeCardsDecision(d:DecisionType, cs:Card[]) {
         this.expectPendingDecisionType(d);
@@ -204,6 +220,10 @@ export class TestingDecider implements decider.Decider {
 
     setAsideCard(c:Card) {
         this.makeCardDecision(DecisionType.SetAsideCard, c);
+    }
+
+    chooseEffect(label:string) {
+        this.makeEffectsDecision(label !== null ? [label] : []);
     }
 }
 
