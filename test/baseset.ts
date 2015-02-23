@@ -450,6 +450,29 @@ describe('Throne Room', () => {
         expectCoinCount(game, 4);
         done();
     });
+
+    it('should play itself twice', done => {
+        var hand = [
+            baseset.ThroneRoom, baseset.ThroneRoom,
+            baseset.Moneylender, baseset.Woodcutter, cards.Copper, cards.Copper];
+
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.ThroneRoom), decider1, decider2, hand);
+        game.start();
+
+        decider1.playAction(baseset.ThroneRoom);
+        decider1.playAction(baseset.ThroneRoom);
+        decider1.playAction(baseset.Moneylender);
+        decider1.trashCard(cards.Copper);
+        decider1.trashCard(cards.Copper);
+        // Woodcutter is forced to play
+
+        expectBuyCount(game, 3);
+        expectCoinCount(game, 10);
+        done();
+    });
 });
 
 describe('Thief', () => {
