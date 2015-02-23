@@ -252,8 +252,58 @@ describe('Ironworks', () => {
     });
 });
 
-// Masquerade,
-// MiningVillage,
+// TODO: Masquerade
+
+describe('Mining Village', () => {
+    it('should give +1, +2 actions and offer trash for +2 coin', done => {
+        var hand = [intrigue.MiningVillage, intrigue.MiningVillage, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.MiningVillage), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.MiningVillage);
+        expect(game.activePlayer.hand).to.have.length(5);
+        expectActionCount(game, 2);
+
+        decider1.trashCard(intrigue.MiningVillage);
+        expectCoinCount(game, 2);
+
+        decider1.playAction(intrigue.MiningVillage);
+        expect(game.activePlayer.hand).to.have.length(5);
+        expectActionCount(game, 3);
+
+        decider1.trashCard(null);
+        expectCoinCount(game, 2);
+
+        done();
+    });
+
+    it('should only be trashed once with Throne Room', done => {
+        var hand = [baseset.ThroneRoom, intrigue.MiningVillage, intrigue.MiningVillage, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.MiningVillage, baseset.ThroneRoom), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.MiningVillage);
+        decider1.trashCard(null);
+
+        decider1.playAction(baseset.ThroneRoom);
+        decider1.trashCard(intrigue.MiningVillage);
+
+        expectActionCount(game, 5);
+        expectCoinCount(game, 2);
+        expect(game.activePlayer.hand).to.have.length(5);
+        decider1.playTreasures([]);
+        done();
+    });
+});
+
 // Minion,
 // Nobles,
 // Pawn,

@@ -66,7 +66,7 @@ class Player extends base.BasePlayer {
     }
 
     removeCardFromHand(card:cards.Card) {
-        this.hand = cards.removeFirst(this.hand, card);
+        cards.removeFirst(this.hand, card);
     }
 
     takeCardsFromDeck(num:number) : cards.Card[] {

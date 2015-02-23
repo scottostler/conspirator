@@ -485,11 +485,10 @@ class Game extends base.BaseGame {
     // Game-state changes
 
     playTreasure(card:cards.Card) {
-        this.log(this.activePlayer, 'plays', card);
-
-        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
+        var card = cards.removeFirst(this.activePlayer.hand, card);
         this.inPlay.push(card);
 
+        this.log(this.activePlayer, 'plays', card);
         if (card.isSameCard(cards.Copper)) {
             this.turnState.coinCount += this.turnState.copperValue;
         } else {
@@ -576,7 +575,7 @@ class Game extends base.BaseGame {
     }
 
     playerGainsFromTrash(player:Player, card:cards.Card) {
-        this.trash = cards.removeFirst(this.trash, card);
+        var card = cards.removeFirst(this.trash, card);
         player.addCardToDiscard(card);
         this.gameListener.playerGainedCardFromTrash(player, card);
     }
@@ -591,18 +590,14 @@ class Game extends base.BaseGame {
     playAction(card:cards.Card) : Resolution {
         if (this.turnState.actionCount <= 0) {
             throw new Error('Unable to play ' + card.name + ' with action count ' + this.turnState.actionCount);
-        } else if (!cards.contains(this.activePlayer.hand, card)) {
-            throw new Error('Unable to play ' + card.name + ', card is not in hand');
         }
 
-        this.log(this.activePlayer.name, 'plays', card.name);
-
+        var card = cards.removeFirst(this.activePlayer.hand, card);
+        this.inPlay.push(card);
         this.turnState.playedActionCount++;
         this.turnState.actionCount--;
 
-        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
-        this.inPlay.push(card);
-
+        this.log(this.activePlayer.name, 'plays', card.name);
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedCard(this.activePlayer, card);
         this.stateUpdated();
@@ -610,7 +605,7 @@ class Game extends base.BaseGame {
     }
 
     playClonedAction(card:cards.Card, playCount:number) {
-        this.log(this.activePlayer, 'plays', card.name, '(' + playCount + ')');
+        this.log(this.activePlayer.name, 'plays', card.name, '(' + (playCount+1) + ')');
         this.turnState.playedActionCount++;
         this.pushEventsForActionEffects(card);
         this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
@@ -632,11 +627,7 @@ class Game extends base.BaseGame {
     discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
         var ontoDeck = destination === base.DiscardDestination.Deck;
         _.each(cs, card => {
-            if (!cards.contains(player.hand, card)) {
-                console.error('Player unable to discard', player, card);
-                return;
-            }
-            player.hand = cards.removeFirst(player.hand, card);
+            var card = cards.removeFirst(player.hand, card);
             if (ontoDeck) {
                 player.deck.push(card);
             } else {
@@ -650,13 +641,12 @@ class Game extends base.BaseGame {
 
     // Trash cards from a player's hand.
     trashCards(player:Player, cs:cards.Card[]) {
-        this.log(player.name, 'trashes', cs.join(', '));
-
         _.each(cs, card => {
-            player.hand = cards.removeFirst(player.hand, card);
+            var card = cards.removeFirst(player.hand, card);
             this.trash.push(card);
         });
 
+        this.log(player.name, 'trashes', cs.join(', '));
         this.gameListener.playerTrashedCards(player, cs);
     }
 
@@ -674,12 +664,12 @@ class Game extends base.BaseGame {
 
     // Checks if this exact object is in play.
     isExactCardInPlay(card:cards.Card) : boolean {
-        return cards.contains(this.inPlay, card);
+        return cards.containsIdentical(this.inPlay, card);
     }
 
     trashCardFromPlay(player:Player, card:cards.Card) : boolean {
-        if (cards.contains(this.inPlay, card)) {
-            this.inPlay = cards.removeFirst(this.inPlay, card);
+        if (this.isExactCardInPlay(card)) {
+            cards.removeIdentical(this.inPlay, card);
             this.baseTrashCard(player, card);
             this.gameListener.trashCardFromPlay(card);
             return true;
@@ -812,13 +802,8 @@ class Game extends base.BaseGame {
     }
 
     playActionMultipleTimes(card:cards.Card, num:number) : Resolution {
-        if (!cards.contains(this.activePlayer.hand, card)) {
-            throw new Error('Unable to play ' + card.name + ' multiple times, card is not in hand');
-        }
-
-        this.activePlayer.hand = cards.removeFirst(this.activePlayer.hand, card);
+        var card = cards.removeFirst(this.activePlayer.hand, card);
         this.inPlay.push(card);
-
         var playEvents = _.times(num, (i) => {
             return () => {
                 return this.playClonedAction(card, i);

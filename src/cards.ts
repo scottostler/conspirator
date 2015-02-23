@@ -235,24 +235,30 @@ export function containsIdentical(cards:Card[], card:Card) {
     return _.contains(cards, card);
 }
 
-export function removeFirst(cards:Card[], card:Card) {
+// Removes a card of the same type.
+// Throws an error if the card isn't present.
+export function removeFirst(cards:Card[], card:Card) : Card {
     var match = _.find<Card>(cards, makeIsCardPredicate(card));
     var index = cards.indexOf(match);
 
-    if (index != -1) {
-        return cards.slice(0, index).concat(cards.slice(index + 1));
-    } else {
-        return cards;
+    if (index === -1) {
+        throw new Error('Unable to remove ' + card.name + ' from ' + getNames(cards));
     }
+
+    cards.splice(index, 1);
+    return match;
 }
 
-export function removeFirstIdentical(cards:Card[], card:Card) {
+// Removes the exact card object. Card identity can matter for effects like Mining Village.
+// Throws an error if the card isn't present.
+export function removeIdentical(cards:Card[], card:Card) : void {
     var index = cards.indexOf(card);
-    if (index != -1) {
-        return cards.slice(0, index).concat(cards.slice(index + 1));
-    } else {
-        return cards;
+
+    if (index === -1) {
+        throw new Error('Unable to remove ' + card.name + ' from ' + getNames(cards));
     }
+
+    cards.splice(index, 1);
 }
 
 // Dummy Cards

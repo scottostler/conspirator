@@ -2,7 +2,6 @@ import _ = require('underscore');
 
 import base = require('./base');
 import cards = require('./cards');
-import cardlist = require('./sets/cardlist');
 import decisions = require('./decisions');
 import Game = require('./game');
 import Player = require('./player');
@@ -157,9 +156,9 @@ function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, nu
     }
 
     var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, numToDiscard, numToDiscard, this.destination);
-    return player.promptForDecision(decision, cs => {
+    return player.promptForCardDecision(decision, cs => {
         if (cs.length > 0) {
-            game.discardCards(player, cardlist.getCardsByNames(cs), dest);
+            game.discardCards(player, cs, dest);
         }
         return Resolution.Advance;
     });
@@ -231,9 +230,9 @@ export class TrashEffect implements LabelledEffect {
     process(game:Game, player:Player, trigger:cards.Card) : Resolution {
         var matchingCards = cards.filterByType(player.hand, this.cardType);
         var decision = decisions.makeTrashCardDecision(player, matchingCards, trigger, this.min, this.max);
-        return player.promptForDecision(decision, cs => {
+        return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
-                game.trashCards(player, cardlist.getCardsByNames(cs));
+                game.trashCards(player, cs);
             }
 
             return Resolution.Advance;
@@ -374,9 +373,9 @@ export class PlayActionManyTimesEffect implements Effect {
     process(game:Game, player:Player, trigger:cards.Card) {
         var actions = cards.getActions(player.getHand());
         var decision = decisions.makePlayMultipliedActionDecision(actions, trigger, this.num);
-        return player.promptForDecision(decision, cs => {
+        return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
-                return game.playActionMultipleTimes(cardlist.getCardByName(cs[0]), this.num);
+                return game.playActionMultipleTimes(cs[0], this.num);
             } else {
                 return Resolution.Advance;
             }

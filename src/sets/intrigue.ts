@@ -108,8 +108,8 @@ class MiningVillageTrashEffect implements e.Effect {
         }
 
         var decision = decisions.makeTrashInPlayCardDecision(player, trigger, trigger);
-        player.promptForCardDecision(decision, cs => {
-            if (game.trashCardFromPlay(player, trigger)) {
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0 && game.trashCardFromPlay(player, trigger)) {
                 game.incrementCoinCount(2);
             }
 

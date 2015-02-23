@@ -201,10 +201,9 @@ class ThiefTrashEffect implements Effect {
             targetPlayer, matchingCards, trigger, 1, 1, TrashCardSource.CardSet);
         return attackingPlayer.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
-                var cardToTrash = cs[0];
-                var remainingCards = cards.removeFirst(matchingCards, cardToTrash);
+                var cardToTrash = cards.removeFirst(matchingCards, cs[0]);
                 this.trashAndRememberCard(game, targetPlayer, cardToTrash);
-                remainingCards.forEach(c => {
+                matchingCards.forEach(c => {
                     targetPlayer.addCardToDiscard(c);
                 });
             }

@@ -258,11 +258,8 @@ describe('Market', () => {
             neutralCardsWith(baseset.Market), decider1, decider2, marketHand);
         game.start();
 
-        var market = game.players[0].hand[0];
-
         expect(game.activePlayer.hand).to.have.length(5);
         decider1.playAction(baseset.Market);
-        expect(game.isExactCardInPlay(market)).to.be.true;
 
         expectActionCount(game, 1);
         expectBuyCount(game, 2);
