@@ -720,7 +720,7 @@ class Game extends base.BaseGame {
         this.gameListener.playerDrewCards(player, cards);
     }
 
-    drawTakenCard(player:Player, card:cards.Card, revealCards=false) {
+    drawTakenCard(player:Player, card:cards.Card, revealCards:boolean=false) {
         this.drawTakenCards(player, [card], revealCards);
     }
 
