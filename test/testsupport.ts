@@ -237,6 +237,10 @@ export class TestingDecider implements decider.Decider {
     chooseEffects(es:effects.LabelledEffect[]) {
         this.makeEffectsDecision(es);
     }
+
+    orderCards(cs:Card[]) {
+        this.makeCardsDecision(DecisionType.OrderCards, cs);
+    }
 }
 
 export function setupTwoPlayerGame(kingdom:Card[], d1:TestingDecider, d2:TestingDecider, h1:Card[]=null, h2:Card[]=null) : Game {

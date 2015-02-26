@@ -191,7 +191,8 @@ class Player extends base.BasePlayer {
     }
 
     promptForDecision(decision:decisions.Decision, onDecide:effects.StringsCallback) : effects.Resolution {
-        if (decision.options.length <= decision.minSelections) {
+        var doesOrderMatter = decision.decisionType === decisions.DecisionType.OrderCards;
+        if (!doesOrderMatter && decision.options.length <= decision.minSelections) {
             onDecide(decision.options);
             return effects.Resolution.Advance;
         } else if (decision.maxSelections === 0) {

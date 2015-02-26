@@ -451,7 +451,7 @@ describe('Pawn', () => {
 
 describe('Saboteur', () => {
     var hand = [intrigue.Saboteur, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
-    it("should trash 3+ cost card from opponent and offer replacement", done => {
+    it('should trash 3+ cost card from opponent and offer replacement', done => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
@@ -472,7 +472,7 @@ describe('Saboteur', () => {
         done();
     });
 
-    it("should do nothing to 0-2 cost cards", done => {
+    it('should do nothing to 0-2 cost cards', done => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var game = testsupport.setupTwoPlayerGame(
@@ -487,7 +487,29 @@ describe('Saboteur', () => {
     });
 });
 
-// Scout,
+describe('Scout', () => {
+    var hand = [intrigue.Scout, cards.Copper, cards.Copper];
+    it('should draw up to four victory cards and re-order rest', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Scout), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[0],
+            [intrigue.Harem, intrigue.Nobles, cards.Silver, cards.Copper]);
+
+        game.start();
+        decider1.playAction(intrigue.Scout);
+        decider1.orderCards([cards.Silver, cards.Copper]);
+
+        expectActionCount(game, 1);
+        expectEqualCards(game.activePlayer.hand,
+            [intrigue.Harem, intrigue.Nobles, cards.Copper, cards.Copper]);
+
+        done();
+    });
+});
+
 // SecretChamber,
 // ShantyTown,
 // Steward,

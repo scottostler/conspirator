@@ -163,7 +163,7 @@ class ScoutEffect implements e.Effect {
     process(game:Game, player:Player, trigger:cards.Card) {
         var revealedCards = player.takeCardsFromDeck(4);
 
-        if (revealedCards.length == 0) {
+        if (revealedCards.length === 0) {
             return e.Resolution.Advance;
         }
 
