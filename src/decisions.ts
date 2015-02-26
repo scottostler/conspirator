@@ -34,6 +34,10 @@ export interface Decision {
     options:string[];
 }
 
+export function doesOrderMatter(d:Decision) {
+    return d.decisionType === DecisionType.OrderCards;
+}
+
 export interface PlayActionDecision extends Decision {
     playCount:number;
 }
