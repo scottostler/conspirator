@@ -60,6 +60,11 @@ export function expectTopDiscardCard(player:Player, c:Card) {
     expect(_.last(player.discard).name).to.equal(c.name);
 }
 
+export function expectTopTrashCard(game:Game, c:Card) {
+    expect(game.trash).to.have.length.of.at.least(1);
+    expect(_.last(game.trash).name).to.eql(c.name, 'Top card of trash should be ' + c.name);
+}
+
 export function expectActionCount(game:Game, count:number) {
     expect(game.turnState.actionCount).to.eql(count, 'Action count should be ' + count);
 }

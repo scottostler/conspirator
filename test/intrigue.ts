@@ -17,6 +17,7 @@ import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
+import expectTopTrashCard = testsupport.expectTopTrashCard;
 import expectActionCount = testsupport.expectActionCount;
 import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
@@ -339,7 +340,7 @@ describe('Minion', () => {
         decider1.chooseEffect(effects.GainTwoCoins);
         expectCoinCount(game, 4);
 
-        var p2Hand = game.players[1].hand;
+        var p2Hand = _.clone(game.players[1].hand);
         decider1.playAction(intrigue.Minion);
         decider1.chooseEffect(intrigue.MinionDiscard);
         expectEqualCards(game.players[1].hand, p2Hand);
@@ -446,10 +447,46 @@ describe('Pawn', () => {
 
         done();
     });
-
 });
 
-// Saboteur,
+describe('Saboteur', () => {
+    var hand = [intrigue.Saboteur, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+    it("should trash 3+ cost card from opponent and offer replacement", done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Saboteur), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [cards.Duchy, cards.Estate, cards.Estate, cards.Copper]);
+
+        game.start();
+        decider1.playAction(intrigue.Saboteur);
+        decider2.gainCard(cards.Silver);
+
+        expectTopTrashCard(game, cards.Duchy);
+        testsupport.expectEqualCards(
+            [cards.Estate, cards.Estate, cards.Copper, cards.Silver],
+            game.players[1].discard);
+
+        done();
+    });
+
+    it("should do nothing to 0-2 cost cards", done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Saboteur), decider1, decider2, hand);
+
+        game.start();
+
+        var p2Deck = _.clone(game.players[1].deck);
+        decider1.playAction(intrigue.Saboteur);
+        testsupport.expectEqualCards(p2Deck, game.players[1].discard);
+        done();
+    });
+});
+
 // Scout,
 // SecretChamber,
 // ShantyTown,

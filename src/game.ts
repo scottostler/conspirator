@@ -10,6 +10,7 @@ import Player = require('./player');
 import scoring = require('./scoring')
 import TurnState = require('./turnstate');
 
+import GainDestination = base.GainDestination;
 import Resolution = effects.Resolution;
 import Target = effects.Target;
 
@@ -536,25 +537,25 @@ class Game extends base.BaseGame {
         card = this.vendCardFromPile(pile);
 
         this.stateUpdated();
-        this.gameListener.playerGainedCard(this.activePlayer, card, pile.count, base.GainDestination.Discard);
+        this.gameListener.playerGainedCard(this.activePlayer, card, pile.count, GainDestination.Discard);
 
         return Resolution.Advance;
     }
 
-    playerGainsCard(player:Player, card:cards.Card, dest:base.GainDestination=base.GainDestination.Discard) {
+    playerGainsCard(player:Player, card:cards.Card, dest:GainDestination=GainDestination.Discard) {
         var pile = this.pileForCard(card);
         card = this.vendCardFromPile(pile);
 
         switch (dest) {
-            case base.GainDestination.Discard:
+            case GainDestination.Discard:
                 this.log(player, 'gains', card);
                 player.discard.push(card);
                 break;
-            case base.GainDestination.Hand:
+            case GainDestination.Hand:
                 this.log(player, 'gains', card, 'into hand');
                 player.hand.push(card);
                 break;
-            case base.GainDestination.Deck:
+            case GainDestination.Deck:
                 this.log(player, 'gains', card, 'onto deck');
                 player.deck.push(card);
                 break;
@@ -563,14 +564,18 @@ class Game extends base.BaseGame {
         this.gameListener.playerGainedCard(player, card, pile.count, dest);
     }
 
-    playerGainsFromPiles(player:Player, piles:cards.Pile[], trigger:cards.Card, dest:base.GainDestination) : Resolution {
+    playerGainsFromPiles(player:Player, piles:cards.Pile[], trigger:cards.Card, dest:GainDestination, onGain?:effects.CardCallback) : Resolution {
         var decision = decisions.makeGainDecision(player, cards.cardsFromPiles(piles), trigger, dest);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
                 this.playerGainsCard(player, cs[0], dest);
             }
 
-            return Resolution.Advance;
+            if (onGain) {
+                return onGain(cs.length > 0 ? cs[0] : null);
+            } else {
+                return Resolution.Advance;
+            }
         });
     }
 

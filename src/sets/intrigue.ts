@@ -13,7 +13,7 @@ import e = effects;
 import GainDestination = base.GainDestination;
 import Resolution = effects.Resolution;
 
-var SetName = 'intrigue';
+var SetName = 'Intrigue';
 
 class BaronDiscardEffect implements e.Effect {
 
@@ -139,21 +139,20 @@ class SaboteurEffect implements e.Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var results = player.takeCardsFromDeckUntil(c => game.effectiveCardCost(c) >= 3);
-        game.addCardsToDiscard(player, results.otherCards);
 
         if (!results.foundCard) {
+            game.addCardsToDiscard(player, results.otherCards);
             return e.Resolution.Advance;
         }
 
         var cost = game.effectiveCardCost(results.foundCard);
         var piles = game.filterGainablePiles(0, cost);
 
-        if (piles.length === 0) {
-            return e.Resolution.Advance;
-        }
-
         game.addCardToTrash(player, results.foundCard);
-        return game.playerGainsFromPiles(player, piles, trigger, base.GainDestination.Discard);
+        return game.playerGainsFromPiles(player, piles, trigger, base.GainDestination.Discard, c => {
+            game.addCardsToDiscard(player, results.otherCards);
+            return e.Resolution.Advance;
+        });
     }
 }
 
