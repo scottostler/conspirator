@@ -478,5 +478,15 @@ export interface StringsCallback {
 }
 
 
+export var DrawOneCard = new DrawEffect(1);
+export var DrawTwoCards = new DrawEffect(2);
+export var DrawThreeCards = new DrawEffect(3);
+
+export var GainOneAction = new GainActionsEffect(1);
+export var GainTwoActions = new GainActionsEffect(2);
+
 export var GainOneCoin = new GainCoinsEffect(1);
 export var GainTwoCoins = new GainCoinsEffect(2);
+
+export var GainOneBuy = new GainBuysEffect(1);
+export var GainTwoBuys = new GainBuysEffect(2);

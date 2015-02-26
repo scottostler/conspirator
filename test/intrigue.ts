@@ -323,12 +323,12 @@ describe('Minion', () => {
         game.start();
 
         decider1.playAction(intrigue.Minion);
-        decider1.chooseEffect(effects.GainTwoCoins.getLabel());
+        decider1.chooseEffect(effects.GainTwoCoins);
         expectCoinCount(game, 2);
         expectPlayerHandSize(game.players[1], 5);
 
         decider1.playAction(intrigue.Minion);
-        decider1.chooseEffect(intrigue.MinionDiscardEffectLabel);
+        decider1.chooseEffect(intrigue.MinionDiscard);
 
         expectActionCount(game, 1);
         expectCoinCount(game, 2);
@@ -336,20 +336,119 @@ describe('Minion', () => {
         expectPlayerHandSize(game.players[1], 4);
 
         decider1.playAction(intrigue.Minion);
-        decider1.chooseEffect(effects.GainTwoCoins.getLabel());
+        decider1.chooseEffect(effects.GainTwoCoins);
         expectCoinCount(game, 4);
 
         var p2Hand = game.players[1].hand;
         decider1.playAction(intrigue.Minion);
-        decider1.chooseEffect(intrigue.MinionDiscardEffectLabel);
+        decider1.chooseEffect(intrigue.MinionDiscard);
         expectEqualCards(game.players[1].hand, p2Hand);
 
         done();
     });
 });
 
-// Nobles,
-// Pawn,
+describe('Nobles', () => {
+    it('should be worth 2 VP', done => {
+        expectDeckScore([intrigue.Nobles], 2);
+        expectDeckScore([intrigue.Nobles, intrigue.Nobles, intrigue.Nobles], 6);
+        done();
+    });
+
+    it('should offer +2 actions or +3 cards', done => {
+        var hand = [intrigue.Nobles, intrigue.Nobles, cards.Copper, cards.Copper, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Nobles), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.Nobles);
+        decider1.chooseEffect(effects.GainTwoActions);
+
+        expectActionCount(game, 2);
+        expectPlayerHandSize(game.activePlayer, 4);
+
+        decider1.playAction(intrigue.Nobles);
+        decider1.chooseEffect(effects.DrawThreeCards);
+
+        expectActionCount(game, 1);
+        expectPlayerHandSize(game.activePlayer, 6);
+
+        done();
+    });
+});
+
+describe('Pawn', () => {
+    var hand = [intrigue.Pawn, intrigue.Pawn, intrigue.Pawn, intrigue.Pawn, cards.Copper];
+
+    it('should offer four choices', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Pawn), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.Pawn);
+        decider1.chooseEffects([effects.GainOneAction, effects.GainOneCoin]);
+
+        expectActionCount(game, 1);
+        expectCoinCount(game, 1);
+
+
+        decider1.playAction(intrigue.Pawn);
+        decider1.chooseEffects([effects.GainOneAction, effects.GainOneBuy]);
+
+        expectActionCount(game, 1);
+        expectBuyCount(game, 2);
+
+        decider1.playAction(intrigue.Pawn);
+        decider1.chooseEffects([effects.GainOneAction, effects.DrawOneCard]);
+
+        expectActionCount(game, 1);
+        expectPlayerHandSize(game.activePlayer, 3);
+
+        done();
+    });
+
+    it('should not allow invalid choice', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Pawn), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.Pawn);
+
+        expect(() => {
+            decider1.chooseEffects([effects.GainOneAction, effects.GainTwoCoins]);
+            }).to.throw(Error);
+
+        done();
+    });
+
+    it('should require two choices', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Pawn), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.Pawn);
+
+        expect(() => {
+            decider1.chooseEffects([]);
+            }).to.throw(Error);
+
+        done();
+    });
+
+});
+
 // Saboteur,
 // Scout,
 // SecretChamber,

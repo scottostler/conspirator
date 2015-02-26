@@ -6,6 +6,7 @@ import baseset = require('../src/sets/baseset');
 import cards = require('../src/cards');
 import decider = require('../src/decider');
 import decisions = require('../src/decisions');
+import effects = require('../src/effects');
 import scoring = require('../src/scoring');
 import Game = require('../src/game');
 import Player = require('../src/player');
@@ -160,11 +161,13 @@ export class TestingDecider implements decider.Decider {
         callback([result ? decisions.Yes : decisions.No]);
     }
 
-    makeEffectsDecision(labels:string[]) {
+    makeEffectsDecision(es:effects.LabelledEffect[]) {
         this.expectPendingDecisionType(DecisionType.ChooseEffect);
         var callback = this.pendingCallback;
         this.pendingCallback = null;
         this.pendingDecision = null;
+
+        var labels = _.map(es, e => e.getLabel());
         callback(labels);
     }
 
@@ -222,8 +225,12 @@ export class TestingDecider implements decider.Decider {
         this.makeCardDecision(DecisionType.SetAsideCard, c);
     }
 
-    chooseEffect(label:string) {
-        this.makeEffectsDecision(label !== null ? [label] : []);
+    chooseEffect(e:effects.LabelledEffect) {
+        this.makeEffectsDecision(e !== null ? [e] : []);
+    }
+
+    chooseEffects(es:effects.LabelledEffect[]) {
+        this.makeEffectsDecision(es);
     }
 }
 

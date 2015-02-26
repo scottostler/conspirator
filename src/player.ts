@@ -178,8 +178,10 @@ class Player extends base.BasePlayer {
 
     assertValidResults(xs:string[], decision:decisions.Decision) {
         if (xs.length > decision.maxSelections) {
-            throw new Error('Too many results picked: ' + xs.length + ', max is ' + decision.maxSelections);
-        }            
+            throw new Error('Too many choices made: ' + xs.length + ', max is ' + decision.maxSelections);
+        } else if (xs.length < decision.minSelections) {
+            throw new Error('Too few choices made: ' + xs.length + ', min is ' + decision.minSelections);
+        }
 
         xs.forEach(x => {
             if (!_.contains(decision.options, x)) {

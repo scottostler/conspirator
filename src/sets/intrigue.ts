@@ -118,12 +118,10 @@ class MiningVillageTrashEffect implements e.Effect {
     }
 }
 
-export var MinionDiscardEffectLabel = 'Discard and draw';
-
 class MinionDiscardEffect implements e.LabelledEffect {
 
     getTarget() { return e.Target.AllPlayers; }
-    getLabel() { return MinionDiscardEffectLabel; }
+    getLabel() { return 'Discard and draw four cards'; }
 
     process(game:Game, player:Player, trigger:cards.Card) {
         if (game.isActivePlayer(player) || player.hand.length >= 5) {
@@ -294,7 +292,7 @@ export var Baron = new cards.Card({
     name: 'Baron',
     cost: 4,
     effects: [
-        new e.GainBuysEffect(1),
+        e.GainOneBuy,
         new BaronDiscardEffect()
     ],
     set: SetName
@@ -304,7 +302,7 @@ export var Bridge = new cards.Card({
     name: 'Bridge',
     cost: 4,
     effects: [
-        new e.GainBuysEffect(1),
+        e.GainOneBuy,
         e.GainOneCoin,
         new e.CardDiscountEffect(1)
     ],
@@ -332,7 +330,7 @@ export var Courtyard = new cards.Card({
     name: 'Courtyard',
     cost: 2,
     effects: [
-        new e.DrawEffect(3),
+        e.DrawThreeCards,
         new e.DiscardEffect(1, e.Target.ActivePlayer, base.DiscardDestination.Deck)
     ],
     set: SetName
@@ -348,10 +346,7 @@ export var Duke = new cards.Card({
 export var GreatHall = new cards.Card({
     name: 'Great Hall',
     cost: 3,
-    effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(1)
-    ],
+    effects: [e.DrawOneCard, e.GainOneAction],
     vp: new e.BasicVPEffect(1),
     set: SetName
 });
@@ -382,20 +377,22 @@ export var MiningVillage = new cards.Card({
     name: 'Mining Village',
     cost: 4,
     effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(2),
+        e.DrawOneCard,
+        e.GainTwoActions,
         new MiningVillageTrashEffect()],
     set: SetName
 });
+
+export var MinionDiscard = new MinionDiscardEffect();
 
 export var Minion = new cards.Card({
     name: 'Minion',
     cost: 5,
     effects: [
-        new e.GainActionsEffect(1),
+        e.GainOneAction,
         new e.EffectChoiceEffect([
             e.GainTwoCoins,
-            new MinionDiscardEffect()]),
+            MinionDiscard])
     ],
     attack: true,
     set: SetName
@@ -405,7 +402,7 @@ export var Nobles = new cards.Card({
     name: 'Nobles',
     cost: 6,
     effects: [
-        new e.EffectChoiceEffect([new e.GainActionsEffect(2), new e.DrawEffect(3)])
+        new e.EffectChoiceEffect([e.GainTwoActions, e.DrawThreeCards])
     ],
     vp: new e.BasicVPEffect(2),
     set: SetName
@@ -414,10 +411,9 @@ export var Nobles = new cards.Card({
 export var Pawn = new cards.Card({
     name: 'Pawn',
     cost: 2,
-    effects: [new e.EffectChoiceEffect([
-        new e.GainActionsEffect(1), new e.DrawEffect(1),
-        new e.GainBuysEffect(1), e.GainOneCoin
-        ], e.Target.ActivePlayer, 2)],
+    effects: [new e.EffectChoiceEffect(
+        [e.GainOneAction, e.DrawOneCard, e.GainOneBuy, e.GainOneCoin],
+        e.Target.ActivePlayer, 2)],
     set: SetName
 });
 
@@ -442,7 +438,7 @@ export var Scout = new cards.Card({
     name: 'Scout',
     cost: 4,
     effects: [
-        new e.GainActionsEffect(1),
+        e.GainOneAction,
         new ScoutEffect()],
     set: SetName
 });
@@ -451,7 +447,7 @@ export var ShantyTown = new cards.Card({
     name: 'Shanty Town',
     cost: 3,
     effects: [
-        new e.GainActionsEffect(2),
+        e.GainTwoActions,
         new ShantyTownEffect()],
     set: SetName
 });
@@ -461,7 +457,7 @@ export var Steward = new cards.Card({
     cost: 3,
     effects: [
         new e.EffectChoiceEffect([
-            new e.DrawEffect(2),
+            e.DrawTwoCards,
             e.GainTwoCoins,
             new e.TrashEffect(e.Target.ActivePlayer, 2, 2)])
     ],
@@ -482,7 +478,7 @@ export var Torturer = new cards.Card({
     name: 'Torturer',
     cost: 5,
     effects: [
-        new e.DrawEffect(3),
+        e.DrawThreeCards,
         new e.EffectChoiceEffect([
                 new e.DiscardEffect(2, e.Target.ChoosingPlayer),
                 new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand)
@@ -514,8 +510,8 @@ export var Upgrade = new cards.Card({
     name: 'Upgrade',
     cost: 5,
     effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(1),
+        e.DrawOneCard,
+        e.GainOneAction,
         new e.TrashToGainPlusCostEffect(
             1, cards.Type.All,
             base.GainDestination.Discard,
@@ -528,8 +524,7 @@ export var WishingWell = new cards.Card({
     name: 'Wishing Well',
     cost: 3,
     effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(1),
+        e.DrawOneCard, e.GainOneAction,
         new WishingWellEffect()
     ],
     set: SetName
