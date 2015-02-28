@@ -27,7 +27,7 @@ export interface CardProperties {
     name:string;
     cost?:number;
     effects?:effects.Effect[];
-    reaction?:any;
+    reaction?:[effects.ReactionType, effects.Effect[]];
     money?:number;
     moneyEffect?:effects.Effect;
     vp?:effects.VPEffect;
@@ -205,8 +205,8 @@ export function getActions(cards:Card[]) : Card[] {
     return filterByType(cards, Type.Action);
 }
 
-export function getReactions(cards:Card[]) : Card[] {
-    return filterByType(cards, Type.Reaction);
+export function getReactions(cards:Card[], reactionType:effects.ReactionType) : Card[] {
+    return _.filter(cards, (c:Card) => c.isReaction() && c.reaction[0] === reactionType);
 }
 
 export function getTreasures(cards:Card[]) : Card[] {

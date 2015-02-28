@@ -428,8 +428,9 @@ export var SecretChamber = new cards.Card({
     name: 'Secret Chamber',
     cost: 2,
     effects: [new e.DiscardForCoinsEffect()],
-    // TODO
-    reaction: [],
+    reaction: [
+        e.ReactionType.OnAttack,
+        [e.DrawTwoCards, new e.DiscardEffect(2)]],
     set: SetName
 });
 

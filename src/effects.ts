@@ -28,10 +28,10 @@ export class BasicVPEffect implements VPEffect {
 }
 
 export enum Target {
-    ActivePlayer,
+    ActivePlayer,  // Either the player taking their turn, or revealing the reaction
     OtherPlayers,
     AllPlayers,
-    ChoosingPlayer // Only for use with EffectChoiceEffect
+    ChoosingPlayer // For use with EffectChoiceEffect
 }
 
 // Effects resolve by either advancing the game state, or 
@@ -428,17 +428,14 @@ export class DiscardForCoinsEffect implements Effect {
     }
 }
 
-export enum ReactionTrigger {
+export enum ReactionType {
     OnAttack
 }
 
-export interface ReactionEffect {
-    getTrigger() : ReactionTrigger;
-    process(game:Game, player:Player, trigger:cards.Card) : Resolution;
-}
+export class MoatReaction implements Effect {
 
-export class MoatReaction implements ReactionEffect {
-    getTrigger() { return ReactionTrigger.OnAttack; }
+    getTarget() { return Target.ActivePlayer; }
+
     process(game:Game, player:Player, trigger:cards.Card) {
         game.givePlayerAttackImmunity(player);
         return Resolution.Advance;

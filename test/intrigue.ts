@@ -465,7 +465,7 @@ describe('Saboteur', () => {
         decider2.gainCard(cards.Silver);
 
         expectTopTrashCard(game, cards.Duchy);
-        testsupport.expectEqualCards(
+        expectEqualCards(
             [cards.Estate, cards.Estate, cards.Copper, cards.Silver],
             game.players[1].discard);
 
@@ -482,7 +482,7 @@ describe('Saboteur', () => {
 
         var p2Deck = _.clone(game.players[1].deck);
         decider1.playAction(intrigue.Saboteur);
-        testsupport.expectEqualCards(p2Deck, game.players[1].discard);
+        expectEqualCards(p2Deck, game.players[1].discard);
         done();
     });
 });
@@ -510,7 +510,105 @@ describe('Scout', () => {
     });
 });
 
-// SecretChamber,
+describe('Secret Chamber', () => {
+    var militiaHand = [baseset.Militia, cards.Copper, cards.Copper, cards.Estate, cards.Estate];
+    var secretChamberHand = [intrigue.SecretChamber, cards.Copper, cards.Copper, cards.Estate, cards.Estate];
+
+    it('should discard cards for 1 coin each', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.SecretChamber), decider1, decider2, secretChamberHand);
+
+        game.start();
+        decider1.playAction(intrigue.SecretChamber);
+        decider1.discardCards([cards.Copper, cards.Estate, cards.Estate]);
+        expectCoinCount(game, 3);
+        done();
+    });
+
+    it('should draw then discard two cards when revealed as reaction', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.Militia, intrigue.SecretChamber), decider1, decider2, militiaHand, secretChamberHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [cards.Silver, cards.Gold]);
+
+        game.start();
+        decider1.playAction(baseset.Militia);
+
+        expectPlayerHandSize(game.players[1], 5);
+        decider2.revealCard(intrigue.SecretChamber);
+
+        expectPlayerHandSize(game.players[1], 7);
+        decider2.discardCards([cards.Copper, cards.Copper]);
+        decider2.revealCard(null);
+        decider2.discardCards([cards.Estate, cards.Estate]);
+        expectPlayerHandSize(game.players[1], 3);
+        expectEqualCards(game.players[1].hand,
+            [intrigue.SecretChamber, cards.Silver, cards.Gold]);
+
+        done();
+    });
+
+    it('should allow itself to be discarded as reaction', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.Militia, intrigue.SecretChamber), decider1, decider2, militiaHand, secretChamberHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [cards.Silver, cards.Gold]);
+
+        game.start();
+        decider1.playAction(baseset.Militia);
+
+        expectPlayerHandSize(game.players[1], 5);
+        decider2.revealCard(intrigue.SecretChamber);
+
+        expectPlayerHandSize(game.players[1], 7);
+        decider2.discardCards([intrigue.SecretChamber, cards.Copper]);
+        decider2.discardCards([cards.Estate, cards.Estate]);
+        expectPlayerHandSize(game.players[1], 3);
+        expectEqualCards(game.players[1].hand,
+            [cards.Copper, cards.Silver, cards.Gold]);
+
+        done();
+    });
+
+    it('should allow drawing for Moat as reaction', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(baseset.Militia, intrigue.SecretChamber), decider1, decider2, militiaHand, secretChamberHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [baseset.Moat, cards.Gold]);
+
+        game.start();
+        decider1.playAction(baseset.Militia);
+
+        expectPlayerHandSize(game.players[1], 5);
+        decider2.revealCard(intrigue.SecretChamber);
+
+        expectPlayerHandSize(game.players[1], 7);
+
+        decider2.discardCards([intrigue.SecretChamber, cards.Copper]);
+        decider2.revealCard(baseset.Moat);
+        decider2.revealCard(null);
+        decider1.playTreasures([cards.Copper, cards.Copper]);
+
+        expectPlayerHandSize(game.players[1], 5);
+        expectEqualCards(game.players[1].hand,
+            [baseset.Moat, cards.Gold, cards.Copper, cards.Estate, cards.Estate]);
+
+        done();
+    });
+
+});
+
 // ShantyTown,
 // Steward,
 // Swindler,

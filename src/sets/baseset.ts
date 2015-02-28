@@ -368,7 +368,7 @@ export var Moat = new cards.Card({
     name: 'Moat',
     cost: 2,
     effects: [new e.DrawEffect(2)],
-    reaction: new e.MoatReaction(),
+    reaction: [e.ReactionType.OnAttack, [new e.MoatReaction()]],
     set: SetName
 });
 

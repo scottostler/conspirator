@@ -319,9 +319,12 @@ class Game extends base.BaseGame {
         this.revealPlayerCards(player, player.hand);
     }
 
-    playerRevealsReaction(player:Player, card:cards.Card) {
-        this.revealPlayerCards(player, [card]);
-        this.pushEventForOtherEffect(card, card.reaction, player);
+    playerRevealsReaction(player:Player, reaction:cards.Card, trigger:cards.Card, reactionType:effects.ReactionType) {
+        this.revealPlayerCards(player, [reaction]);
+        this.pushEvent(() => {
+            return this.promptPlayerForReaction(trigger, player, reactionType);
+        });
+        this.pushEventsForPlayer(reaction, reaction.reaction[1], player);
     }
 
     // Game Events
@@ -349,26 +352,20 @@ class Game extends base.BaseGame {
         this.eventStack = this.eventStack.concat(util.reverse(events));
     }
 
-    promptPlayerForReaction(trigger:cards.Card, targetPlayer:Player) : Resolution {
-        var reactions = cards.getReactions(targetPlayer.hand);
+    promptPlayerForReaction(trigger:cards.Card, targetPlayer:Player, reactionType:effects.ReactionType) : Resolution {
+        var reactions = cards.getReactions(targetPlayer.hand, reactionType);
         var decision = decisions.makeRevealCardDecision(reactions, trigger);
+
         return targetPlayer.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
-                var reaction = cs[0].reaction;
-                if (!reaction) {
-                    throw new Error('Card ' + cs[0].name + ' has no reaction');
-                }
-
-                this.pushEvent(() => {
-                    return this.promptPlayerForReaction(trigger, targetPlayer);
-                });
-                return reaction.process(this, targetPlayer, trigger);
-            } else {
-                return Resolution.Advance;
+                this.playerRevealsReaction(targetPlayer, cs[0], trigger, reactionType);
             }
+
+            return Resolution.Advance;
         });
     }
 
+    // TODO: immunity won't work with multiple reactions
     pushEventsForSingleEffect(e:effects.Effect, trigger:cards.Card) {
         var players = this.playersForTarget(e.getTarget());
         var events = players.map(p => {
@@ -393,15 +390,18 @@ class Game extends base.BaseGame {
             var otherPlayers = this.playersForTarget(Target.OtherPlayers);
             this.pushEvents(otherPlayers.map(p => {
                 return () => {
-                    return this.promptPlayerForReaction(card, p);
+                    return this.promptPlayerForReaction(card, p, effects.ReactionType.OnAttack);
                 }
             }));
         }
     }
 
-    pushEventForOtherEffect(card:cards.Card, effect:effects.Effect, player:Player) {
-        this.pushEvent(() => {
-            return effect.process(this, player, card);
+    pushEventsForPlayer(trigger:cards.Card, effects:effects.Effect[], player:Player) {
+        util.reverse(effects).forEach(e => {
+            // TODO: check effect's target for ActivePlayer
+            this.pushEvent(() => {
+                return e.process(this, player, trigger);
+            });
         });
     }
 
@@ -497,10 +497,9 @@ class Game extends base.BaseGame {
         }
 
         if (card.moneyEffect) {
-            this.pushEventForOtherEffect(card, card.moneyEffect, this.activePlayer);
+            this.pushEventsForPlayer(card, [card.moneyEffect], this.activePlayer);
         }
 
-        this.stateUpdated();
         this.gameListener.playerPlayedCard(this.activePlayer, card);
     }
 
