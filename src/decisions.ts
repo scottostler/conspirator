@@ -132,6 +132,8 @@ export function makeBuyDecision(player:Player, cs:Card[]) : GainCardDecision {
     };
 }
 
+// TODO?: make game responsible for gaining from decision
+
 export function makeGainDecision(player:Player, cs:Card[], trigger:Card, destination:GainDestination) : GainCardDecision {
     return {
         decisionType:DecisionType.GainCard,
@@ -145,6 +147,7 @@ export function makeGainDecision(player:Player, cs:Card[], trigger:Card, destina
     };
 }
 
+// Gains from a set of floating cards not a pile, e.g. for Thief
 export function makeGainAnyDecision(player:Player, cs:Card[], trigger:Card) : GainCardDecision {
     return {
         decisionType:DecisionType.GainCard,
