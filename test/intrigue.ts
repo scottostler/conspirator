@@ -712,14 +712,51 @@ describe('Swindler', () => {
         decider1.playAction(intrigue.Bridge);
         decider1.playAction(intrigue.Swindler);
         decider1.gainCard(cards.Curse);
-
         done();
     })
 
 });
 
-// Swindler,
-// Torturer,
+describe('Torturer', () => {
+    it('should draw 3 cards and give choice of discard or gaining curse', done => {
+        var hand = [intrigue.Torturer, intrigue.Torturer, intrigue.Torturer, intrigue.Torturer, intrigue.Torturer];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Torturer), decider1, decider2, hand, copperHand);
+
+        game.start();
+        game.incrementActionCount(4);
+
+        decider1.playAction(intrigue.Torturer);
+        decider2.chooseEffect(intrigue.GainCurseIntoHand);
+        expectPlayerHandSize(game.activePlayer, 7);
+        expectPlayerHandSize(game.players[1], 6);
+
+        decider1.playAction(intrigue.Torturer);
+        decider2.chooseEffect(intrigue.TorturerDiscard);
+        decider2.discardCards([cards.Curse, cards.Copper]);
+        expectPlayerHandSize(game.players[1], 4);
+
+        decider1.playAction(intrigue.Torturer);
+        decider2.chooseEffect(intrigue.TorturerDiscard);
+        decider2.discardCards([cards.Copper, cards.Copper]);
+        expectPlayerHandSize(game.players[1], 2);
+
+        decider1.playAction(intrigue.Torturer);
+        decider2.chooseEffect(intrigue.TorturerDiscard);
+        expectPlayerHandSize(game.players[1], 0);
+
+        decider1.playAction(intrigue.Torturer);
+        decider2.chooseEffect(intrigue.TorturerDiscard);
+        expectPlayerHandSize(game.players[1], 0);
+
+        decider1.playTreasures([cards.Copper]);
+
+        done();
+    });
+});
+
 // TradingPost,
 // Tribute,
 // Upgrade,

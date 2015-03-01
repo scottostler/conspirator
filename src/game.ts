@@ -333,7 +333,7 @@ class Game extends base.BaseGame {
 
     // Game Events
 
-    playersForTarget(target:Target) : Player[] {
+    playersForTarget(target:Target, choosingPlayer?:Player) : Player[] {
         switch (target) {
             case Target.ActivePlayer:
                 return [this.activePlayer];
@@ -342,7 +342,11 @@ class Game extends base.BaseGame {
             case Target.AllPlayers:
                 return [this.activePlayer].concat(this.inactivePlayers);
             case Target.ChoosingPlayer:
-                throw new Error('ChoosingPlayer not defined for this method');
+                if (choosingPlayer) {
+                    return [choosingPlayer];
+                } else {
+                    throw new Error('ChoosingPlayer not provided');
+                }
         }
     }
 
@@ -400,13 +404,32 @@ class Game extends base.BaseGame {
         }
     }
 
+    // Intended for Reaction and Money effects. Only works for ActivePlayer effects.
     pushEventsForPlayer(trigger:cards.Card, effects:effects.Effect[], player:Player) {
         util.reverse(effects).forEach(e => {
-            // TODO: check effect's target for ActivePlayer
+            if (e.getTarget() !== Target.ActivePlayer) {
+                throw new Error('Invalid player target for ' + e);
+            }
             this.pushEvent(() => {
                 return e.process(this, player, trigger);
             });
         });
+    }
+
+    playerChoosesEffects(player:Player, es:effects.LabelledEffect[], trigger:cards.Card) {
+        var labels = _.map(es, e => e.getLabel());
+        this.log(player.name, 'chooses', labels.join(', '));
+
+        var events:EventFunction[] = [];
+        es.forEach(e => {
+            var targets = this.playersForTarget(e.getTarget(), player);
+            targets.forEach(p => {
+                events.push(() => {
+                    return e.process(this, p, trigger);
+                });
+            });
+        });
+        this.pushEvents(events);
     }
 
     logPlayerShuffle(player:Player) {

@@ -401,12 +401,7 @@ export class EffectChoiceEffect implements Effect {
         var decision = decisions.makeEffectsDecision(this.effects, trigger, this.numChoices);
         return player.promptForEffectDecision(decision, this.effects, es => {
             if (es.length > 0) {
-                // TODO?: move into game class
-                var labels = _.map(es, e => e.getLabel());
-                game.log(player.name, 'chooses', labels.join(', '));
-                es.forEach(e => {
-                    game.pushEventsForSingleEffect(e, trigger);
-                });
+                game.playerChoosesEffects(player, es, trigger);
             }
 
             return Resolution.Advance;

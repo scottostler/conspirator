@@ -476,15 +476,15 @@ export var Swindler = new cards.Card({
     set: SetName
 });
 
+export var TorturerDiscard = new e.DiscardEffect(2, e.Target.ChoosingPlayer);
+export var GainCurseIntoHand = new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand);
+
 export var Torturer = new cards.Card({
     name: 'Torturer',
     cost: 5,
     effects: [
         e.DrawThreeCards,
-        new e.EffectChoiceEffect([
-                new e.DiscardEffect(2, e.Target.ChoosingPlayer),
-                new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand)
-            ], e.Target.OtherPlayers)],
+        new e.EffectChoiceEffect([TorturerDiscard, GainCurseIntoHand], e.Target.OtherPlayers)],
     attack: true,
     set: SetName
 });
