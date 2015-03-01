@@ -33,7 +33,7 @@ var neutralKingdomCards = [
     baseset.Smithy, baseset.Village, baseset.Woodcutter];
 
 
-export function neutralCardsWith(...cs:cards.Card[]) : cards.Card[] {
+export function neutralCardsWith(cs:cards.Card[]) : cards.Card[] {
     var withoutCards = cards.difference(neutralKingdomCards, cs);
     return _.sample<cards.Card>(withoutCards, NumKingdomCards - cs.length).concat(cs);
 }
@@ -247,10 +247,10 @@ export class TestingDecider implements decider.Decider {
     }
 }
 
-export function setupTwoPlayerGame(kingdom:Card[], d1:TestingDecider, d2:TestingDecider, h1:Card[]=null, h2:Card[]=null) : Game {
+export function setupTwoPlayerGame(d1:TestingDecider, d2:TestingDecider, h1:Card[]=null, h2:Card[]=null, kingdom:Card[]=[]) : Game {
     var player1 = new Player('Player 1', d1);
     var player2 = new Player('Player 2', d2);
-    var game = new Game([player1, player2], kingdom);
+    var game = new Game([player1, player2], neutralCardsWith(kingdom));
     game.gameListener = new TestingGameListener();
 
     if (h1 !== null) {
@@ -264,11 +264,11 @@ export function setupTwoPlayerGame(kingdom:Card[], d1:TestingDecider, d2:Testing
     return game;
 }
 
-export function setupThreePlayerGame(kingdom:Card[], d1:TestingDecider, d2:TestingDecider, d3:TestingDecider, h1:Card[]=null, h2:Card[]=null, h3:Card[]=null) : Game {
+export function setupThreePlayerGame(d1:TestingDecider, d2:TestingDecider, d3:TestingDecider, h1:Card[]=null, h2:Card[]=null, h3:Card[]=null, kingdom:Card[]=[]) : Game {
     var player1 = new Player('Player 1', d1);
     var player2 = new Player('Player 2', d2);
     var player3 = new Player('Player 3', d3);
-    var game = new Game([player1, player2, player3], kingdom);
+    var game = new Game([player1, player2, player3], neutralCardsWith(kingdom));
     game.gameListener = new TestingGameListener();
 
     if (h1 !== null) {

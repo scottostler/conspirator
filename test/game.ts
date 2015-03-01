@@ -12,7 +12,6 @@ import expect = chai.expect;
 
 import expectEqualCards = testsupport.expectEqualCards;
 import expectPlayerHandSize = testsupport.expectPlayerHandSize;
-import neutralCardsWith = testsupport.neutralCardsWith;
 
 var fiveCopperHand = util.duplicate(cards.Copper, 5);
 
@@ -20,8 +19,7 @@ describe('Game.advanceTurn', () => {
    it('players should discard hand, and draw 5 cards after turn', done => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(), decider1, decider2);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2);
 
         game.start();
 
@@ -41,8 +39,7 @@ describe('Game.isExactCardInPlay', () => {
     it('should match exact cards in play', done => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(), decider1, decider2, fiveCopperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, fiveCopperHand);
 
         game.start();
         decider1.playTreasures([cards.Copper, cards.Copper, cards.Copper]);

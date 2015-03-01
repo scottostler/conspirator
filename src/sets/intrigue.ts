@@ -25,7 +25,6 @@ class BaronDiscardEffect implements e.Effect {
             player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
         return player.promptForCardDecision(decision, cs => {
             if (cs.length > 0) {
-                // TODO?: roll discardCards functionality into DiscardCard decision
                 game.discardCards(player, cs);
                 game.incrementCoinCount(4)
             } else {

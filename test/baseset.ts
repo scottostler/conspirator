@@ -19,7 +19,6 @@ import expectTopTrashCard = testsupport.expectTopTrashCard;
 import expectActionCount = testsupport.expectActionCount;
 import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
-import neutralCardsWith = testsupport.neutralCardsWith;
 
 import copperHand = testsupport.copperHand;
 import copperEstateHand = testsupport.copperEstateHand;
@@ -30,8 +29,7 @@ describe('Adventurer', () => {
         var adventurerHand = [baseset.Adventurer, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Adventurer), decider1, decider2, adventurerHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, adventurerHand);
 
         testsupport.setPlayerDeck(game, game.players[0], [cards.Copper, cards.Estate, cards.Copper]);
 
@@ -50,7 +48,7 @@ describe('Bureaucrat', () => {
         var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(neutralCardsWith(baseset.Bureaucrat), decider1, decider2, bureaucratHand, copperEstateHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, bureaucratHand, copperEstateHand);
         game.start();
 
         decider1.playAction(baseset.Bureaucrat);
@@ -65,7 +63,7 @@ describe('Bureaucrat', () => {
         var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(neutralCardsWith(baseset.Bureaucrat), decider1, decider2, bureaucratHand, copperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, bureaucratHand, copperHand);
         game.start();
 
         decider1.playAction(baseset.Bureaucrat);
@@ -80,7 +78,7 @@ describe('Cellar', () => {
         var cellarHand = [baseset.Cellar, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(neutralCardsWith(baseset.Cellar), decider1, decider2, cellarHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, cellarHand);
         game.start();
 
         decider1.playAction(baseset.Cellar);
@@ -96,7 +94,7 @@ describe('Chapel', () => {
         var chapelHand = [baseset.Chapel, cards.Estate, cards.Estate, cards.Copper, cards.Copper, cards.Copper];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(neutralCardsWith(baseset.Chapel), decider1, decider2, chapelHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, chapelHand);
         game.start();
         expect(game.players[0].hand).to.have.length(6);
         decider1.playAction(baseset.Chapel);
@@ -112,8 +110,7 @@ describe('Chancellor', () => {
     it('should let player discard deck', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Chancellor), decider1, decider2, chancellorHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, chancellorHand);
         game.start();
         expect(game.activePlayer.deck).to.have.length(10);
         expect(game.activePlayer.discard).to.have.length(0);
@@ -130,8 +127,7 @@ describe('Council Room', () => {
     it('should give +4 cards, +1 buy, and draw opponent a card', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.CouncilRoom), decider1, decider2, councilRoomHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, councilRoomHand);
         game.start();
 
         decider1.playAction(baseset.CouncilRoom);
@@ -147,8 +143,7 @@ describe('Council Room', () => {
     it('should handle opponent with empty deck', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.CouncilRoom), decider1, decider2, councilRoomHand, copperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, councilRoomHand, copperHand);
         testsupport.setPlayerDeck(game, game.players[1], []);
 
         game.start();
@@ -169,8 +164,7 @@ describe('Feast', () => {
         var feastHand = [baseset.Feast].concat(util.duplicate(cards.Copper, 4));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Feast), decider1, decider2, feastHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, feastHand);
         game.start();
 
         decider1.playAction(baseset.Feast);
@@ -184,8 +178,7 @@ describe('Festival', () => {
         var festivalHand = [baseset.Festival].concat(util.duplicate(cards.Copper, 4));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Festival), decider1, decider2, festivalHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, festivalHand);
         game.start();
 
         decider1.playAction(baseset.Festival);
@@ -212,8 +205,7 @@ describe('Laboratory', () => {
         var labHand = [baseset.Laboratory, baseset.Laboratory].concat(util.duplicate(cards.Copper, 3));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Laboratory), decider1, decider2, labHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, labHand);
         game.start();
 
         expect(game.activePlayer.hand).to.have.length(5);
@@ -232,8 +224,7 @@ describe('Library', () => {
         var deck = [cards.Copper, cards.Estate, cards.Copper, baseset.Library, baseset.Library];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Library), decider1, decider2, libraryHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, libraryHand);
 
         testsupport.setPlayerDeck(game, game.players[0], deck);
         game.start();
@@ -255,8 +246,7 @@ describe('Market', () => {
         var marketHand = [baseset.Market].concat(util.duplicate(cards.Copper, 4));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Market), decider1, decider2, marketHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, marketHand);
         game.start();
 
         expect(game.activePlayer.hand).to.have.length(5);
@@ -275,8 +265,7 @@ describe('Militia', () => {
     it('should cause opponent w/ 5 cards to discard', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Militia), decider1, decider2, militiaHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand);
         game.start();
 
         expect(game.players[1].hand).to.have.length(5);
@@ -289,8 +278,7 @@ describe('Militia', () => {
     it('should not cause opponent w/ 3 cards to discard', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Militia), decider1, decider2, militiaHand, threeCopperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand, threeCopperHand);
         game.start();
 
         expect(game.players[1].hand.length).to.eql(3);
@@ -305,8 +293,7 @@ describe('Militia', () => {
         var moatHand = [baseset.Moat, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Militia), decider1, decider2, militiaHand, moatHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand, moatHand);
         game.start();
 
         game.incrementActionCount(1);
@@ -331,8 +318,7 @@ describe('Mine', () => {
     it('should let player upgrade treasure', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Mine), decider1, decider2, twoMineHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, twoMineHand);
         game.start();
         game.incrementActionCount(1);
         decider1.playAction(baseset.Mine);
@@ -352,8 +338,7 @@ describe('Moat', () => {
     it('should give +2 cards', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Mine), decider1, decider2, moatHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moatHand);
         game.start();
 
         decider1.playAction(baseset.Moat);
@@ -368,8 +353,7 @@ describe('Moneylender', () => {
     it('should let player trash Copper for +3 coin', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Moneylender), decider1, decider2, moneylenderHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moneylenderHand);
         game.start();
 
         decider1.playAction(baseset.Moneylender);
@@ -384,8 +368,7 @@ describe('Moneylender', () => {
     it('should do nothing if no Copper is trashed', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Moneylender), decider1, decider2, moneylenderNoCopperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moneylenderNoCopperHand);
         game.start();
 
         decider1.playAction(baseset.Moneylender);
@@ -400,8 +383,7 @@ describe('Remodel', () => {
     it('should replace card with card costing up to 2 more', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Remodel), decider1, decider2, remodelHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, remodelHand);
         game.start();
 
         decider1.playAction(baseset.Remodel);
@@ -420,8 +402,7 @@ describe('Smithy', () => {
     it('should draw 3 cards', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Smithy), decider1, decider2, smithyHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, smithyHand);
         game.start();
 
         decider1.playAction(baseset.Smithy);
@@ -436,8 +417,7 @@ describe('Spy', () => {
     it('should give +1 card, +1 action, and discard option', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Spy), decider1, decider2, spyHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, spyHand);
         game.start();
 
         decider1.playAction(baseset.Spy);
@@ -464,8 +444,7 @@ describe('Throne Room', () => {
         var hand = [baseset.ThroneRoom, baseset.Festival, baseset.Market];
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.ThroneRoom), decider1, decider2, hand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
         game.start();
 
         decider1.playAction(baseset.ThroneRoom);
@@ -483,8 +462,7 @@ describe('Throne Room', () => {
 
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.ThroneRoom), decider1, decider2, hand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
         game.start();
 
         decider1.playAction(baseset.ThroneRoom);
@@ -506,8 +484,7 @@ describe('Thief', () => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
         var decider3 = new testsupport.TestingDecider();
-        var game = testsupport.setupThreePlayerGame(
-            neutralCardsWith(baseset.Thief), decider1, decider2, decider3, thiefHand, copperHand, copperHand);
+        var game = testsupport.setupThreePlayerGame(decider1, decider2, decider3, thiefHand, copperHand, copperHand);
 
         testsupport.setPlayerDeck(game, game.players[1], [cards.Estate, cards.Silver]);
         testsupport.setPlayerDeck(game, game.players[2], [cards.Copper, cards.Gold]);
@@ -533,8 +510,7 @@ describe('Village', () => {
     it('should give +1 card, +2 actions', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Village), decider1, decider2, villageHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, villageHand);
         game.start();
 
         decider1.playAction(baseset.Village);
@@ -551,8 +527,7 @@ describe('Witch', () => {
     it('should curse opponent and give +2 cards', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Witch), decider1, decider2, witchHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, witchHand);
         game.start();
 
         decider1.playAction(baseset.Witch);
@@ -567,8 +542,7 @@ describe('Woodcutter', () => {
         var woodcutterHand = [baseset.Woodcutter].concat(util.duplicate(cards.Copper, 4));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(
-            neutralCardsWith(baseset.Woodcutter), decider1, decider2, woodcutterHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, woodcutterHand);
         game.start();
 
         decider1.playAction(baseset.Woodcutter);
@@ -585,17 +559,17 @@ describe('Woodcutter', () => {
 describe('Workshop', () => {
     it('should let player gain 0-4 cost card', (done) => {
         var workshopHand = [baseset.Workshop, baseset.Workshop].concat(util.duplicate(cards.Copper, 3));
-        var kingdomCards = neutralCardsWith(baseset.Workshop);
-        var gainableKingdomCard = cards.filterByCost(kingdomCards, 0, 4);
 
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(kingdomCards, decider1, decider2, workshopHand, copperHand);
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, workshopHand, copperHand);
         game.start();
 
+        var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4));
+
         decider1.playAction(baseset.Workshop);
-        decider1.canGain([cards.Copper, cards.Curse, cards.Estate, cards.Silver].concat(gainableKingdomCard));
-        decider1.gainCard(baseset.Workshop);
+        decider1.canGain(gainableCards);
+        decider1.gainCard(cards.Silver);
         decider1.playTreasures([]);
         decider1.gainCard(cards.Copper);
         done();
