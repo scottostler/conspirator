@@ -757,7 +757,120 @@ describe('Torturer', () => {
     });
 });
 
-// TradingPost,
-// Tribute,
-// Upgrade,
-// WishingWell
+describe('Trading Post', () => {
+    it('should trash 2 cards to gain Silver in hand', done => {
+        var hand = [intrigue.TradingPost, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.TradingPost), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.TradingPost);
+        decider1.trashCards([cards.Copper, cards.Copper]);
+        decider1.playTreasures([cards.Copper, cards.Copper, cards.Silver]);
+        done();
+    });
+
+    it('should only gain Silver if 2 cards are trashed', done => {
+        var hand = [intrigue.TradingPost, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.TradingPost), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.TradingPost);
+        expectPlayerHandSize(game.activePlayer, 0);
+        done();
+    });
+});
+
+describe('Tribute', () => {
+    it("should discard opponent's top cards and give appropriate benefit", done => {
+        var hand = [intrigue.Tribute, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Tribute), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1], [intrigue.Nobles, cards.Copper]);
+
+        game.start();
+
+        decider1.playAction(intrigue.Tribute);
+        expectPlayerHandSize(game.activePlayer, 6);
+        expectActionCount(game, 2);
+        expectCoinCount(game, 2);
+        done();
+    });
+
+    it("should only give benefit for distinct cards revealed", done => {
+        var hand = [intrigue.Tribute, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Tribute), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1], [cards.Copper, cards.Copper]);
+        game.start();
+
+        decider1.playAction(intrigue.Tribute);
+        expectCoinCount(game, 2);
+        done();
+    });
+});
+
+describe('Upgrade', () => {
+    it('should give +1 card, +1 action, and trash card to gain one costing +1', done => {
+        var hand = [intrigue.Upgrade, intrigue.Upgrade, cards.Estate, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Upgrade), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.Upgrade);
+        decider1.trashCard(cards.Estate);
+        decider1.gainCard(cards.Silver);
+
+        expectActionCount(game, 1);
+        expectPlayerHandSize(game.activePlayer, 4);
+
+        decider1.playAction(intrigue.Upgrade);
+        decider1.trashCard(cards.Copper);
+
+        decider1.playTreasures([cards.Copper]);
+        done();
+    });
+});
+
+describe('Wishing Well', () => {
+    it('should give +1 card, +1 action, and allow wishing for a card to draw', done => {
+        var hand = [intrigue.WishingWell, intrigue.WishingWell, cards.Estate, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.WishingWell), decider1, decider2, hand);
+
+        testsupport.setPlayerDeck(game, game.players[0], [cards.Estate, cards.Estate, cards.Estate]);
+
+        game.start();
+
+        decider1.playAction(intrigue.WishingWell);
+        decider1.nameCard(cards.Copper);
+
+        expectPlayerHandSize(game.activePlayer, 5);
+
+        decider1.playAction(intrigue.WishingWell);
+        decider1.nameCard(cards.Estate);
+
+        expectEqualCards(game.activePlayer.hand,
+            [cards.Estate, cards.Estate, cards.Estate, cards.Estate, cards.Copper, cards.Copper]);
+
+        done();
+    });
+});

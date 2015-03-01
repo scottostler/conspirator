@@ -318,16 +318,18 @@ export class TrashToGainPlusCostEffect implements Effect {
     process(game:Game, player:Player, trigger:cards.Card) {
         var trashableCards = cards.filterByType(player.getHand(), this.cardType);
         var decision = decisions.makeTrashCardDecision(player, trashableCards, trigger, 1, 1);
-        // TODO?: adapt to single card
         return player.promptForCardDecision(decision, cs => {
             if (cs.length === 0) {
                 return Resolution.Advance;
             }
 
+            game.trashCards(player, cs);
+
             var trashedCard = cs[0];
             var maxCost = game.effectiveCardCost(trashedCard) + this.plusCost;
             var minCost = this.costRestriction === GainCostRestriction.UpToCost ? 0 : maxCost;
             var piles = game.filterGainablePiles(minCost, maxCost, this.cardType);
+
             return game.playerGainsFromPiles(player, piles, trigger, this.destination);
         });
     }
@@ -351,7 +353,9 @@ export class TrashForEffect implements Effect {
         var trashableCards = cards.filter(player.hand, this.cardPredicate);
         var decision = decisions.makeTrashCardDecision(player, trashableCards, trigger, this.n, this.n);
         return player.promptForCardDecision(decision, cs => {
-            if (cs.length == this.n) {
+            game.trashCards(player, cs);
+
+            if (cs.length === this.n) {
                 game.pushEvent(() => {
                     return this.effect.process(game, player, trigger);
                 });

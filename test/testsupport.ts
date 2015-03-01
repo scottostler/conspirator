@@ -230,6 +230,10 @@ export class TestingDecider implements decider.Decider {
         this.makeCardDecision(DecisionType.SetAsideCard, c);
     }
 
+    nameCard(c:Card) {
+        this.makeCardDecision(DecisionType.NameCard, c);
+    }
+
     chooseEffect(e:effects.LabelledEffect) {
         this.makeEffectsDecision(e !== null ? [e] : []);
     }

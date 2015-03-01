@@ -15,6 +15,7 @@ import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
+import expectTopTrashCard = testsupport.expectTopTrashCard;
 import expectActionCount = testsupport.expectActionCount;
 import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
@@ -362,8 +363,8 @@ describe('Moat', () => {
 });
 
 describe('Moneylender', () => {
-    var moneylenderHand = [baseset.Moneylender].concat(util.duplicate(cards.Copper, 4));
-    var moneylenderNoCopperHand = [baseset.Moneylender].concat(util.duplicate(cards.Estate, 4));    
+    var moneylenderHand = [baseset.Moneylender, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+    var moneylenderNoCopperHand = [baseset.Moneylender, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
     it('should let player trash Copper for +3 coin', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
@@ -373,6 +374,9 @@ describe('Moneylender', () => {
 
         decider1.playAction(baseset.Moneylender);
         decider1.trashCard(cards.Copper);
+        expectTopTrashCard(game, cards.Copper);
+        expectEqualCards(game.activePlayer.hand, [cards.Copper, cards.Copper, cards.Copper]);
+
         expectCoinCount(game, 3);
         done();
     });
@@ -392,7 +396,7 @@ describe('Moneylender', () => {
 });
 
 describe('Remodel', () => {
-    var remodelHand = [baseset.Remodel].concat([cards.Duchy], util.duplicate(cards.Copper, 3));
+    var remodelHand = [baseset.Remodel, cards.Duchy, cards.Copper, cards.Copper, cards.Copper];
     it('should replace card with card costing up to 2 more', (done) => {
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
@@ -402,9 +406,11 @@ describe('Remodel', () => {
 
         decider1.playAction(baseset.Remodel);
         decider1.trashCard(cards.Duchy);
+        expectTopTrashCard(game, cards.Duchy);
+        expectEqualCards(game.activePlayer.hand, [cards.Copper, cards.Copper, cards.Copper]);
+
         decider1.gainCard(cards.Gold);
         decider1.playTreasures([cards.Copper, cards.Copper]);
-        decider1.gainCard(cards.Estate);
         done();
     });
 });
@@ -485,7 +491,7 @@ describe('Throne Room', () => {
         decider1.playAction(baseset.ThroneRoom);
         decider1.playAction(baseset.Moneylender);
         decider1.trashCard(cards.Copper);
-        decider1.trashCard(cards.Copper);
+        // Copper is forced to trash
         // Woodcutter is forced to play
 
         expectBuyCount(game, 3);
