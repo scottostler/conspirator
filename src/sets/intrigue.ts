@@ -210,8 +210,11 @@ class SwindlerEffect implements e.Effect {
         var cost = game.effectiveCardCost(card);
         var cs = cards.cardsFromPiles(game.filterGainablePiles(cost, cost));
         var decision = decisions.makeGainDecision(targetPlayer, cs, card, GainDestination.Discard);
+        // TODO?: make game responsible for gaining from decision
         return game.activePlayer.promptForCardDecision(decision, cs => {
-            // TODO?: make callback optional
+            if (cs.length > 0) {
+                game.playerGainsCard(targetPlayer, cs[0], GainDestination.Discard);
+            }
             return e.Resolution.Advance;
         });
     }
@@ -459,7 +462,7 @@ export var Steward = new cards.Card({
         new e.EffectChoiceEffect([
             e.DrawTwoCards,
             e.GainTwoCoins,
-            new e.TrashEffect(e.Target.ActivePlayer, 2, 2)])
+            e.TrashTwoCards])
     ],
     set: SetName
 });

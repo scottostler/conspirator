@@ -120,6 +120,12 @@ class Game extends base.BaseGame {
         this.gameListener.log(msg);
     }
 
+    assertGameIsActive() {
+        if (!this.hasGameStarted || this.hasGameEnded) {
+            throw new Error('Game is not active');
+        }
+    }
+
     drawInitialHands() {
         _.each(this.players, player => {
             // May already be populated in tests or other artificial scenarios
@@ -274,10 +280,7 @@ class Game extends base.BaseGame {
     }
 
     advanceGameState() {
-        if (this.hasGameEnded) {
-            throw new Error('Game already ended');
-        }
-
+        this.assertGameIsActive();
         if (this.eventStack.length > 0) {
             var event = this.eventStack.pop();
             var resolution = event();
@@ -302,6 +305,7 @@ class Game extends base.BaseGame {
     }
 
     checkEffectResolution(resolution:Resolution) {
+        this.assertGameIsActive();
         if (resolution == Resolution.Advance) {
             this.advanceGameState();
         } else if (resolution !== Resolution.Wait) {
@@ -696,21 +700,25 @@ class Game extends base.BaseGame {
     // Methods to increment active player's turn counts.
 
     incrementActionCount(n:number) {
+        this.assertGameIsActive();
         this.turnState.actionCount += n;
         this.stateUpdated();
     }
 
     incrementBuyCount(n:number) {
+        this.assertGameIsActive();
         this.turnState.buyCount += n;
         this.stateUpdated();
     }
 
     incrementCoinCount(n:number) {
+        this.assertGameIsActive();
         this.turnState.coinCount += n;
         this.stateUpdated();
     }
 
     incrementCardDiscount(n:number) {
+        this.assertGameIsActive();
         this.turnState.cardDiscount += n;
         this.stateUpdated();
     }

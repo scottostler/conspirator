@@ -487,3 +487,5 @@ export var GainTwoCoins = new GainCoinsEffect(2);
 
 export var GainOneBuy = new GainBuysEffect(1);
 export var GainTwoBuys = new GainBuysEffect(2);
+
+export var TrashTwoCards = new TrashEffect(Target.ActivePlayer, 2, 2);

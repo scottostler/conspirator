@@ -606,11 +606,118 @@ describe('Secret Chamber', () => {
 
         done();
     });
+});
+
+describe('Shanty Town', () => {
+    it('should give +2 actions, reveal hand to possibly draw', done => {
+        var hand = [intrigue.ShantyTown, intrigue.ShantyTown, cards.Copper, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.ShantyTown), decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(intrigue.ShantyTown);
+        expectPlayerHandSize(game.activePlayer, 4);
+        expectActionCount(game, 2);
+        expectRevealedCards(game, [intrigue.ShantyTown, cards.Copper, cards.Copper, cards.Copper]);
+
+        decider1.playAction(intrigue.ShantyTown);
+        expectPlayerHandSize(game.activePlayer, 5);
+        expectActionCount(game, 3);
+        expectRevealedCards(game, [cards.Copper, cards.Copper, cards.Copper]);
+
+        done();
+    });
+});
+
+describe('Steward', () => {
+    var hand = [intrigue.Steward, intrigue.Steward, intrigue.Steward, cards.Copper, cards.Copper];
+    it('should give choice of +2 cards, +2 coins, or trash two cards', done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Steward), decider1, decider2, hand);
+
+        game.start();
+        game.incrementActionCount(2);
+
+        decider1.playAction(intrigue.Steward);
+        decider1.chooseEffect(effects.DrawTwoCards);
+        expectPlayerHandSize(game.activePlayer, 6);
+
+        decider1.playAction(intrigue.Steward);
+        decider1.chooseEffect(effects.GainTwoCoins);
+        expectCoinCount(game, 2);
+
+        decider1.playAction(intrigue.Steward);
+        decider1.chooseEffect(effects.TrashTwoCards);
+        decider1.trashCards([cards.Copper, cards.Copper]);
+
+        done();
+    });
+});
+
+describe('Swindler', () => {
+    var hand = [intrigue.Swindler, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
+
+    it("should trash top card of opponent's deck and replace with one of same cost", done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Swindler), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [cards.Copper]);
+
+        game.start();
+
+        decider1.playAction(intrigue.Swindler);
+        decider1.gainCard(cards.Curse);
+        expectTopDiscardCard(game.players[1], cards.Curse);
+        expectTopTrashCard(game, cards.Copper);
+        expectCoinCount(game, 2);
+        done();
+    });
+
+    it("should do nothing if opponent's deck is empty", done => {
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Swindler), decider1, decider2, hand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1], []);
+
+        game.start();
+        decider1.playAction(intrigue.Swindler);
+        expectCoinCount(game, 2);
+        decider1.playTreasures([cards.Copper])
+        done();
+    });
+
+    it("should decrease value of replacement card if Bridge is in play", done => {
+        var bridgeSwindlerHand = [intrigue.Bridge, intrigue.Bridge, intrigue.Swindler, cards.Copper, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(
+            neutralCardsWith(intrigue.Bridge, intrigue.Swindler), decider1, decider2, bridgeSwindlerHand, copperHand);
+
+        testsupport.setPlayerDeck(game, game.players[1],
+            [cards.Estate]);
+
+        game.start();
+        game.incrementActionCount(2);
+        decider1.playAction(intrigue.Bridge);
+        decider1.playAction(intrigue.Bridge);
+        decider1.playAction(intrigue.Swindler);
+        decider1.gainCard(cards.Curse);
+
+        done();
+    })
 
 });
 
-// ShantyTown,
-// Steward,
 // Swindler,
 // Torturer,
 // TradingPost,
