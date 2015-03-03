@@ -247,7 +247,40 @@ describe('Ironworks', () => {
     });
 });
 
-// TODO: Masquerade
+describe('Masquerade', () => {
+    it('should draw two cards, let all players pass one left, then let player trash one', done => {
+        var masqueradeHand = [intrigue.Masquerade, cards.Copper, cards.Copper, cards.Estate, cards.Estate];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var decider3 = new testsupport.TestingDecider();
+        var game = testsupport.setupThreePlayerGame(decider1, decider2, decider3, masqueradeHand, [], copperEstateHand);
+
+        testsupport.setPlayerDeck(game, game.players[0],
+            [cards.Silver, cards.Gold]);
+
+        game.start();
+
+        decider1.playAction(intrigue.Masquerade);
+        expectPlayerHandSize(game.activePlayer, 6);
+
+        decider1.passCard(cards.Estate);
+        decider3.passCard(cards.Copper);
+
+        decider1.trashCard(cards.Copper);
+        expectPlayerHandSize(game.activePlayer, 5);
+
+        expectEqualCards(game.players[0].hand,
+            [cards.Copper, cards.Copper, cards.Silver, cards.Gold, cards.Estate]);
+
+        expectEqualCards(game.players[1].hand,
+            [cards.Estate]);
+
+        expectEqualCards(game.players[2].hand,
+            [cards.Copper, cards.Copper, cards.Estate, cards.Estate]);
+
+        done();
+    });
+});
 
 describe('Mining Village', () => {
     it('should give +1, +2 actions and offer trash for +2 coin', done => {

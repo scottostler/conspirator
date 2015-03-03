@@ -16,6 +16,7 @@ import Target = effects.Target;
 
 var NumKingdomCards = 10;
 var HandSize = 5;
+var MasqueradePassedCardsKey = 'MasqueradePassedCards';
 
 interface EventFunction {
     ():Resolution;
@@ -129,7 +130,8 @@ class Game extends base.BaseGame {
     drawInitialHands() {
         _.each(this.players, player => {
             // May already be populated in tests or other artificial scenarios
-            if (player.hand.length === 0) {
+            if (player.hand === null) {
+                player.hand = [];
                 this.drawCards(player, HandSize);
             }
         });
@@ -323,12 +325,12 @@ class Game extends base.BaseGame {
         this.revealPlayerCards(player, player.hand);
     }
 
-    playerRevealsReaction(player:Player, reaction:cards.Card, trigger:cards.Card, reactionType:effects.ReactionType) {
-        this.revealPlayerCards(player, [reaction]);
+    playerRevealsReaction(player:Player, reactionCard:cards.Card, trigger:cards.Card, reactionType:effects.ReactionType) {
+        this.revealPlayerCards(player, [reactionCard]);
         this.pushEvent(() => {
             return this.promptPlayerForReaction(trigger, player, reactionType);
         });
-        this.pushEventsForPlayer(reaction, reaction.reaction[1], player);
+        this.pushEventsForPlayer(reactionCard, reactionCard.reaction[1], player);
     }
 
     // Game Events
@@ -616,6 +618,26 @@ class Game extends base.BaseGame {
         targetPlayer.addCardToHand(card);
         this.log(sourcePlayer, 'passes', card, 'to', targetPlayer);
         this.gameListener.playerPassedCard(sourcePlayer, targetPlayer, card);
+    }
+
+    playerSelectsCardToPass(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
+        var passedCards = this.getStoredState(MasqueradePassedCardsKey, []);
+        passedCards.push([sourcePlayer, targetPlayer, card]);
+        this.setStoredState(MasqueradePassedCardsKey, passedCards);
+    }
+
+    distributePassedCards() {
+        var triples = this.getStoredState(MasqueradePassedCardsKey);
+        this.clearStoredState(MasqueradePassedCardsKey);
+
+        triples.forEach((t:any) => {
+            var sourcePlayer = t[0];
+            var targetPlayer = t[1];
+            var card = t[2];
+            if (card) {
+                this.playerPassesCard(sourcePlayer, targetPlayer, card);
+            }
+        });
     }
 
     playAction(card:cards.Card) : Resolution {

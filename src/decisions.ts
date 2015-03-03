@@ -257,3 +257,14 @@ export function makeNameCardDecision(cs:Card[], trigger:Card) : NameCardDecision
         options:cards.getNames(cs)
     };
 }
+
+export function makePassCardDecision(cs:Card[], trigger:Card, toPlayer:Player) : PassCardDecision {
+    return {
+        decisionType:DecisionType.PassCard,
+        trigger:trigger.name,
+        minSelections:1,
+        maxSelections:1,
+        options:cards.getNames(cs),
+        toPlayer:toPlayer.name
+    };
+}

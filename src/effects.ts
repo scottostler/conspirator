@@ -27,6 +27,7 @@ export class BasicVPEffect implements VPEffect {
     }
 }
 
+// TODO?: replace ChoosingPlayer with dynamic 'active player' rule
 export enum Target {
     ActivePlayer,  // Either the player taking their turn, or revealing the reaction
     OtherPlayers,
@@ -207,16 +208,16 @@ export class DiscardToEffect implements Effect {
 
 
 export class TrashEffect implements LabelledEffect {
-    target:Target;
     min:number;
     max:number;
     cardType:cards.Type;
+    target:Target;
 
-    constructor(target:Target, min:number, max:number, cardType:cards.Type=cards.Type.All) {
-        this.target = target;
+    constructor(min:number, max:number, cardType:cards.Type=cards.Type.All, target:Target=Target.ActivePlayer) {
         this.min = min;
         this.max = max;
         this.cardType = cardType;
+        this.target = target;
     }
 
     getTarget() { return this.target; }
@@ -487,4 +488,4 @@ export var GainTwoCoins = new GainCoinsEffect(2);
 export var GainOneBuy = new GainBuysEffect(1);
 export var GainTwoBuys = new GainBuysEffect(2);
 
-export var TrashTwoCards = new TrashEffect(Target.ActivePlayer, 2, 2);
+export var TrashTwoCards = new TrashEffect(2, 2);

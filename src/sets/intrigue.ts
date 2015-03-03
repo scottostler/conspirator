@@ -33,7 +33,6 @@ class BaronDiscardEffect implements e.Effect {
             return e.Resolution.Advance;
         });
     }
-
 }
 
 class ConspiratorDrawEffect implements e.Effect {
@@ -94,6 +93,28 @@ class IronworksEffect implements e.Effect {
 
             return Resolution.Advance;
         });
+    }
+}
+
+
+class MasqueradePassEffect implements e.Effect {
+
+    getTarget() { return e.Target.AllPlayers; }
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var targetPlayer = game.playerLeftOf(player);
+        var decision = decisions.makePassCardDecision(player.hand, trigger, targetPlayer);
+        return player.promptForCardDecision(decision, cs => {
+            game.playerSelectsCardToPass(player, targetPlayer, cs[0]);
+            return Resolution.Advance;
+        });
+    }
+}
+
+class MasqueradeReceiveEffect implements e.Effect {
+    getTarget() { return e.Target.ActivePlayer; }
+    process(game:Game, player:Player, trigger:cards.Card) {
+        game.distributePassedCards();
+        return Resolution.Advance;
     }
 }
 
@@ -262,32 +283,6 @@ class WishingWellEffect implements e.Effect {
     }
 }
 
-// Game.prototype.masqueradeEffect = function(activePlayer, otherPlayers) {
-//     var that = this;
-
-//     function promptForMasquerade(player, callback) {
-//         if (player.hand.length == 0) {
-//             callback(null, [player, null]);
-//         } else {
-//             player.promptForHandSelection(this, 1, 1, player.hand, function(cards) {
-//                 callback(null, [player, cards[0]]);
-//             });
-//         }
-//     };
-
-//     async.map(this.players, promptForMasquerade, function(err, results) {
-//         results.forEach(function(p) {
-//             var player = p[0], card = p[1];
-//             if (card) {
-//                 var nextPlayer = that.playerLeftOf(player);
-//                 that.playerPassesCard(player, nextPlayer, card);
-//             }
-//         });
-
-//         that.playerTrashedCardsEffect(activePlayer, 0, 1, Card.Type.All);
-//     });
-// };
-
 export var Baron = new cards.Card({
     name: 'Baron',
     cost: 4,
@@ -366,12 +361,16 @@ export var Ironworks = new cards.Card({
     set: SetName
 });
 
-// Cards.Masquerade = new Card({
-//     name: 'Masquerade',
-//     cost: 3,
-//     effects: [drawCards(2), masqueradeEffect()],
-//     set: 'intrigue'
-// });
+export var Masquerade = new cards.Card({
+    name: 'Masquerade',
+    cost: 3,
+    effects: [
+        e.DrawTwoCards,
+        new MasqueradePassEffect(), new MasqueradeReceiveEffect(),
+        new e.TrashEffect(0, 1)
+    ],
+    set: SetName
+});
 
 export var MiningVillage = new cards.Card({
     name: 'Mining Village',
@@ -541,7 +540,7 @@ export var Cardlist:cards.Card[] = [
     GreatHall,
     Harem,
     Ironworks,
-    // Masquerade,
+    Masquerade,
     MiningVillage,
     Minion,
     Nobles,

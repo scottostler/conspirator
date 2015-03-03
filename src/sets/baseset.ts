@@ -278,7 +278,7 @@ export var Chancellor = new cards.Card({
 export var Chapel = new cards.Card({
     name: 'Chapel',
     cost: 2,
-    effects: [new e.TrashEffect(Target.ActivePlayer, 0, 4)],
+    effects: [new e.TrashEffect(0, 4)],
     set: SetName
 });
 
@@ -292,7 +292,6 @@ export var CouncilRoom = new cards.Card({
     set: SetName
 });
 
-// TODO: handle correctly with Throne Room
 export var Feast = new cards.Card({
     name: 'Feast',
     cost: 4,

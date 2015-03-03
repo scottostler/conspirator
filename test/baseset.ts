@@ -160,7 +160,7 @@ describe('Council Room', () => {
 });
 
 describe('Feast', () => {
-    it('should gain card costing 0-5', (done) => {
+    it('should gain card costing 0-5', done => {
         var feastHand = [baseset.Feast].concat(util.duplicate(cards.Copper, 4));
         var decider1 = new testsupport.TestingDecider();
         var decider2 = new testsupport.TestingDecider();
@@ -169,6 +169,21 @@ describe('Feast', () => {
 
         decider1.playAction(baseset.Feast);
         decider1.gainCard(cards.Duchy);
+        done();
+    });
+
+    it('should gain twice when played with Throne Room', done => {
+        var hand = [baseset.Feast, baseset.ThroneRoom, cards.Copper];
+        var decider1 = new testsupport.TestingDecider();
+        var decider2 = new testsupport.TestingDecider();
+        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
+
+        game.start();
+
+        decider1.playAction(baseset.ThroneRoom);
+        // Forced to play Feast
+        decider1.gainCard(cards.Duchy);
+        decider1.gainCard(cards.Silver);
         done();
     });
 });
@@ -300,6 +315,8 @@ describe('Militia', () => {
 
         decider1.playAction(baseset.Militia);
         decider2.revealCard(baseset.Moat);
+        decider2.revealCard(baseset.Moat);
+        decider2.revealCard(baseset.Moat); // lol
         decider2.revealCard(null);
         expect(game.players[1].hand.length).to.eql(5);
 

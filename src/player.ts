@@ -31,8 +31,7 @@ class Player extends base.BasePlayer {
         this.decider = decider;
         this.decider.setPlayer(this);
         this.game = null;
-
-        this.hand = [];
+        this.hand = null; // assigned by game
 
         // Card stacks store their bottom-most card at index 0.
         this.deck = _.shuffle<cards.Card>(startingDeck());
