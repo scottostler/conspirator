@@ -195,6 +195,11 @@ class Game extends base.BaseGame {
             throw new Error('Ending turn with uncleared set aside cards: ' + this.setAside.join(', '));
         }
 
+        var storedKeys = _.keys(this.storedState);
+        if (storedKeys.length > 0) {
+            throw new Error('Ending turn with uncleared storedState: ' + storedKeys.join(', '));
+        }
+
         this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
         this.activePlayer = this.players[this.activePlayerIndex];
         this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
@@ -202,7 +207,6 @@ class Game extends base.BaseGame {
         this.turnState = new TurnState();
         this.attackImmunity = [];
 
-        // TODO: assert is empty at appropriate times
         this.storedState = {};
 
         if (this.activePlayerIndex == 0) {
@@ -512,6 +516,12 @@ class Game extends base.BaseGame {
         delete this.storedState[key];
     }
 
+    getAndClearStoredState(key:string) : any {
+        var r = this.getStoredState(key);
+        this.clearStoredState(key);
+        return r;
+    }
+
     // Game-state changes
 
     playTreasure(card:cards.Card) {
@@ -627,9 +637,7 @@ class Game extends base.BaseGame {
     }
 
     distributePassedCards() {
-        var triples = this.getStoredState(MasqueradePassedCardsKey);
-        this.clearStoredState(MasqueradePassedCardsKey);
-
+        var triples = this.getAndClearStoredState(MasqueradePassedCardsKey);
         triples.forEach((t:any) => {
             var sourcePlayer = t[0];
             var targetPlayer = t[1];

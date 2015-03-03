@@ -518,6 +518,11 @@ describe('Thief', () => {
         expectTopDiscardCard(game.players[1], cards.Estate);
         expectTopDiscardCard(game.players[2], cards.Copper);
 
+        decider1.playTreasures(null);
+        decider1.gainCard(null);
+
+        decider2.playTreasures(null);
+
         done();
     });
 });
