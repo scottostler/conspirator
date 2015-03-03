@@ -22,17 +22,16 @@ class LibraryDrawEffect implements Effect {
 
     getTarget() { return Target.ActivePlayer; }
 
+    doneDrawingForPlayer(player:Player) : boolean {
+        var targetHandSize = 7;
+        return !player.canDraw() || player.hand.length >= targetHandSize;
+    }
+
     process(game:Game, player:Player, trigger:cards.Card) {
         var discardType = cards.Type.Action;
-        var targetHandSize = 7;
-
-        // TODO?: use 'repeat' Resolution to simplify
-        var isDone = function() {
-            return !player.canDraw() || player.hand.length >= targetHandSize;
-        };
 
         var drawCardEvent = () => {
-            if (isDone()) {
+            if (this.doneDrawingForPlayer(player)) {
                 game.discardSetAsideCards(player);
                 return Resolution.Advance;
             }
