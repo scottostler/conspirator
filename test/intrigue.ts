@@ -278,6 +278,12 @@ describe('Masquerade', () => {
         expectEqualCards(game.players[2].hand,
             [cards.Copper, cards.Copper, cards.Estate, cards.Estate]);
 
+        decider1.playTreasures([]);
+        decider1.gainCard(null);
+
+        // P2 has no treasures to play
+        decider2.gainCard(null);
+
         done();
     });
 });
@@ -553,6 +559,10 @@ describe('Secret Chamber', () => {
 
         expectPlayerHandSize(game.players[1], 7);
         decider2.discardCards([cards.Copper, cards.Copper]);
+
+        decider2.revealCard(intrigue.SecretChamber);
+        decider2.discardCards([cards.Copper, cards.Copper]);
+
         decider2.revealCard(null);
         decider2.discardCards([cards.Estate, cards.Estate]);
         expectPlayerHandSize(game.players[1], 3);

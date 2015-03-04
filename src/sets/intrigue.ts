@@ -430,7 +430,7 @@ export var SecretChamber = new cards.Card({
     effects: [new e.DiscardForCoinsEffect()],
     reaction: [
         e.ReactionType.OnAttack,
-        [e.DrawTwoCards, new e.DiscardEffect(2)]],
+        [e.DrawTwoCards, new e.DiscardEffect(2, e.Target.ActivePlayer, base.DiscardDestination.Deck)]],
     set: SetName
 });
 

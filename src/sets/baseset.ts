@@ -18,6 +18,90 @@ import Target = e.Target;
 
 export var SetName = 'Base';
 
+class AdventurerDrawEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
+
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var num = 2;
+        var cardType = cards.Type.Treasure;
+        var selectedCards:cards.Card[] = [];
+        var revealedCards:cards.Card[] = [];
+
+        while (selectedCards.length < num && player.canDraw()) {
+            game.revealCardFromDeck(player);
+            var card = player.takeCardFromDeck();
+            if (card.matchesType(cardType)) {
+                selectedCards.push(card);
+            } else {
+                revealedCards.push(card);
+            }
+        }
+
+        game.drawAndDiscardFromDeck(player, selectedCards, revealedCards);
+        return Resolution.Advance;
+    }
+}
+
+class BureaucratDiscardEffect implements Effect {
+
+    getTarget() { return Target.OtherPlayers; }
+    
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var matchingCards = cards.getVictories(player.getHand());
+        if (matchingCards.length > 0) {
+            var decision = decisions.makeDiscardCardDecision(
+                player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
+            return player.promptForCardDecision(decision, cs => {
+                game.revealPlayerCards(player, cs);
+                game.discardCards(player, cs, DiscardDestination.Deck);
+                return Resolution.Advance;
+            });
+        } else {
+            game.revealPlayerHand(player);
+            return Resolution.Advance;
+        }
+    }
+}
+
+class ChancellorEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
+
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var decision = decisions.makeDiscardDeckDecision(trigger);
+        return player.promptForBooleanDecision(decision, choice => {
+            if (choice) {
+                player.putDeckIntoDiscard();
+            }
+
+            return Resolution.Advance;
+        });
+    }
+}
+
+class DiscardToDrawEffect implements Effect{
+    getTarget() { return Target.ActivePlayer; }
+
+    process(game:Game, player:Player, trigger:cards.Card) {
+        var decision = decisions.makeDiscardCardDecision(
+            player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
+        return player.promptForCardDecision(decision, cs => {
+            if (cs.length > 0) {
+                game.discardCards(player, cs, DiscardDestination.Discard);
+                game.drawCards(player, cs.length);
+            }
+
+            return Resolution.Advance;
+        });
+    }
+}
+
+class GardenVPEffect implements VPEffect {
+    calculatePoints(deck:cards.Card[]) : number {
+        var cardsPerVP = 10;
+        return Math.floor(deck.length / cardsPerVP);
+    }
+}
+
 class LibraryDrawEffect implements Effect {
 
     getTarget() { return Target.ActivePlayer; }
@@ -57,96 +141,6 @@ class LibraryDrawEffect implements Effect {
         };
 
         game.pushEvent(drawCardEvent);
-        return Resolution.Advance;
-    }
-}
-
-class BureaucratDiscardEffect implements Effect {
-
-    getTarget() { return Target.OtherPlayers; }
-    
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var matchingCards = cards.getVictories(player.getHand());
-        if (matchingCards.length > 0) {
-            var decision = decisions.makeDiscardCardDecision(
-                player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
-            return player.promptForCardDecision(decision, cs => {
-                if (cs.length !== 1) {
-                    throw new Error('Unexpected decision response: ' + cs.join(', '));
-                }
-
-                game.revealPlayerCards(player, cs);
-                game.discardCards(player, cs, DiscardDestination.Deck);
-                return Resolution.Advance;
-            });
-        } else {
-            game.revealPlayerHand(player);
-            return Resolution.Advance;
-        }
-    }
-}
-
-class DiscardToDrawEffect implements Effect{
-    getTarget() { return Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeDiscardCardDecision(
-            player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
-        return player.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                game.discardCards(player, cs, DiscardDestination.Discard);
-                game.drawCards(player, cs.length);
-            }
-
-            return Resolution.Advance;
-        });
-    }
-}
-
-class ChancellorEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeDiscardDeckDecision(trigger);
-        return player.promptForBooleanDecision(decision, choice => {
-            if (choice) {
-                player.putDeckIntoDiscard();
-            }
-
-            return Resolution.Advance;
-        });
-    }
-}
-
-class AdventurerDrawEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var num = 2;
-        var cardType = cards.Type.Treasure;
-        var selectedCards:cards.Card[] = [];
-        var revealedCards:cards.Card[] = [];
-
-        while (selectedCards.length < num && player.canDraw()) {
-            game.revealCardFromDeck(player);
-            var card = player.takeCardFromDeck();
-            if (card.matchesType(cardType)) {
-                selectedCards.push(card);
-            } else {
-                revealedCards.push(card);
-            }
-        }
-
-        game.drawAndDiscardFromDeck(player, selectedCards, revealedCards);
-        return Resolution.Advance;
-    }
-}
-
-class TrashThisCardEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        game.trashCardFromPlay(player, trigger);
         return Resolution.Advance;
     }
 }
@@ -231,10 +225,12 @@ class ThiefGainEffect implements Effect {
     }
 }
 
-class GardenVPEffect implements VPEffect {
-    calculatePoints(deck:cards.Card[]) : number {
-        var cardsPerVP = 10;
-        return Math.floor(deck.length / cardsPerVP);
+class TrashThisCardEffect implements Effect {
+    getTarget() { return Target.ActivePlayer; }
+
+    process(game:Game, player:Player, trigger:cards.Card) {
+        game.trashCardFromPlay(player, trigger);
+        return Resolution.Advance;
     }
 }
 
