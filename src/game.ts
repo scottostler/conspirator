@@ -685,8 +685,8 @@ class Game extends base.BaseGame {
 
     // TODO?: consolidate logic for trashing from different containers
 
-    // Trash cards from a player's hand.
     trashCards(player:Player, cs:cards.Card[]) {
+        // clone cs to avoid iterating while mutating
         _.each(_.clone(cs), card => {
             var card = cards.removeFirst(player.hand, card);
             this.trash.push(card);
@@ -716,7 +716,7 @@ class Game extends base.BaseGame {
         }
     }
 
-    playerTrashedCardFromDeck(player:Player) : cards.Card {
+    trashCardFromDeck(player:Player) : cards.Card {
         var card = player.takeCardFromDeck();
         if (!card) {
             return null;

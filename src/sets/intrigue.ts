@@ -220,7 +220,7 @@ class SwindlerEffect implements e.Effect {
     getTarget() { return e.Target.OtherPlayers; }
 
     process(game:Game, targetPlayer:Player, card:cards.Card) {
-        var card = game.playerTrashedCardFromDeck(targetPlayer);
+        var card = game.trashCardFromDeck(targetPlayer);
         if (!card) {
             return e.Resolution.Advance;
         }
