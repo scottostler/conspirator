@@ -54,7 +54,7 @@ export interface GainCardDecision extends Decision {
 
 export interface DiscardCardDecision extends Decision {
     destination:DiscardDestination;
-    targetPlayer:string;
+    targetPlayer:Player;
 }
 
 export enum TrashCardSource {
@@ -166,7 +166,7 @@ export function makeDiscardCardDecision(player:Player, cs:Card[], trigger:Card, 
         maxSelections:max,
         options:cards.getNames(cs),
         destination:destination,
-        targetPlayer:player.name
+        targetPlayer:player
     };
 }
 

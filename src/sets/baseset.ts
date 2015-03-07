@@ -51,6 +51,7 @@ class BureaucratDiscardEffect implements Effect {
         if (matchingCards.length > 0) {
             var decision = decisions.makeDiscardCardDecision(
                 player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
+            // TODO: better handle revealing
             return player.promptForCardDecision(decision, cs => {
                 game.revealPlayerCards(player, cs);
                 game.discardCards(player, cs, DiscardDestination.Deck);
@@ -84,12 +85,10 @@ class DiscardToDrawEffect implements Effect{
     process(game:Game, player:Player, trigger:cards.Card) {
         var decision = decisions.makeDiscardCardDecision(
             player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
-        return player.promptForCardDecision(decision, cs => {
+        return player.promptForDiscardDecision(decision, cs => {
             if (cs.length > 0) {
-                game.discardCards(player, cs, DiscardDestination.Discard);
                 game.drawCards(player, cs.length);
             }
-
             return Resolution.Advance;
         });
     }
@@ -155,6 +154,7 @@ class SpyAttackEffect implements Effect {
         var decision = decisions.makeDiscardCardDecision(
             targetPlayer, [revealedCard], card, 0, 1, DiscardDestination.Discard);
 
+        // TODO: handle discard source logic
         return attackingPlayer.promptForCardDecision(decision, cs => {
             if (cs.length === 1) {
                 game.discardCardsFromDeck(targetPlayer, 1);

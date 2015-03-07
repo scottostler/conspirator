@@ -246,7 +246,6 @@ class Player extends base.BasePlayer {
         });
     }
 
-
     promptForGainDecision(d:decisions.GainCardDecision, onDecide?:effects.CardsCallback) : Resolution {
         return this.promptForCardDecision(d, cs => {
             if (d.isBuy) {
@@ -260,6 +259,20 @@ class Player extends base.BasePlayer {
             cs.forEach(c => {
                 this.game.playerGainsCard(d.targetPlayer, c, d.destination, d.source);
             });
+
+            if (onDecide) {
+                return onDecide(cs);
+            } else {
+                return Resolution.Advance;
+            }
+        });
+    }
+
+    promptForDiscardDecision(d:decisions.DiscardCardDecision, onDecide?:effects.CardsCallback) : Resolution {
+        return this.promptForCardDecision(d, cs => {
+            if (cs.length > 0) {
+                this.game.discardCards(this, cs, d.destination);
+            }
 
             if (onDecide) {
                 return onDecide(cs);

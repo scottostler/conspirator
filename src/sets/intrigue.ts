@@ -23,9 +23,8 @@ class BaronDiscardEffect implements e.Effect {
         var matchingCards = cards.filterByCard(player.hand, cards.Estate);
         var decision = decisions.makeDiscardCardDecision(
             player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
-        return player.promptForCardDecision(decision, cs => {
+        return player.promptForDiscardDecision(decision, cs => {
             if (cs.length > 0) {
-                game.discardCards(player, cs);
                 game.incrementCoinCount(4)
             } else {
                 game.playerGainsCard(player, cards.Estate);

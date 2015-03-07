@@ -156,13 +156,8 @@ function promptPlayerForDiscard(game:Game, trigger:cards.Card, player:Player, nu
         throw new Error('Invalid numToDiscard: ' + numToDiscard);
     }
 
-    var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, numToDiscard, numToDiscard, this.destination);
-    return player.promptForCardDecision(decision, cs => {
-        if (cs.length > 0) {
-            game.discardCards(player, cs, dest);
-        }
-        return Resolution.Advance;
-    });
+    var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, numToDiscard, numToDiscard, dest);
+    return player.promptForDiscardDecision(decision);
 }
 
 export class DiscardEffect implements LabelledEffect {
@@ -418,7 +413,7 @@ export class DiscardForCoinsEffect implements Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var decision = decisions.makeDiscardCardDecision(player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
-        return player.promptForCardDecision(decision, cs => {
+        return player.promptForDiscardDecision(decision, cs => {
             if (cs.length > 0) {
                 game.incrementCoinCount(cs.length);
             }
