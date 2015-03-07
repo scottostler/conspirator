@@ -8,6 +8,8 @@ import effects = require('./effects');
 import Game = require('./game');
 import util = require('./util');
 
+import Resolution = effects.Resolution;
+
 function startingDeck() : cards.Card[] {
     return _.flatten(
         [util.duplicate(cards.Copper, 7),
@@ -62,6 +64,10 @@ class Player extends base.BasePlayer {
 
     addCardToDiscard(card:cards.Card) {
         this.addCardsToDiscard([card]);
+    }
+
+    addCardToTopOfDeck(card:cards.Card) {
+        this.deck.push(card);
     }
 
     removeCardFromHand(card:cards.Card) {
@@ -189,7 +195,7 @@ class Player extends base.BasePlayer {
         });
     }
 
-    promptForDecision(decision:decisions.Decision, onDecide:effects.StringsCallback) : effects.Resolution {
+    promptForDecision(decision:decisions.Decision, onDecide:effects.StringsCallback) : Resolution {
         if (!decisions.doesOrderMatter(decision) && decision.options.length <= decision.minSelections) {
             onDecide(decision.options);
             return effects.Resolution.Advance;
@@ -205,13 +211,13 @@ class Player extends base.BasePlayer {
         return effects.Resolution.Wait;
     }
 
-    promptForCardDecision(decision:decisions.Decision, onDecide:effects.CardsCallback) : effects.Resolution {
+    promptForCardDecision(decision:decisions.Decision, onDecide:effects.CardsCallback) : Resolution {
         return this.promptForDecision(decision, xs => {
             return onDecide(cardlist.getCardsByNames(xs));
         });
     }
 
-    promptForEffectDecision(decision:decisions.Decision, es:effects.LabelledEffect[], onDecide:effects.LabelledEffectsCallback) : effects.Resolution {
+    promptForEffectDecision(decision:decisions.Decision, es:effects.LabelledEffect[], onDecide:effects.LabelledEffectsCallback) : Resolution {
         return this.promptForDecision(decision, xs => {
             var chosen = _.map<string, effects.LabelledEffect>(xs, x => {
                 var idx = decision.options.indexOf(x);
@@ -221,9 +227,45 @@ class Player extends base.BasePlayer {
         });
     }
 
-    promptForBooleanDecision(decision:decisions.Decision, onDecide:effects.BooleanCallback) : effects.Resolution {
+    promptForBooleanDecision(decision:decisions.Decision, onDecide:effects.BooleanCallback) : Resolution {
         return this.promptForDecision(decision, xs => {
             return onDecide(xs[0] === decisions.Yes);
+        });
+    }
+
+    // Convenience methods for specific decision types
+
+    gainsFromPiles(piles:cards.Pile[], trigger:cards.Card, dest:base.GainDestination, onGain?:effects.CardCallback) : Resolution {
+        var decision = decisions.makeGainDecision(this, cards.cardsFromPiles(piles), trigger, dest);
+        return this.promptForGainDecision(decision, cs => {
+            if (onGain) {
+                return onGain(cs.length > 0 ? cs[1] : null);
+            } else {
+                return Resolution.Advance;
+            }
+        });
+    }
+
+
+    promptForGainDecision(d:decisions.GainCardDecision, onDecide?:effects.CardsCallback) : Resolution {
+        return this.promptForCardDecision(d, cs => {
+            if (d.isBuy) {
+                if (cs.length > 0) {
+                    return this.game.playerBuysCard(cs[0]);
+                } else {
+                    return this.game.playerSkipsBuy();
+                }
+            }
+
+            cs.forEach(c => {
+                this.game.playerGainsCard(d.targetPlayer, c, d.destination, d.source);
+            });
+
+            if (onDecide) {
+                return onDecide(cs);
+            } else {
+                return Resolution.Advance;
+            }
         });
     }
 }

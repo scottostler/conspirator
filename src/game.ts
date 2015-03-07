@@ -11,6 +11,7 @@ import scoring = require('./scoring')
 import TurnState = require('./turnstate');
 
 import GainDestination = base.GainDestination;
+import GainSource = base.GainSource;
 import Resolution = effects.Resolution;
 import Target = effects.Target;
 
@@ -254,16 +255,7 @@ class Game extends base.BaseGame {
     handleBuyGainCardPhase() {
         var buyableCards = cards.cardsFromPiles(this.currentlyBuyablePiles());
         var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
-        // TODO?: adapt to single card
-        var resolution = this.activePlayer.promptForCardDecision(buyDecision, cs => {
-            if (cs.length > 0) {
-                return this.buyCard(cs[0]);
-            } else {
-                this.turnState.phase = base.TurnPhase.Cleanup;
-                this.stateUpdated();
-                return Resolution.Advance;
-            }
-        });
+        var resolution = this.activePlayer.promptForGainDecision(buyDecision);
         this.checkEffectResolution(resolution);
     }
 
@@ -524,130 +516,6 @@ class Game extends base.BaseGame {
 
     // Game-state changes
 
-    playTreasure(card:cards.Card) {
-        var card = cards.removeFirst(this.activePlayer.hand, card);
-        this.inPlay.push(card);
-
-        this.log(this.activePlayer, 'plays', card);
-        if (card.isSameCard(cards.Copper)) {
-            this.turnState.coinCount += this.turnState.copperValue;
-        } else {
-            this.turnState.coinCount += card.money;
-        }
-
-        if (card.moneyEffect) {
-            this.pushEventsForPlayer(card, [card.moneyEffect], this.activePlayer);
-        }
-
-        this.gameListener.playerPlayedCard(this.activePlayer, card);
-    }
-
-    vendCardFromPile(pile:cards.Pile) : cards.Card {
-        if (pile.count <= 0) {
-            throw new Error('Unable to buy from empty pile');
-        }
-
-        pile.count--;
-        return _.clone(pile.card);
-    }
-
-    buyCard(card:cards.Card) : Resolution {
-        this.log(this.activePlayer.name, 'buys', card.name);
-
-        var cost = this.effectiveCardCost(card);
-        var pile = this.pileForCard(card);
-
-        if (!pile) {
-            throw new Error('No pile for card: ' + card);
-        } else if (this.turnState.buyCount == 0) {
-            throw new Error('Unable to buy with zero buys');
-        } else if (pile.count == 0) {
-            throw new Error('Unable to buy from empty pile');
-        } else if (this.turnState.coinCount < cost) {
-            throw new Error('Unable to buy card with too little money');
-        }
-
-        this.turnState.buyCount--;
-        this.turnState.coinCount -= cost;
-        this.activePlayer.discard.push(pile.card);
-        this.turnState.cardBought = true;
-
-        card = this.vendCardFromPile(pile);
-
-        this.stateUpdated();
-        this.gameListener.playerGainedCard(this.activePlayer, card, pile.count, GainDestination.Discard);
-
-        return Resolution.Advance;
-    }
-
-    playerGainsCard(player:Player, card:cards.Card, dest:GainDestination=GainDestination.Discard) {
-        var pile = this.pileForCard(card);
-        card = this.vendCardFromPile(pile);
-
-        switch (dest) {
-            case GainDestination.Discard:
-                this.log(player, 'gains', card);
-                player.discard.push(card);
-                break;
-            case GainDestination.Hand:
-                this.log(player, 'gains', card, 'into hand');
-                player.hand.push(card);
-                break;
-            case GainDestination.Deck:
-                this.log(player, 'gains', card, 'onto deck');
-                player.deck.push(card);
-                break;
-        }
-
-        this.gameListener.playerGainedCard(player, card, pile.count, dest);
-    }
-
-    playerGainsFromPiles(player:Player, piles:cards.Pile[], trigger:cards.Card, dest:GainDestination, onGain?:effects.CardCallback) : Resolution {
-        var decision = decisions.makeGainDecision(player, cards.cardsFromPiles(piles), trigger, dest);
-        return player.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                this.playerGainsCard(player, cs[0], dest);
-            }
-
-            if (onGain) {
-                return onGain(cs.length > 0 ? cs[0] : null);
-            } else {
-                return Resolution.Advance;
-            }
-        });
-    }
-
-    playerGainsFromTrash(player:Player, card:cards.Card) {
-        var card = cards.removeFirst(this.trash, card);
-        player.addCardToDiscard(card);
-        this.gameListener.playerGainedCardFromTrash(player, card);
-    }
-
-    playerPassesCard(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
-        sourcePlayer.removeCardFromHand(card);
-        targetPlayer.addCardToHand(card);
-        this.log(sourcePlayer, 'passes', card, 'to', targetPlayer);
-        this.gameListener.playerPassedCard(sourcePlayer, targetPlayer, card);
-    }
-
-    playerSelectsCardToPass(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
-        var passedCards = this.getStoredState(MasqueradePassedCardsKey, []);
-        passedCards.push([sourcePlayer, targetPlayer, card]);
-        this.setStoredState(MasqueradePassedCardsKey, passedCards);
-    }
-
-    distributePassedCards() {
-        var triples = this.getAndClearStoredState(MasqueradePassedCardsKey);
-        triples.forEach((t:any) => {
-            var sourcePlayer = t[0];
-            var targetPlayer = t[1];
-            var card = t[2];
-            if (card) {
-                this.playerPassesCard(sourcePlayer, targetPlayer, card);
-            }
-        });
-    }
-
     playAction(card:cards.Card) : Resolution {
         if (this.turnState.actionCount <= 0) {
             throw new Error('Unable to play ' + card.name + ' with action count ' + this.turnState.actionCount);
@@ -677,6 +545,121 @@ class Game extends base.BaseGame {
         if (!_.contains(this.attackImmunity, player)) {
             this.attackImmunity.push(player);
         }
+    }
+
+    playTreasure(card:cards.Card) {
+        var card = cards.removeFirst(this.activePlayer.hand, card);
+        this.inPlay.push(card);
+
+        this.log(this.activePlayer, 'plays', card);
+        if (card.isSameCard(cards.Copper)) {
+            this.turnState.coinCount += this.turnState.copperValue;
+        } else {
+            this.turnState.coinCount += card.money;
+        }
+
+        if (card.moneyEffect) {
+            this.pushEventsForPlayer(card, [card.moneyEffect], this.activePlayer);
+        }
+
+        this.gameListener.playerPlayedCard(this.activePlayer, card);
+    }
+
+    vendCardFromPile(pile:cards.Pile) : cards.Card {
+        if (pile.count <= 0) {
+            throw new Error('Unable to gain from empty pile');
+        }
+
+        pile.count--;
+        return _.clone(pile.card);
+    }
+
+    playerSkipsBuy() : Resolution {
+        this.turnState.phase = base.TurnPhase.Cleanup;
+        this.stateUpdated();
+        return Resolution.Advance;
+    }
+
+    playerBuysCard(card:cards.Card) : Resolution {
+        this.log(this.activePlayer.name, 'buys', card.name);
+
+        var cost = this.effectiveCardCost(card);
+        var pile = this.pileForCard(card);
+
+        if (!pile) {
+            throw new Error('No pile for card: ' + card);
+        } else if (this.turnState.buyCount == 0) {
+            throw new Error('Unable to buy with zero buys');
+        } else if (pile.count == 0) {
+            throw new Error('Unable to buy from empty pile');
+        } else if (this.turnState.coinCount < cost) {
+            throw new Error('Unable to buy card with too little money');
+        }
+
+        this.turnState.buyCount--;
+        this.turnState.coinCount -= cost;
+        this.turnState.cardBought = true;
+
+        this.stateUpdated();
+        this.playerGainsCard(this.activePlayer, card);;
+
+        return Resolution.Advance;
+    }
+
+    playerGainsCard(player:Player, card:cards.Card, dest:GainDestination=GainDestination.Discard, source:GainSource=GainSource.Pile) {
+        switch (source) {
+            case GainSource.Pile:
+                var pile = this.pileForCard(card);
+                card = this.vendCardFromPile(pile);
+                break;
+            case GainSource.Trash:
+                card = cards.removeFirst(this.trash, card);
+                break;
+        }
+
+        switch (dest) {
+            case GainDestination.Discard:
+                this.log(player, 'gains', card);
+                player.addCardToDiscard(card);
+                break;
+            case GainDestination.Hand:
+                this.log(player, 'gains', card, 'into hand');
+                player.addCardToHand(card);
+                break;
+            case GainDestination.Deck:
+                this.log(player, 'gains', card, 'onto deck');
+                player.addCardToTopOfDeck(card);
+                break;
+        }
+
+        this.gameListener.playerGainedCard(player, card, source, dest);
+    }
+
+    // Card Passing
+
+    playerPassesCard(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
+        sourcePlayer.removeCardFromHand(card);
+        targetPlayer.addCardToHand(card);
+        this.log(sourcePlayer, 'passes', card, 'to', targetPlayer);
+        this.gameListener.playerPassedCard(sourcePlayer, targetPlayer, card);
+    }
+
+    playerSelectsCardToPass(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
+        var passedCards = this.getStoredState(MasqueradePassedCardsKey, []);
+        passedCards.push([sourcePlayer, targetPlayer, card]);
+        this.setStoredState(MasqueradePassedCardsKey, passedCards);
+    }
+
+    distributePassedCards() {
+        var triples = this.getAndClearStoredState(MasqueradePassedCardsKey);
+        triples.forEach((t:any) => {
+            var sourcePlayer = t[0];
+            var targetPlayer = t[1];
+            var card = t[2];
+            if (card) {
+                this.playerPassesCard(sourcePlayer, targetPlayer, card);
+            }
+        });
     }
 
     discardHand(player:Player) {

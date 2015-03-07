@@ -16,6 +16,7 @@ import expectDeckScore = testsupport.expectDeckScore;
 import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
+import expectDiscardCards = testsupport.expectDiscardCards;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
 import expectTopTrashCard = testsupport.expectTopTrashCard;
 import expectActionCount = testsupport.expectActionCount;
@@ -236,6 +237,7 @@ describe('Ironworks', () => {
         decider1.gainCard(intrigue.GreatHall);
         expectActionCount(game, 1);
         expectPlayerHandSize(game.activePlayer, 5);
+        expectDiscardCards(game.activePlayer, [intrigue.GreatHall]);
 
         decider1.playAction(intrigue.Ironworks)
         decider1.gainCard(cards.Silver);
@@ -689,7 +691,7 @@ describe('Swindler', () => {
 
         decider1.playAction(intrigue.Swindler);
         decider1.gainCard(cards.Curse);
-        expectTopDiscardCard(game.players[1], cards.Curse);
+        expectDiscardCards(game.players[1], [cards.Curse]);
         expectTopTrashCard(game, cards.Copper);
         expectCoinCount(game, 2);
         done();

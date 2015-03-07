@@ -7,6 +7,7 @@ import Player = require('./player');
 import Card = cards.Card;
 import DiscardDestination = base.DiscardDestination;
 import GainDestination = base.GainDestination;
+import GainSource = base.GainSource;
 
 export var Yes = 'Yes';
 export var No = 'No';
@@ -44,15 +45,11 @@ export interface PlayActionDecision extends Decision {
 
 export interface PlayTreasureDecision extends Decision {}
 
-export enum GainCardSource {
-    Pile,   // Normal card gaining
-    CardSet // e.g. Thief
-}
-
 export interface GainCardDecision extends Decision {
-    gainSource:GainCardSource;
+    source:base.GainSource;
     destination:base.GainDestination;
-    targetPlayer:string;
+    targetPlayer:Player;
+    isBuy:boolean;
 }
 
 export interface DiscardCardDecision extends Decision {
@@ -126,13 +123,12 @@ export function makeBuyDecision(player:Player, cs:Card[]) : GainCardDecision {
         minSelections:0,
         maxSelections:1,
         options:cards.getNames(cs),
-        gainSource:GainCardSource.Pile,
+        source:GainSource.Pile,
         destination:base.GainDestination.Discard,
-        targetPlayer:player.name
+        targetPlayer:player,
+        isBuy:true
     };
 }
-
-// TODO?: make game responsible for gaining from decision
 
 export function makeGainDecision(player:Player, cs:Card[], trigger:Card, destination:GainDestination) : GainCardDecision {
     return {
@@ -141,23 +137,24 @@ export function makeGainDecision(player:Player, cs:Card[], trigger:Card, destina
         minSelections:1,
         maxSelections:1,
         options:cards.getNames(cs),
-        gainSource:GainCardSource.Pile,
+        source:GainSource.Pile,
         destination:destination,
-        targetPlayer:player.name
+        targetPlayer:player,
+        isBuy:false
     };
 }
 
-// Gains from a set of floating cards not a pile, e.g. for Thief
-export function makeGainAnyDecision(player:Player, cs:Card[], trigger:Card) : GainCardDecision {
+export function makeGainFromTrashDecision(player:Player, cs:Card[], trigger:Card) : GainCardDecision {
     return {
         decisionType:DecisionType.GainCard,
         trigger:trigger.name,
         minSelections:0,
         maxSelections:cs.length,
         options:cards.getNames(cs),
-        gainSource:GainCardSource.CardSet,
+        source:GainSource.Trash,
         destination:GainDestination.Discard,
-        targetPlayer:player.name
+        targetPlayer:player,
+        isBuy:false
     };
 }
 

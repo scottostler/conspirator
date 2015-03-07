@@ -211,17 +211,8 @@ class ThiefGainEffect implements Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var trashedCards:cards.Card[] = game.getAndClearStoredState(ThiefTrashedCardsKey);
-
-        var decision = decisions.makeGainAnyDecision(player, trashedCards, trigger);
-        return player.promptForCardDecision(decision, cs => {
-            cs.forEach(c => {
-                game.playerGainsFromTrash(player, c);
-            });
-
-            return Resolution.Advance;
-        });
-
-        return Resolution.Advance;
+        var decision = decisions.makeGainFromTrashDecision(player, trashedCards, trigger);
+        return player.promptForGainDecision(decision);
     }
 }
 

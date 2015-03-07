@@ -287,7 +287,7 @@ export class GainCardWithCostEffect implements Effect {
 
     process(game:Game, player:Player, trigger:cards.Card) {
         var piles = game.filterGainablePiles(this.minCost, this.maxCost, this.cardType);
-        return game.playerGainsFromPiles(player, piles, trigger, this.destination);
+        return player.gainsFromPiles(piles, trigger, this.destination);
     }
 }
 
@@ -330,8 +330,7 @@ export class TrashToGainPlusCostEffect implements Effect {
             var maxCost = game.effectiveCardCost(trashedCard) + this.plusCost;
             var minCost = this.costRestriction === GainCostRestriction.UpToCost ? 0 : maxCost;
             var piles = game.filterGainablePiles(minCost, maxCost, this.cardType);
-
-            return game.playerGainsFromPiles(player, piles, trigger, this.destination);
+            return player.gainsFromPiles(piles, trigger, this.destination);
         });
     }
 }

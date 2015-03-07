@@ -73,10 +73,9 @@ class IronworksEffect implements e.Effect {
         var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4, cards.Type.All));
         var decision = decisions.makeGainDecision(
             player, gainableCards, trigger, GainDestination.Discard);
-        return player.promptForCardDecision(decision, cs => {
+        return player.promptForGainDecision(decision, cs => {
             if (cs.length > 0) {
                 var gainedCard = cs[0];
-                game.playerGainsCard(player, gainedCard);
 
                 if (gainedCard.isAction()) {
                     game.incrementActionCount(1);
@@ -169,7 +168,7 @@ class SaboteurEffect implements e.Effect {
         var piles = game.filterGainablePiles(0, cost);
 
         game.addCardToTrash(player, results.foundCard);
-        return game.playerGainsFromPiles(player, piles, trigger, base.GainDestination.Discard, c => {
+        return player.gainsFromPiles(piles, trigger, base.GainDestination.Discard, c => {
             game.addCardsToDiscard(player, results.otherCards);
             return e.Resolution.Advance;
         });
@@ -230,12 +229,7 @@ class SwindlerEffect implements e.Effect {
         var cost = game.effectiveCardCost(card);
         var cs = cards.cardsFromPiles(game.filterGainablePiles(cost, cost));
         var decision = decisions.makeGainDecision(targetPlayer, cs, card, GainDestination.Discard);
-        return game.activePlayer.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                game.playerGainsCard(targetPlayer, cs[0], GainDestination.Discard);
-            }
-            return e.Resolution.Advance;
-        });
+        return game.activePlayer.promptForGainDecision(decision);
     }
 }
 

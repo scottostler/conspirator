@@ -8,6 +8,11 @@ export enum TurnPhase {
     Cleanup
 }
 
+export enum GainSource {
+    Pile,
+    Trash
+}
+
 export enum GainDestination {
     Discard,
     Hand,
@@ -37,8 +42,7 @@ export interface BaseGameListener {
     stateUpdated(state:GameState):void;
     playAreaEmptied():void;
     playerDrewCards(player:BasePlayer, cards:cards.Card[]):void;
-    playerGainedCard(player:BasePlayer, card:cards.Card, newCount:number, dest:GainDestination):void;
-    playerGainedCardFromTrash(player:BasePlayer, card:cards.Card):void;
+    playerGainedCard(player:BasePlayer, card:cards.Card, source:GainSource, dest:GainDestination):void;
     playerPassedCard(player:BasePlayer, targetPlayer:BasePlayer, card:cards.Card):void;
     playerPlayedCard(player:BasePlayer, card:cards.Card):void;
     playerPlayedClonedCard(player:BasePlayer, card:cards.Card):void;

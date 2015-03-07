@@ -55,6 +55,10 @@ export function expectTopDeckCard(player:Player, c:Card) {
     expect(_.last(player.deck).name).to.equal(c.name);
 }
 
+export function expectDiscardCards(player:Player, cs:Card[]) {
+    expectEqualCards(player.discard, cs);
+}
+
 export function expectTopDiscardCard(player:Player, c:Card) {
     expect(player.discard).to.have.length.of.at.least(1);
     expect(_.last(player.discard).name).to.equal(c.name);
@@ -97,7 +101,7 @@ export class TestingGameListener implements base.BaseGameListener {
     stateUpdated(state:GameState) {}
     playAreaEmptied() {}
     playerDrewCards(player:BasePlayer, cards:Card[]) {}
-    playerGainedCard(player:BasePlayer, card:Card, newCount:number, dest:GainDestination) {}
+    playerGainedCard(player:BasePlayer, card:Card, source:base.GainSource, dest:GainDestination) {}
     playerGainedCardFromTrash(player:BasePlayer, card:Card) {}
     playerPassedCard(player:BasePlayer, targetPlayer:BasePlayer, card:Card) {}
     playerPlayedCard(player:BasePlayer, card:Card) {}
