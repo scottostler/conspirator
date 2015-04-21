@@ -2,9 +2,10 @@ import _ = require('underscore');
 import cards = require('../cards')
 import baseset = require('./baseset');
 import intrigue = require('./intrigue');
+import seaside = require('./seaside');
 
 export var AllKingdomCards:cards.Card[] = [].concat(
-    baseset.Cardlist, intrigue.Cardlist);
+    baseset.Cardlist, intrigue.Cardlist, seaside.Cardlist);
 
 export var AllCards:cards.Card[] = AllKingdomCards.concat(cards.BaseCards);
 
