@@ -1,4 +1,4 @@
-import base = require('./base');
+import * as base from './base';
 
 class TurnState {
 
@@ -25,6 +25,4 @@ class TurnState {
     }
 }
 
-
-
-export = TurnState;
+export default TurnState;

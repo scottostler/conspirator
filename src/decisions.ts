@@ -1,8 +1,9 @@
 import _ = require("underscore");
-import base = require('./base');
-import cards = require('./cards');
-import effects = require('./effects');
-import Player = require('./player');
+
+import * as base from './base';
+import * as cards from './cards';
+import * as effects from './effects';
+import Player from './player';
 
 import Card = cards.Card;
 import DiscardDestination = base.DiscardDestination;

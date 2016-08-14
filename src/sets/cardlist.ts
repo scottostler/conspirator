@@ -1,8 +1,8 @@
 import _ = require('underscore');
-import cards = require('../cards')
-import baseset = require('./baseset');
-import intrigue = require('./intrigue');
-import seaside = require('./seaside');
+import * as cards from '../cards';
+import * as baseset from './baseset';
+import * as intrigue from './intrigue';
+import * as seaside from './seaside';
 
 export var AllKingdomCards:cards.Card[] = [].concat(
     baseset.Cardlist, intrigue.Cardlist, seaside.Cardlist);

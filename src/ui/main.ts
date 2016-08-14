@@ -4,16 +4,17 @@
 import _ = require('underscore');
 import $ = require('jquery');
 
-import util = require('../util');
-import Game = require('../game');
-import Player = require('../player');
-import ai = require('../ai/aidecider');
-import remotegame = require('../server/remotegame');
+import * as util from '../util';
+import Game from '../game';
+import Player from '../player';
+import * as ai from '../ai/aidecider';
+import * as remotegame from '../server/remotegame';
 
-import PlayerInterface = require('./playerinterface');
+import PlayerInterface from './playerinterface';
 import gameview = require('./gameview');
-import ChatView = require('./chatview');
+import ChatView from './chatview';
 
+// Set global variable for debugging
 window.conspirator = {};
 
 export function beginLocalGame() {

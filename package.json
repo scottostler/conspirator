@@ -11,13 +11,13 @@
     "underscore": "1.5.2",
     "async": "0.6.2",
     "node-uuid": "1.4.0",
-    "typescript": "1.4.1"
+    "typescript": "1.8.0"
   },
   "devDependencies": {
     "chai": "^1.10.0",
     "grunt": "~0.4.4",
     "grunt-mocha-test": "^0.12.6",
-    "grunt-ts": "3.0.0",
+    "grunt-ts": "5.5.1",
     "mocha": "^2.1.0"
   }
 }

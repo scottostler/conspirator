@@ -39,4 +39,4 @@ class ChatView {
 
 }
 
-export = ChatView;
+export default ChatView;

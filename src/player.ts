@@ -1,12 +1,13 @@
 import _ = require("underscore");
-import base = require('./base');
+
+import * as base from './base';
 import cardlist = require('./sets/cardlist');
-import cards = require('./cards');
-import decider = require('./decider');
-import decisions = require('./decisions');
-import effects = require('./effects');
-import Game = require('./game');
-import util = require('./util');
+import * as cards from './cards';
+import * as decider from './decider';
+import * as decisions from './decisions';
+import * as effects from './effects';
+import Game from './game';
+import * as util from './util';
 
 import Resolution = effects.Resolution;
 
@@ -283,4 +284,4 @@ class Player extends base.BasePlayer {
     }
 }
 
-export = Player;
+export default Player;

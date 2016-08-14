@@ -1,8 +1,8 @@
 import _ = require('underscore');
-import util = require('../util');
-import cards = require('../cards');
-import Player = require('../player');
-import cardlist = require('../sets/cardlist')
+import * as util  from '../util';
+import * as cards from '../cards';
+import Player from '../player';
+import * as cardlist from '../sets/cardlist';
 
 import Card = cards.Card;
 import Pile = cards.Pile;

@@ -39,4 +39,4 @@ class PlayerInterface implements decider.Decider {
 
 };
 
-export = PlayerInterface;
+export default PlayerInterface;

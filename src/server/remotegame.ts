@@ -1,12 +1,12 @@
 import _ = require('underscore');
 
 import util = require('../util');
-import cards = require('../cards');
-import base = require('../base');
-import decider = require('../decider');
-import decisions = require('../decisions');
-import Player = require('../player');
-import serialization = require('./serialization');
+import * as cards from '../cards';
+import * as base from '../base';
+import * as decider from '../decider';
+import * as decisions from '../decisions';
+import Player from '../player';
+import * as serialization from './serialization';
 
 // RemoteGame acts as a local proxy for a server-hosted game.
 export class RemoteGame extends base.BaseGame {
@@ -24,7 +24,7 @@ export class RemoteGame extends base.BaseGame {
         this.gameState = gameState;
         this.localDecider = localDecider;
 
-        this.players = _.map(gameState.players, (playerState:any) => {
+        this.players = gameState.players.map((playerState:any) => {
             return new RemotePlayer(playerState);
         });
         this.kingdomPileGroups = serialization.deserialize(gameState.kingdomPileGroups);

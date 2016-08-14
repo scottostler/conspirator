@@ -1,11 +1,12 @@
 import _ = require('underscore');
-import base = require('../base');
-import cards = require('../cards');
-import decisions = require('../decisions');
-import effects = require('../effects');
-import Game = require('../game');
-import Player = require('../player');
-import util = require('../util');
+
+import * as base from '../base';
+import * as cards from '../cards';
+import * as decisions from '../decisions';
+import * as effects from '../effects';
+import Game from '../game';
+import Player from '../player';
+import * as util from '../util';
 
 import DiscardDestination = base.DiscardDestination;
 import GainDestination = base.GainDestination;

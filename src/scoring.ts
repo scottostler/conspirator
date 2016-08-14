@@ -1,6 +1,6 @@
 import _ = require('underscore');
-import cards = require('./cards');
-import util = require('./util');
+import * as cards from './cards';
+import * as util from './util';
 
 export function calculateScore(deck:cards.Card[]) : number {
     return util.mapSum(deck, (card:cards.Card) => {

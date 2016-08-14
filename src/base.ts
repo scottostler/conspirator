@@ -1,5 +1,5 @@
-import cards = require('./cards');
-import TurnState = require('./turnstate');
+import * as cards from './cards';
+import TurnState from './turnstate';
 
 export enum TurnPhase {
     Action,

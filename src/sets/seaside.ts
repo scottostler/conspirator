@@ -1,5 +1,12 @@
-import cards = require('../cards');
-import e = require('../effects');
+import * as base from '../base';
+import * as cards from '../cards';
+import * as decisions from '../decisions';
+import * as effects from '../effects';
+import Game from '../game';
+import Player from '../player';
+import * as util from '../util';
+
+import e = effects;
 
 export var SetName = 'Seaside';
 

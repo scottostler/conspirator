@@ -1,14 +1,14 @@
 import _ = require('underscore');
 import util = require('./util');
 
-import base = require('./base');
-import cardlist = require('./sets/cardlist');
-import cards = require('./cards')
-import decisions = require('./decisions');
-import effects = require('./effects')
-import Player = require('./player');
-import scoring = require('./scoring')
-import TurnState = require('./turnstate');
+import * as base from './base';
+import * as cardlist from './sets/cardlist';
+import * as cards from './cards';
+import * as decisions from './decisions';
+import * as effects from './effects';
+import Player from './player';
+import * as scoring from './scoring';
+import TurnState from './turnstate';
 
 import GainDestination = base.GainDestination;
 import GainSource = base.GainSource;
@@ -907,4 +907,4 @@ class Game extends base.BaseGame {
     }
 }
 
-export = Game;
+export default Game;

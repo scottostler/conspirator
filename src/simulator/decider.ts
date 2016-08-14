@@ -1,11 +1,11 @@
-// A Conspirator decider that calls into rspeer's Dominiate.
-
-import util = require('../util');
-import Player = require('../player');
-import cards = require('../cards');
-import Game = require('../game');
-import decisions = require('../decisions');
-import decider = require('../decider');
+import * as base from '../base';
+import * as cards from '../cards';
+import * as decider from '../decider';
+import * as decisions from '../decisions';
+import * as effects from '../effects';
+import Game from '../game';
+import Player from '../player';
+import * as util from '../util';
 
 export class SimulatorDecider implements decider.Decider {
 

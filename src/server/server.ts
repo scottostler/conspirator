@@ -1,11 +1,11 @@
 import _ = require('underscore');
-import util = require('../util');
-import cards = require('../cards');
-import Player = require('../player');
-import Game = require('../game');
-import ai = require('../ai/aidecider');
-import socketdecider = require('./socketdecider');
-import serialization = require('./serialization');
+import * as util from '../util';
+import * as cards from '../cards';
+import Player from '../player';
+import Game from '../game';
+import * as ai from '../ai/aidecider';
+import * as socketdecider from './socketdecider';
+import * as serialization from './serialization';
 
 declare function require(name:string):any;
 declare var process:any;

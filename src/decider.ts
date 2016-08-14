@@ -1,8 +1,7 @@
-import util = require('./util');
-import base = require('./base');
-import decisions = require('./decisions');
-import cards = require('./cards');
-import game = require('./game');
+import * as base from './base';
+import * as cards from './cards';
+import * as decisions from './decisions';
+import * as util from './util';
 
 export interface Decider {
     setPlayer(player:base.BasePlayer):void;
