@@ -1,64 +1,90 @@
-/// <reference path="../../typings/jquery/jquery.d.ts" />
-/// <reference path="../../typings/underscore/underscore.d.ts" />
+import * as _ from 'underscore';
+import * as $ from 'jquery';
 
-import _ = require('underscore');
-import $ = require('jquery');
-
-import * as util from '../util';
+import Decider from '../decider';
+import { Decision } from '../decisions';
+import { GameEvent } from '../event';
 import Game from '../game';
-import Player from '../player';
-import * as ai from '../ai/aidecider';
-import * as remotegame from '../server/remotegame';
+import { GameRecord } from '../gamerecord';
+import { isClient } from '../utils';
 
+import RandomDecider from '../deciders/randomdecider';
 import PlayerInterface from './playerinterface';
-import gameview = require('./gameview');
+import { GameView } from './gameview';
 import ChatView from './chatview';
 
-// Set global variable for debugging
+interface Window {
+    conspirator: any;
+    io: any;
+}
+
 window.conspirator = {};
+
+const playerIndex = 0;
+
+class LocalGameContainer {
+    
+    game: Game;
+    gameView: GameView;
+    playerInterface: PlayerInterface;
+    
+    constructor() {
+        this.game = new Game(['Player', 'Alice']);
+        this.gameView = new GameView(GameRecord.fromGame(this.game), playerIndex);
+        this.playerInterface = new PlayerInterface(this.gameView); 
+        this.game.eventEmitter.addEventListener(this.gameView);
+        
+        const deciders = [this.playerInterface, new RandomDecider()];
+        this.game.completeWithDeciders(deciders);
+    }
+
+}
+
+class SocketGameContainer {
+
+    gameView: GameView;
+    playerInterface: PlayerInterface;
+    chatView: ChatView;
+    socket: any;
+
+    constructor(socket: any) {
+        const chatView = new ChatView();
+        socket.on('chat', (msg: string) => {
+            chatView.addMessage(msg);
+        });
+
+        socket.on('game-init', (state: GameRecord) => {
+            this.gameView = new GameView(state, playerIndex);
+            this.playerInterface = new PlayerInterface(this.gameView);
+        });
+
+        socket.on('game-event', (event: GameEvent) => {
+            this.gameView.handleEvent(event);
+        });
+
+        socket.on('game-decision', (decision: Decision<any>) => {
+            this.playerInterface.decide(decision).then(vals => {
+                socket
+            });
+        });
+    }
+
+}
 
 export function beginLocalGame() {
     $('.right-sidebar').addClass('local-game');
     $('.new-game').click(beginLocalGame);
-
-    var numPlayers = 2;
-    var $canvas = $('#canvas');
-
-    var humanInterface = new PlayerInterface();
-    var humanPlayer = new Player('Player', humanInterface);
-    humanInterface.player = humanPlayer;
-
-    var computerPlayers = ai.makeComputerPlayers(numPlayers - 1);
-    var players = [humanPlayer].concat(computerPlayers);
-
-    var gameInstance = new Game(players);
-    var gameView = new gameview.GameView(gameInstance, 0);
-
-    humanInterface.setGameView(gameView);
-    gameInstance.start();
-
-    _.extend(window.conspirator, {
-        g: gameInstance,
-        gv: gameView,
-        beginLocalGame: beginLocalGame
-    });
+    (<any>window).conspirator = new LocalGameContainer();
 }
 
 export function beginRemoteGame() {
     $('.game-buttons').hide();
-    var socket = window.io.connect('/');
-    var chatView = new ChatView(socket);
-
-    socket.on('game-init', (state:any) => {
-        var humanInterface = new PlayerInterface();
-        var remoteGame = new remotegame.RemoteGame(socket, state, humanInterface);
-        var gameView = new gameview.GameView(remoteGame, state.playerIndex);
-        humanInterface.setGameView(gameView);
-    });
+    const socket = window.io.connect('/');
+    (<any>window).conspirator = new SocketGameContainer(socket);
 }
 
 $(function() {
-    if (util.isClient()) {
+    if (isClient()) {
         beginRemoteGame();
     } else {
         beginLocalGame();

@@ -1,40 +1,23 @@
-import _ = require('underscore');
-import util = require('../util');
-import game = require('../game');
-import cards = require('../cards');
-import base = require('../base');
-import Player = require('../player');
-import decisions = require('../decisions');
-import decider = require('../decider');
-import gameview = require('./gameview');
+import * as utils from '../utils';
+import * as game from '../game';
+import * as cards from '../cards';
+import{ Decision } from '../decisions';
 
-class PlayerInterface implements decider.Decider {
+import Decider from '../decider';
+import { GameView } from './gameview';
+
+class PlayerInterface implements Decider {
     
-    player:base.BasePlayer;
-    gameView:gameview.GameView;
+    label: string | null;
 
-    assertPlayer() {
-        if (!this.player) {
-            console.error('Missing valid player', this);
-        }
-    }
+    gameView: GameView;
 
-    // TODO: this method solves a circular dependency between this and the gameView :(
-    setGameView(gameView:gameview.GameView) {
+    constructor(gameView: GameView) {
         this.gameView = gameView;
     }
 
-
-    // Must be set before any prompting
-    setPlayer(player:base.BasePlayer) {
-        this.player = player;
-    }
-
-    // Prompting
-
-    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
-        this.assertPlayer();
-        this.gameView.offerOptions('Make a decision', decision.options, onDecide);
+    decide<T>(decision: Decision<T>) : Promise<T[]> {
+        return this.gameView.offerDecision(decision);
     }
 
 };

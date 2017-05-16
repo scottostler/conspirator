@@ -81,27 +81,6 @@ html body {
     height: 100%;
 }
 
-.message-input {
-    height: 20px;
-    border-top: 1px solid black;
-}
-
-.right-sidebar.local-game .message-input {
-    display: none;
-}
-
-.message-input input[type="text"] {
-    float: left;
-    width: -webkit-calc(100% - 50px);
-    width: calc(100% - 50px);
-    height: 24px;
-}
-
-.message-input button {
-    float: left;
-    width: 50px;
-}
-
 .in-play {
     position: absolute;
     top: 420px;

@@ -1,121 +1,137 @@
-import _ = require('underscore');
-import util = require('./util');
-import effects = require('./effects')
+import * as _ from 'underscore';
 
-export enum Type {
-    Action,
-    Treasure,
-    Victory,
-    Reaction,
-    Curse,
-    All
+import { PlayerIdentifier } from './player';
+import { EffectTemplate, AttackReactionEffectTemplate, VPEffect } from './effects';
+import { BasicVPEffect } from './sets/common';
+import { CardType } from './base';
+
+export type CardIdentifier = string;
+
+export enum ReactionType {
+    OnAttack
 }
 
-var AssetRoot = 'assets/cards-296x473';
-
-function buildCardURL(set:string, name:string) : string {
-    var filename = name.toLowerCase().replace(/\s+/g, '') + '.jpg';
-    return [AssetRoot, set, filename].join('/');
-}
-
-export function cardbackURL() : string {
-    return buildCardURL('basecards', 'cardback');
+export function reactionTypeLabel(reactionType: ReactionType) : string {
+    switch (reactionType) {
+        case ReactionType.OnAttack: return "Attack"
+    }
+    throw new Error(`Unknown reaction type: ${reactionType}`);
 }
 
 export interface CardProperties {
-    set:string;
-    name:string;
-    cost?:number;
-    effects?:effects.Effect[];
-    reaction?:[effects.ReactionType, effects.Effect[]];
-    money?:number;
-    moneyEffect?:effects.Effect;
-    vp?:effects.VPEffect;
-    attack?:boolean;
+    set: string;
+    name: string;
+    cost?: number;
+    effects?: EffectTemplate[];
+    reaction?: [ReactionType, [AttackReactionEffectTemplate]];
+    money?: number;
+    moneyEffect?: EffectTemplate;
+    vp?: VPEffect;
+    attack?: boolean;
 }
 
 export class Card {
+    set: string;
+    name: string;
+    cost: number;
+    effects: EffectTemplate[];
+    reaction: [ReactionType, [AttackReactionEffectTemplate]];
+    money: number;
+    moneyEffect: EffectTemplate;
+    vp: VPEffect;
+    attack: boolean;
 
-    set:string;
-    name:string;
-    cost:number;
-    effects:effects.Effect[];
-    reaction:any;
-    money:number;
-    moneyEffect:effects.Effect;
-    vp:effects.VPEffect;
-    attack:boolean;
-
-    assetURL:string;
-
-    constructor(properties:CardProperties) {
-        _.extend(this, properties);
-        this.assetURL = buildCardURL(this.set, this.name);
+    constructor(properties: CardProperties) {
+        Object.assign(this, properties);
     }
 
-    isSameCard(c:Card) {
+    get debugDescription() : string {
+        return this.name;
+    }
+
+    isSameCard(c: Card) : boolean {
         return this.name === c.name;
     }
 
-    isIdenticalCard(c:Card) {
-        return this === c;
+   toString() {
+        return this.name;
+    }
+
+    get isAction() : boolean {
+        return !!this.effects;
+    }
+
+    get isAttack() : boolean {
+        return !!this.attack;
+    }
+
+    get isReaction() : boolean {
+        return !!this.reaction;
+    }
+
+    isReactionType(reactionType: ReactionType) : boolean {
+        if (this.reaction) {
+            return this.reaction[0] == reactionType;
+        } else {
+            return false;
+        }
+    }
+
+    get isTreasure() : boolean {
+        return !!this.money;
+    }
+
+    get isVictory() : boolean {
+        return !!this.vp && !this.isCurse;
+    }
+
+    get isCurse() : boolean {
+        return this.name === 'Curse';
+    }
+
+    matchesType(cardType:CardType) : boolean {
+        switch (cardType) {
+            case CardType.All:
+                return true;
+            case CardType.Action:
+                return this.isAction;
+            case CardType.Reaction:
+                return this.isReaction;
+            case CardType.Treasure:
+                return this.isTreasure;
+            case CardType.Victory:
+                return this.isVictory;
+            case CardType.Curse:
+                return this.isCurse;
+        }
+    }
+}
+
+export class CardInPlay extends Card {
+
+    // Used to track card instances where identity matters.
+    // Can matter for cards like Mining Village, and for UI purposes. 
+    identifier: CardIdentifier;
+
+    location: CardGroup | null;
+
+    constructor(card: Card, identifier: CardIdentifier) {
+        super(card);
+        this.identifier = identifier;
+        this.location = null;
+    }
+
+    get debugDescription() : string {
+        return `${this.name} (${this.identifier})`;
+    }
+
+    isExactCard(c: CardInPlay) {
+        return this.name === c.name && this.identifier === c.identifier;
     }
 
     toString() {
         return this.name;
     }
-
-    isAction() : boolean {
-        return !!this.effects;
-    }
-
-    isAttack() : boolean {
-        return !!this.attack;
-    }
-
-    isReaction() : boolean {
-        return !!this.reaction;
-    }
-
-    isTreasure() : boolean {
-        return !!this.money;
-    }
-
-    // A basic treasure is a treasure with a fixed number of coins
-    // and no effects when played.
-    // This isn't standard Dominion terminology, and is used for autoplaying coins.
-    isBasicTreasure() : boolean {
-        return this.isTreasure() && !this.moneyEffect;
-    }
-
-    isVictory() : boolean {
-        return !!this.vp && !this.isCurse();
-    }
-
-    isCurse() : boolean {
-        return this.name === 'Curse';
-    }
-
-    matchesType(cardType:Type) : boolean {
-        switch (cardType) {
-            case Type.All:
-                return true;
-            case Type.Action:
-                return this.isAction();
-            case Type.Reaction:
-                return this.isReaction();
-            case Type.Treasure:
-                return this.isTreasure();
-            case Type.Victory:
-                return this.isVictory();
-            case Type.Curse:
-                return this.isCurse();
-        }
-    }
-}
-
-export interface CardCallback {
-    (cards:Card[]) : void;
 }
 
 export interface CardsCallback {
@@ -130,31 +146,24 @@ export interface CardsPredicate {
     (cards:Card[]) : boolean;
 }
 
-export interface PurchaseCallback {
-    (card:Card, treasures:Card[]) : void;
-}
-
-export function makeIsCardPredicate(card:Card) : CardPredicate {
+export function makeIsCardPredicate(card: Card) : CardPredicate {
     return (c:Card) => { return card.isSameCard(c); }
 }
 
-export function makeIsTypePredicate(cardType:Type) : CardPredicate {
+export function makeIsTypePredicate(cardType: CardType) : CardPredicate {
     return (c:Card) => { return c.matchesType(cardType); }
 }
 
-export function makeIsCostPredicate(lower:number, upper:number) : CardPredicate {
+export function makeIsCostPredicate(lower: number, upper: number) : CardPredicate {
     return (c:Card) => { return c.cost >= lower && c.cost <= upper; }
 }
 
-export var treasurePredicate:CardPredicate = makeIsTypePredicate(Type.Treasure)
-export var allCardsPredicate:CardPredicate = makeIsTypePredicate(Type.All);
+export var allCardsPredicate: CardPredicate = makeIsTypePredicate(CardType.All);
 
 // Card utility functions
 
-export function uniq(cards:Card[]) : Card[] {
-    return _.uniq(cards, function(c) {
-        return c.name;
-    });
+export function uniq(cards: Card[]) : Card[] {
+    return _.uniq(cards, c => c.name); 
 }
 
 export function areUnique(cards:Card[]) : boolean {
@@ -169,23 +178,11 @@ export function without(cs:Card[], c:Card) : Card[] {
     return difference(cs, [c]);
 }
 
-export function clone(cards:Card[]) : Card[] {
-    return _.map(cards, c => _.clone(c));
-}
-
-export function matchNone(cardType:Type) : CardsPredicate {
-    return function(cards:Card[]) {
-        return !_.some(cards, function(c:Card) {
-            return c.matchesType(cardType) 
-        });
-    };
-}
-
 export function filter(cards:Card[], predicate:CardPredicate) : Card[] {
-    return _.filter(cards, (c:Card) => { return predicate(c); });
+    return cards.filter(c => { return predicate(c) });
 }
 
-export function filterByType(cards:Card[], cardType:Type) : Card[] {
+export function filterByType(cards:Card[], cardType:CardType) : Card[] {
     return filter(cards, makeIsTypePredicate(cardType));
 }
 
@@ -193,158 +190,164 @@ export function filterByCard(cards:Card[], card:Card) : Card[] {
     return filter(cards, makeIsCardPredicate(card));
 }
 
-export function filterByCost(cards:Card[], lower:number, upper:number) : Card[] {
-    return filter(cards, makeIsCostPredicate(lower, upper));
-}
-
-export function countByCard(cards:Card[], card:Card) : number {
+export function countByCard(cards: Card[], card: Card) : number {
     return filterByCard(cards, card).length;
 }
 
-export function getActions(cards:Card[]) : Card[] {
-    return filterByType(cards, Type.Action);
-}
-
-export function getReactions(cards:Card[], reactionType:effects.ReactionType) : Card[] {
-    return _.filter(cards, (c:Card) => c.isReaction() && c.reaction[0] === reactionType);
-}
-
-export function getTreasures(cards:Card[]) : Card[] {
-    return filterByType(cards, Type.Treasure);
-}
-
-export function getVictories(cards:Card[]) : Card[] {
-    return filterByType(cards, Type.Victory);
-}
-
-export function getBasicTreasures(cards:Card[]) : Card[] {
-    return _.filter(cards, (c:Card) => {
-        return c.isBasicTreasure();
-    });
-}
-
-export function getNames(cards:Card[]) : string[] {
-    return _.pluck(cards, 'name');
-}
-
-export function contains(cards:Card[], card:Card) {
+export function contains(cards: Card[], card: Card) {
     return _.some<Card>(cards, makeIsCardPredicate(card));
 }
 
-export function containsIdentical(cards:Card[], card:Card) {
-    return _.contains(cards, card);
+export function asNames(cards: Card[], includeDebug = false) : string[] {
+    return cards.map(c => includeDebug ? c.debugDescription : c.name);
 }
 
-// TODO:
-// Mutating the removeFirst/removeIdentical input arrays shortens caller code, but
-// can cause bugs due to mutating shared state.
-
-// Removes a card of the same type.
-// Throws an error if the card isn't present.
-export function removeFirst(cards:Card[], card:Card) : Card {
-    var match = _.find<Card>(cards, makeIsCardPredicate(card));
-    var index = cards.indexOf(match);
+/// Removes a card of the same type.
+/// Throws an error if the card isn't present.
+export function removeFirst(cards: Card[], card: Card) {
+    var index = cards.findIndex(c => c.isSameCard(card));
 
     if (index === -1) {
-        throw new Error('Unable to remove ' + card.name + ' from ' + getNames(cards));
-    }
-
-    cards.splice(index, 1);
-    return match;
-}
-
-// Removes the exact card object. Card identity can matter for effects like Mining Village.
-// Throws an error if the card isn't present.
-export function removeIdentical(cards:Card[], card:Card) : void {
-    var index = cards.indexOf(card);
-
-    if (index === -1) {
-        throw new Error('Unable to remove ' + card.name + ' from ' + getNames(cards));
+        throw new Error('Unable to remove ' + card.name);
     }
 
     cards.splice(index, 1);
 }
 
-// Dummy Cards
-// TODO: make views instead of cards.
+/// Removes the exact card object. Card identity can matter for effects like Mining Village.
+/// Throws an error if the card isn't present.
+export function removeIdentical(cards: CardInPlay[], card: CardInPlay) {
+    const index = cards.findIndex(c => c.identifier == card.identifier);
+    if (index === -1) {
+        throw new Error('Unable to remove ' + card.identifier);
+    }
+    cards.splice(index, 1);
+}
 
-export var Trash = new Card({
-    name: 'Trash',
-    set: 'basecards'
-});
-
-export var Cardback = new Card({
-    name: 'Cardback',
-    set: 'basecards'
-});
-
-// Basic Cards
-
-export var Copper = new Card({
-    name: 'Copper',
-    cost: 0,
-    money: 1,
-    set: 'basecards'
-});
-
-export var Silver = new Card({
-    name: 'Silver',
-    cost: 3,
-    money: 2,
-    set: 'basecards'
-});
-
-export var Gold = new Card({
-    name: 'Gold',
-    cost: 6,
-    money: 3,
-    set: 'basecards'
-});
-
-export var Estate = new Card({
-    name: 'Estate',
-    cost: 2,
-    vp: new effects.BasicVPEffect(1),
-    set: 'basecards'
-});
-
-export var Duchy = new Card({
-    name: 'Duchy',
-    cost: 5,
-    vp: new effects.BasicVPEffect(3),
-    set: 'basecards'
-});
-
-export var Province = new Card({
-    name: 'Province',
-    cost: 8,
-    vp: new effects.BasicVPEffect(6),
-    set: 'basecards'
-});
-
-export var Curse = new Card({
-    name: 'Curse',
-    cost: 0,
-    vp: new effects.BasicVPEffect(-1),
-    set: 'basecards'
-});
-
-export class Pile {
-    card:Card;
-    count:number;
-    constructor(card:Card, count:number) {
+export class SupplyPile {
+    constructor(readonly card: Card, public count:number) {
         this.card = card;
         this.count = count;
     }
 }
 
-export var BaseCards = [Copper, Silver, Gold, Estate, Duchy, Province, Curse];
-
-export function cardsFromPiles(piles:Pile[]) : Card[] {
-    return _.pluck(piles, 'card');
+export enum CardGroupType {
+    Hand, Deck, Discard,
+    InPlay,
+    SetAside, Trash
 }
 
-export interface CardSearchResult {
-    foundCard?:Card;
-    otherCards:Card[];
+export class CardGroup {
+
+    protected _cards: CardInPlay[];
+    
+    /// Return copies of internal array
+    get cards() : CardInPlay[] {
+        return this._cards.slice();
+    }
+
+    get empty() : boolean { return this._cards.length == 0; }
+    get count() : number { return this._cards.length; }
+
+    constructor(readonly owner: PlayerIdentifier | null,
+                readonly groupType: CardGroupType,
+                cards: CardInPlay[] = []) {
+        this._cards = cards;
+        for (const card of cards) {
+            if (card.location) {
+                throw new Error(`Cannot insert card to ${this.toString()}: card ${card.name} already in ${card.location}`);
+            }
+            card.location = this;
+        }
+    }
+
+    toString() : string {
+        return CardGroupType[this.groupType];
+    }
+
+    insertCard(card: CardInPlay) {
+        if (card.location) {
+            throw new Error(`Cannot insert card to ${this.toString()}: card ${card.name} already in ${card.location}`);
+        }
+        card.location = this;
+        this._cards.push(card);
+    }
+
+    removeCard(card: CardInPlay) {
+        if (card.location !== this) {
+            throw new Error(`Cannot remove card from ${this}: card located in ${card.location}`);
+        }
+
+        const index = this._cards.indexOf(card);
+        if (index == -1) {
+            throw new Error(`Cannot remove card from ${this}: card missing from internal array ${this._cards}`);
+        }
+        
+        this._cards.splice(index, 1);
+        card.location = null;
+    }
+
+    includes(card: CardInPlay) : boolean {
+        return this._cards.includes(card);
+    }
+
+    ofType(cardType: CardType) : CardInPlay[] {
+        return this._cards.filter(c => c.matchesType(cardType));
+    }
+
+    ofReactionType(reactionType: ReactionType) : CardInPlay[] {
+        return this._cards.filter(c => c.isReactionType(reactionType));
+    }
+
+    // For debuging and testing
+
+    setCards(cards: CardInPlay[]) {
+        if (!this.empty) {
+            throw new Error("Can only call setCards on empty CardGroup");
+        }
+
+        for (let c of cards) {
+            if (c.location !== null) {
+                throw new Error(`Card ${c} already has location: ${c.location}`);
+            }
+            this.insertCard(c);
+        }
+    }
+
+    dropAllCards() {
+        for (let c of this.cards) {
+            this.removeCard(c);
+        }
+    }
 }
+
+export class CardStack extends CardGroup {
+    get topCard() : CardInPlay | null {
+        return this.count == 0 ? null : this._cards[this.count - 1];
+    }
+
+    topCards(n: number) : CardInPlay[] {
+        return _.tail(this._cards, n);
+    }
+
+    insertCardAtBottom(card: CardInPlay) {
+        if (card.location) {
+            throw new Error(`Cannot insert card to ${this}: card ${card.name} still in ${card.location}`);
+        }
+
+        card.location = this;
+        this._cards.unshift(card);
+    }
+}
+
+
+
+export function randomizedKingdomCards(forcedCards: Card[], allCards: Card[], numCards: number) : Card[] {
+    if (forcedCards.length >= numCards) {
+        return forcedCards;
+    }
+
+    const randomOptions = _.difference<Card>(allCards, forcedCards);
+    const randomCards = _.sample<Card>(randomOptions, numCards - forcedCards.length);
+    return forcedCards.concat(randomCards);
+};

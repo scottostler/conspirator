@@ -1,50 +1,41 @@
-/// <reference path="../typings/mocha/mocha.d.ts" />
-/// <reference path="../typings/chai/chai.d.ts" />
+import { expect } from 'chai';
 
-import _ = require('underscore');
-import chai = require('chai');
-
-import cards = require('../src/cards');
-import testsupport = require('./testsupport');
-import util = require('../src/util');
-
-import expect = chai.expect;
+import * as cards from '../src/cards';
+import { Copper, Estate } from '../src/sets/common';
+import * as testsupport from './testsupport';
+import * as util from '../src/utils';
 
 import expectEqualCards = testsupport.expectEqualCards;
 import expectPlayerHandSize = testsupport.expectPlayerHandSize;
 
-var fiveCopperHand = util.duplicate(cards.Copper, 5);
+var fiveCopperHand = [Copper, Copper, Copper, Copper, Copper];
 
-describe('Game.advanceTurn', () => {
-   it('players should discard hand, and draw 5 cards after turn', done => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2);
-
+describe('Game.beginNewTurn', () => {
+   it('players should discard hand, and draw 5 cards after turn', () => {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame();
         game.start();
 
-        var player1Hand = _.clone(game.activePlayer.hand);
+        const player1Hand = game.activePlayer.hand.cards;
         decider1.playTreasures([]);
-        decider1.gainCard(null);
+        decider1.buyCard(null);
         decider2.playTreasures([]);
 
-        expectEqualCards(game.players[0].discard, player1Hand);
+        expect(game.players[0].getFullDeck()).to.have.lengthOf(10);
+        expect(cards.asNames(game.inPlay.cards)).to.be.empty;
+        
+        expectEqualCards(game.players[0].discard.cards, player1Hand);
+        expect(game.players[0].deck.cards).to.be.empty;
         expectPlayerHandSize(game.players[0], 5);
-
-        done();
     });
 });
 
 describe('Game.isExactCardInPlay', () => {
-    it('should match exact cards in play', done => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, fiveCopperHand);
+    it('should match exact cards in play', () => {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(fiveCopperHand);
 
         game.start();
-        decider1.playTreasures([cards.Copper, cards.Copper, cards.Copper]);
-        expect(game.isExactCardInPlay(game.activePlayer.hand[0])).to.eql(false, 'Hello!');
-        expect(game.isExactCardInPlay(game.inPlay[0])).to.eql(true, 'Goodbye');
-        done();
+        decider1.playTreasures([Copper, Copper, Copper]);
+        expect(game.inPlay.includes(game.activePlayer.hand.cards[0])).to.be.false;
+        expect(game.inPlay.includes(game.inPlay.cards[0])).to.be.true;
     });
 });

@@ -1,103 +1,66 @@
-import $ = require('jquery');
-import _ = require('underscore');
-import util = require('../util');
-import cards = require('../cards');
-import Game = require('../game');
-import base = require('../base');
-import playerview = require('./playerview');
-import cardview = require('./cardview');
-import ScoreSheet = require('./scoresheet');
-import View = require('./view');
+import * as $ from 'jquery';
+import * as _  from 'underscore';
 
-export class GameStateView {
+import * as utils from '../utils';
+import { GainDestination } from '../base';
+import { Card, CardInPlay, CardsCallback, SupplyPile } from '../cards';
+import { Decision, DecisionType } from '../decisions';
+import { EventListener, GameEvent } from '../event';
+import { CardRecord, GameRecord } from '../gamerecord';
+import { PlayerIdentifier } from '../player';
+import { getCardByName } from '../sets/cardlist';
 
-    $counters:any;
-    copperValue:number;
+import { PlayerView } from './playerview';
+import CardView from './cardview';
+import GameStateView from './gamestateview';
 
-    constructor() {
-        this.$counters = $('.status-counters');
-        this.copperValue = 1;
-    }
+import ScoreSheet from './scoresheet';
+import View from './view';
 
-    updateStatusCounter(update:base.GameState) {
-        this.$counters.find('.turn-label').text(
-            util.possessive(update.activePlayer) + ' Turn ' + update.turnCount);
+export class GameView extends View implements EventListener {
 
-        this.$counters.find('.phase-label').text(
-            base.TurnPhase[update.turnState.phase] + ' Phase');
+    gameRecord: GameRecord;
+    humanPlayerIndex: number;
 
-        this.$counters.find('.action-count').text(update.turnState.actionCount);
-        this.$counters.find('.buy-count').text(update.turnState.buyCount);
-        this.$counters.find('.coin-count').text(update.turnState.coinCount);
-        this.$counters.find('.extra-coins').text('');
+    pileViews: CardView[];
+    $inPlay: JQuery;
+    inPlayViews: CardView[];
+    playerViews: PlayerView[];
+    $kingdomPiles: JQuery;
+    trashView: CardView;
+    gameStateView: GameStateView;
+    $statusMessageLabel: JQuery;
+    $doneButton: JQuery;
 
-        this.copperValue = update.turnState.copperValue;
-    }
-
-    showExtraCoinIndicator(extraCoins:number) {
-        if (extraCoins > 0) {
-            this.$counters.find('.extra-coins').text('+' + extraCoins);
-        }
-    }
-
-    hideExtraCoinIndicator() {
-        this.$counters.find('.extra-coins').text('');
-    }
-
-}
-
-function reorderKingdomPileGroups(pileGroups:cards.Pile[][]) : cards.Pile[] {
-    var firstRow:cards.Pile[] = [];
-    var secondRow:cards.Pile[] = [];
-
-    pileGroups.forEach(function(group) {
-        var midpoint = Math.ceil(group.length / 2);
-        firstRow = firstRow.concat(group.slice(0, midpoint));
-        secondRow = secondRow.concat(group.slice(midpoint));
-    });
-
-    return firstRow.concat(secondRow);
-}
-
-export class GameView extends View implements base.BaseGameListener {
-
-    game:base.BaseGame;
-    pileViews:cardview.PileView[];
-    $inPlay:any;
-    inPlayViews:any;
-    playerViews:playerview.PlayerView[];
-    $kingdomPiles:any;
-    trashView:any;
-    gameStateView:GameStateView;
-    $statusMessageLabel:any;
-    $doneButton:any;
-
-    constructor(game:base.BaseGame, humanPlayerIndex:number) {
+    constructor(gameRecord: GameRecord, humanPlayerIndex: number) {
         super('.game-container');
-        this.game = game;
-        this.game.gameListener = this; // TODO: ugh
+        this.gameRecord = gameRecord;
         this.pileViews = [];
 
         this.$inPlay = $('.in-play').empty();
         this.inPlayViews = [];
 
-        var $playerViews = $('.player-areas').empty();
-        this.playerViews = this.game.players.map((p, i) => {
-            var view = i === humanPlayerIndex
-                ? new playerview.HumanPlayerView(this, p, i)
-                : new playerview.RemotePlayerView(this, p, i);
+        const $playerViews = $('.player-areas').empty();
+        this.humanPlayerIndex = humanPlayerIndex;
+
+        this.playerViews = _.map(gameRecord.players, (p, idx) => {
+            const view = new PlayerView(p, idx);
             $playerViews.append(view.$el);
             return view;
         });
 
         this.$kingdomPiles = $('.kingdom-piles').empty();
-        reorderKingdomPileGroups(this.game.kingdomPileGroups).forEach((pile, i) => {
-            var pileView = new cardview.PileView(pile);
+
+        gameRecord.piles.forEach(pile => {
+            const card = getCardByName(pile.card.name)
+            const pileView = new CardView(cardImageURL(card), card.name);
+            pileView.setBadgeCount(pile.count);
+            
             this.$kingdomPiles.append(pileView.$el);
             this.pileViews.push(pileView);
         });
 
-        this.trashView = new cardview.CardView(cards.Trash);
+        this.trashView = new CardView(TrashImageURL, 'Trash');
         this.$kingdomPiles.append(this.trashView.$el);
 
         this.gameStateView = new GameStateView();
@@ -114,56 +77,61 @@ export class GameView extends View implements base.BaseGameListener {
             if (src) {
                 $('.card-preview img').attr('src', src);
             } else {
-                $('.card-preview img').attr('src', cards.cardbackURL());
+                $('.card-preview img').attr('src', CardbackImageURL);
             }
         });
 
         $(document).on('mouseout', '.card', e => {
-            $('.card-preview img').attr('src', cards.cardbackURL());
+            $('.card-preview img').attr('src', CardbackImageURL);
         });
     }
 
-    viewForInPlayCard(card:cards.Card) : cardview.CardView {
-        var cardView = _.find(this.inPlayViews, function(v:cardview.CardView) {
-            return v.card.isIdenticalCard(card);
-        });
-
-        if (!cardView) {
-            console.error('Missing view for in play card', card);
+    viewForInPlayCard(card: CardInPlay) : CardView {
+        for (const view of this.inPlayViews) {
+            if (view.identifier === card.identifier) {
+                return view;
+            }
         }
-
-        return cardView;
+        throw new Error('Missing view for in-play card ' + card);
     }
 
     // Will return null if no pile exist, e.g. for prizes
-    pileViewForCard(card:cards.Card) : cardview.PileView {
-        return _.find(this.pileViews, function(p:cardview.PileView) {
-            return p.pile.card.isSameCard(card);
-        });
-    }
-
-    viewForPlayer(player:base.BasePlayer) : playerview.PlayerView {
-        var playerView = _.find(this.playerViews, function(p:playerview.PlayerView) {
-            return p.player === player;
-        });
-
-        if (!playerView) {
-            console.error('Missing view for player', player);
+    pileViewForCard(card: Card) : CardView {
+        for (const view of this.pileViews) {
+            if (view.identifier === card.name) {
+                return view;
+            }
         }
-
-        return playerView;
+        return null;
     }
 
-    showStatusMessage(message:string) {
+    viewForPlayer(player: PlayerIdentifier) : PlayerView {
+        for (const playerView of this.playerViews) {
+            if (playerView.playerRecord.identifier === player) {
+                return playerView;
+            }
+        }
+        throw new Error('Missing playerView for ' + player)
+    }
+
+    get humanPlayerView() : PlayerView {
+        return this.playerViews[this.humanPlayerIndex];
+    }
+
+    showStatusMessage(message: string) {
         this.$statusMessageLabel.text(message);
     }
 
     updateTrashPile() {
-        var card = _.last<cards.Card>(this.game.trash);
-        this.trashView.setCardImage(card ? card.assetURL : cards.Trash.assetURL);
+        const card = _.last<CardRecord>(this.gameRecord.trash);
+        if (card) {
+            this.trashView.setCardImage(cardImageURL(getCardByName(card.name)));
+        } else {
+            this.trashView.setCardImage(TrashImageURL);
+        }
     }
 
-    // Player Interface Interaction
+    //// Player Interface Interaction
 
     clearSelectionMode() {
         this.gameStateView.hideExtraCoinIndicator();
@@ -172,78 +140,54 @@ export class GameView extends View implements base.BaseGameListener {
             .removeClass('selectable not-selectable').unbind('click mouseenter mouseleave');
         this.trashView.$el.removeClass('selectable not-selectable');
 
-        this.playerViews.forEach(function(view) {
+        this.playerViews.forEach(view => {
             view.clearSelectionMode();
         });
     }
 
     // Used for buying or gaining cards from piles.
-    // Optionally allows treasures in be played while buying.
-    offerPileSelection(player:base.BasePlayer, selectablePiles:cards.Pile[], allowPlayTreasures:boolean, allowCancel:boolean, onSelect:cards.PurchaseCallback) {
+    offerPileSelection(selectablePiles: SupplyPile[], allowCancel: boolean, onSelect: CardsCallback) {
         this.clearSelectionMode();
         this.trashView.$el.addClass('not-selectable');
 
-        var endSelection:cards.PurchaseCallback = (card, treasure) => {
+        const endSelection = (card:Card) => {
             this.hideDoneButton();
             this.clearSelectionMode();
-            onSelect(card, treasure);
+            onSelect([card]);
         };
 
-        if (allowPlayTreasures) {
-            var treasures = cards.getTreasures(player.getHand());
-            this.offerHandSelection(player, 1, 1, true, treasures, util.adaptListToOption((card:cards.Card) => {
-                endSelection(null, [card]);
-            }));
-        }
+        const selectableCardNames = selectablePiles.map(p => p.card.name);
+        const playerView = this.playerViews[this.humanPlayerIndex];
 
-        var playerView = this.viewForPlayer(player);
-        _.each(this.pileViews, (pileView:cardview.PileView) => {
-            var isSelectable = _.contains(selectablePiles, pileView.pile);
-            if (isSelectable) {
+        for (const pileView of this.pileViews) {
+            if (_.contains(selectableCardNames, pileView.identifier)) {
                 pileView.$el.addClass('selectable').click(() => {
-                    endSelection(pileView.pile.card, null);
+                    const card = getCardByName(pileView.identifier);
+                    endSelection(card);
                 });
-
-                if (allowPlayTreasures) {
-                    var basicTreasures = cards.getBasicTreasures(player.getHand());
-                    var basicCoinMoney = util.mapSum(basicTreasures, card => {
-                        if (card.isSameCard(cards.Copper)) {
-                            return this.gameStateView.copperValue;
-                        } else {
-                            return card.money;
-                        }
-                    });
-
-                    pileView.$el.hover(() => {
-                        playerView.highlightBasicTreasures();
-                        this.gameStateView.showExtraCoinIndicator(basicCoinMoney);
-                    }, () => {
-                        playerView.unhighlightCardViews();
-                        this.gameStateView.hideExtraCoinIndicator();
-                    });
-                }
             } else {
                 pileView.$el.addClass('not-selectable');
             }
-        });
+        }
 
         if (allowCancel) {
             this.offerDoneButton(() => {
-                endSelection(null, null);
+                endSelection(null);
             });
         }
     }
 
-    offerHandSelection(player:base.BasePlayer, minCards:number, maxCards:number, autoConfirm:boolean, selectableCards:cards.Card[], onSelect:cards.CardCallback) {
-        var currentSelection:cardview.CardView[] = [];
+    offerHandSelection(minCards: number, maxCards: number, autoConfirm: boolean, selectableCardIdentifiers: string[], onSelect: utils.StringArrayCallback) {
+        var currentSelection:CardView[] = [];
 
-        var endSelection = () => {
+        const endSelection = () => {
             this.hideDoneButton();
             this.clearSelectionMode();
-            onSelect(_.pluck(currentSelection, 'card'));
+            var names = currentSelection.map(v => v.identifier);
+            onSelect(names);
         };
 
-        var showOrHideDoneButton = () => {
+        const showOrHideDoneButton = () => {
             if (currentSelection.length >= minCards) {
                 this.offerDoneButton(endSelection);
             } else {
@@ -251,15 +195,15 @@ export class GameView extends View implements base.BaseGameListener {
             }
         };
 
-        var cardToggleHandler = (cardView:cardview.CardView) => {
-            var wasSelected = cardView.$el.hasClass('selected');
+        const cardToggleHandler = (cardView: CardView) => {
+            const wasSelected = cardView.$el.hasClass('selected');
             if (!wasSelected && currentSelection.length == maxCards) {
-                alert("You've already selected " + maxCards + " " + util.pluralize('card', maxCards));
+                alert("You've already selected " + maxCards + " " + utils.pluralize('card', maxCards));
                 return;
             }
 
             if (wasSelected) {
-                currentSelection = util.removeFirst<cardview.CardView>(currentSelection, cardView);
+                currentSelection = utils.removeFirst<CardView>(currentSelection, cardView);
             } else {
                 currentSelection.push(cardView);
             }
@@ -272,26 +216,29 @@ export class GameView extends View implements base.BaseGameListener {
             }
         };
 
-        var playerView = this.viewForPlayer(player);
-        _.each(playerView.cardViewsInHand, (cardView:cardview.CardView) => {
-            if (_.contains(selectableCards, cardView.card)) {
+        const playerView = this.playerViews[this.humanPlayerIndex];
+        for (const cardView of playerView.cardViewsInHand) {
+            if (_.contains(selectableCardIdentifiers, cardView.identifier)) {
                 cardView.$el.addClass('selectable').click(_.partial(cardToggleHandler, cardView));
             } else {
                 cardView.$el.addClass('not-selectable');
             }
-        });
-
+        } 
         showOrHideDoneButton();
     }
 
-    offerMultipleHandSelection(player:base.BasePlayer, minCards:number, maxCards:number, selectableCards:cards.Card[], onSelect:cards.CardsCallback) {
+    offerMultipleHandSelection(minCards: number, maxCards: number, selectableCardIdentifiers: string[], onSelect: utils.StringArrayCallback) {
         var autoConfirm = maxCards === 1;
-        this.offerHandSelection(player, minCards, maxCards, autoConfirm, selectableCards, onSelect);
+        this.offerHandSelection(minCards, maxCards, autoConfirm, selectableCardIdentifiers, onSelect);
     }
 
-    offerOptions(title:string, options:any[], onDecide:util.AnyCallback) {
+    offerDecision<T>(decision: Decision<T>) : Promise<T[]> {
+        return this.offerOptions("Make a decision", decision.options);
+    }
+
+    offerOptions(title: string, options: any[]) : Promise<any[]> {
         if (options.length < 1) {
-            console.log('Invalid generic choice args', title, options);
+            throw new Error('Invalid choices: ' + options);
         }
 
         var $modal = $('.choice');
@@ -300,31 +247,17 @@ export class GameView extends View implements base.BaseGameListener {
         $modal.find('.modal-title').text(title);
         $footer.empty();
 
-        _.each(options, option => {
-            var $button = $('<button>').addClass('btn btn-primary').text(option).click(function() {
-                (<any>$modal).modal('hide');
-                onDecide(option);
+        return new Promise<any[]>((resolve, reject) => {
+            _.each(options, option => {
+                var $button = $('<button>').addClass('btn btn-primary').text(option).click(function() {
+                    (<any>$modal).modal('hide');
+                    resolve([option]);
+                });
+                $button.appendTo($footer);
             });
-            $button.appendTo($footer);
+
+            (<any>$modal).modal({ 'keyboard': false, 'backdrop': 'static' });
         });
-
-        (<any>$modal).modal('show');
-    }
-
-    offerCardOrdering(player:base.BasePlayer, cards:cards.Card[], onSelect:cards.CardsCallback) {
-        var offerRemainingCards = (remainingCards:cards.Card[], pickedCards:cards.Card[]) => {
-            this.offerOptions('Pick cards', remainingCards, card => {
-                pickedCards = pickedCards.concat([card]);
-                remainingCards = util.removeFirst<cards.Card>(remainingCards, card);
-                if (remainingCards.length == 0) {
-                    onSelect(pickedCards);
-                } else {
-                    offerRemainingCards(remainingCards, pickedCards);
-                }
-            });
-        };
-
-        offerRemainingCards(cards, []);
     }
 
     hideDoneButton() {
@@ -339,21 +272,18 @@ export class GameView extends View implements base.BaseGameListener {
         });
     }
 
-    showScoreSheet(decks:cards.Card[][]) {
-        var scoresheet = new ScoreSheet(this.game, decks, $('.scoresheet'));
+    showScoreSheet(allDecks: Card[][]) {
+        const deckPairs: any = _.zip(this.gameRecord.players.map(p => p.name), allDecks); 
+        const scoresheet = new ScoreSheet(deckPairs, $('.scoresheet'));
         scoresheet.show();
     }
 
-    // Game Listener
+    //// Game Listener
 
-    log(msg:string) {
+    log(msg: string) {
         var $log = $('.message-log');
         var $line = $('<div>').text(msg);
         $log.append($line).scrollTop($log[0].scrollHeight);
-    }
-
-    stateUpdated(state:base.GameState) {
-        this.gameStateView.updateStatusCounter(state);
     }
 
     playAreaEmptied() {
@@ -361,89 +291,107 @@ export class GameView extends View implements base.BaseGameListener {
         this.inPlayViews = [];
     }
 
-    playerDrewCards(player:base.BasePlayer, cards:cards.Card[]) {
+    playerDrewCards(player: PlayerIdentifier, cards: CardInPlay[]) {
         this.viewForPlayer(player).drawCards(cards);
     }
 
-    playerGainedCard(player:base.BasePlayer, card:cards.Card, newCount:number, dest:base.GainDestination) {
-        var playerView = this.viewForPlayer(player);
-        var pileView = this.pileViewForCard(card);
+    playerGainedCard(player: PlayerIdentifier, card: CardInPlay, newCount: number, dest: GainDestination) {
+        const playerView = this.viewForPlayer(player);
+        const pileView = this.pileViewForCard(card);
         if (pileView) {
-            pileView.updateCount(newCount);
+            pileView.setBadgeCount(newCount);
         }
 
-        if (dest === base.GainDestination.Hand) {
+        if (dest === GainDestination.Hand) {
             playerView.drawCards([card]);
         } else {
             playerView.updateDeckAndDiscardViews();
         }
     }
 
-    playerGainedCardFromTrash(player:base.BasePlayer, card:cards.Card) {
+    playerGainedCardFromTrash(player: PlayerIdentifier, card: CardInPlay) {
         this.viewForPlayer(player).updateDeckAndDiscardViews();
         this.updateTrashPile();
     }
 
-    playerPassedCard(player:base.BasePlayer, targetPlayer:base.BasePlayer, card:cards.Card) {
+    playerPassedCard(player: PlayerIdentifier, targetPlayer: PlayerIdentifier, card: CardInPlay) {
         this.viewForPlayer(player).removeCardFromHand(card)
         this.viewForPlayer(targetPlayer).addCardToHand(card);
     }
 
-    playerPlayedCard(player:base.BasePlayer, card:cards.Card) {
-        var cardView = new cardview.CardView(card, false);
+    playerPlayedCard(player: PlayerIdentifier, card: CardInPlay) {
+        var cardView = new CardView(cardImageURL(card), card.identifier);
         this.inPlayViews.push(cardView);
         this.$inPlay.append(cardView.$el);
 
         this.viewForPlayer(player).removeCardFromHand(card);
     }
 
-    playerPlayedClonedCard(player:base.BasePlayer, card:cards.Card) {
+    playerPlayedClonedCard(player: PlayerIdentifier, card:Card) {
         // TODO: visually highlight played card
     }
 
-    playerDiscardedCards(player:base.BasePlayer, cards:cards.Card[]) {
+    playerDiscardedCards(player: PlayerIdentifier, cards: CardInPlay[]) {
         this.viewForPlayer(player).discardCards(cards);
     }
 
-    playerDiscardedCardsFromDeck(player:base.BasePlayer, cards:cards.Card[]) {
+    playerDiscardedCardsFromDeck(player: PlayerIdentifier, cards: CardInPlay[]) {
         this.viewForPlayer(player).updateDeckAndDiscardViews();
     }
 
-    playerTrashedCards(player:base.BasePlayer, cards:cards.Card[]) {
-        var playerView = this.viewForPlayer(player);
-        _.each(cards, card => {
+    playerTrashedCards(player: PlayerIdentifier, cards: CardInPlay[]) {
+        const playerView = this.viewForPlayer(player);
+        for (const card of cards) {
             playerView.removeCardFromHand(card);
-        });
+        }
         this.updateTrashPile();
     }
 
-    playerTrashedCardFromDeck(player:base.BasePlayer, card:cards.Card) {
+    playerTrashedCardFromDeck(player: PlayerIdentifier, card: Card) {
         this.viewForPlayer(player).updateDeckAndDiscardViews();
         this.updateTrashPile();
     }
 
-    playerDrewAndDiscardedCards(player:base.BasePlayer, drawn:cards.Card[], discard:cards.Card[]) {
-        this.viewForPlayer(player).drawCards(drawn);
+    playerRevealedCards(player: PlayerIdentifier, cards: CardInPlay[]) {
+        // TODO: reveal animation?
     }
 
-    playerRevealedCards(player:base.BasePlayer, cards:cards.Card[]) {
-        this.log(player.getName() + ' reveals ' + cards.join(', '));
-    }
-
-    trashCardFromPlay(card:cards.Card) {
-        var cardView = this.viewForInPlayCard(card);
-        this.inPlayViews = util.removeFirst(this.inPlayViews, cardView);
+    trashCardFromPlay(card:CardInPlay) {
+        const cardView = this.viewForInPlayCard(card);
+        this.inPlayViews = utils.removeFirst(this.inPlayViews, cardView);
         cardView.$el.remove();
         this.updateTrashPile();
     }
 
-    addCardToTrash(card:cards.Card) {
+    addCardToTrash(card: Card) {
         this.updateTrashPile();
     }
 
-    gameEnded(decks:cards.Card[][]) {
+    gameEnded(decks:Card[][]) {
         this.showStatusMessage('Game over');
         this.showScoreSheet(decks);
     }
 
+    //// EventListener
+
+    handleEvent(event: GameEvent) {
+        // TODO
+    } 
+
 }
+
+// Card Images
+
+var AssetRoot = 'assets/cards-296x473';
+
+function rawCardImageURL(set:string, name:string) : string {
+    var filename = name.toLowerCase().replace(/\s+/g, '') + '.jpg';
+    return [AssetRoot, set, filename].join('/');
+}
+
+export function cardImageURL(card: Card | CardRecord) : string {
+    return rawCardImageURL(card.set, card.name);
+}
+
+export var CardbackImageURL = rawCardImageURL('basecards', 'cardback');
+export var TrashImageURL = rawCardImageURL('basecards', 'trash');

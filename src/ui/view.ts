@@ -1,4 +1,4 @@
-import $ = require('jquery');
+import * as $ from 'jquery';
 
 class View {
 
@@ -16,4 +16,4 @@ class View {
 
 }
 
-export = View;
+export default View;

@@ -5,19 +5,32 @@
     "type": "git",
     "url": "git://github.com/scottostler/conspirator.git"
   },
+  "engines": {
+    "node": ">=7.8.0"
+  },
   "dependencies": {
+    "@types/chai": "^3.5.2",
+    "@types/express": "^4.0.35",
+    "@types/jquery": "^2.0.43",
+    "@types/mocha": "^2.2.41",
+    "@types/node": "^7.0.18",
+    "@types/socket.io": "^1.4.29",
+    "@types/underscore": "^1.8.0",
+    "cerialize": "^0.1.14",
+    "cookie-parser": "^1.4.3",
     "express": "3.x",
-    "socket.io": "0.9",
-    "underscore": "1.5.2",
-    "async": "0.6.2",
     "node-uuid": "1.4.0",
-    "typescript": "1.8.0"
+    "reflect-metadata": "^0.1.10",
+    "socket.io": "2.0.1",
+    "typescript": "2.2.x",
+    "underscore": "1.5.2"
   },
   "devDependencies": {
-    "chai": "^1.10.0",
-    "grunt": "~0.4.4",
-    "grunt-mocha-test": "^0.12.6",
-    "grunt-ts": "5.5.1",
-    "mocha": "^2.1.0"
+    "chai": "^3.5.0",
+    "grunt": "1.0.1",
+    "grunt-mocha-test": "^0.12.7",
+    "grunt-ts": "6.0.0-beta.15",
+    "mocha": "^3.0.2",
+    "ts-node": "^3.0.4"
   }
 }

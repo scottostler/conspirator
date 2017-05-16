@@ -1,125 +1,80 @@
-import _ = require('underscore');
-import util = require('./util');
+import * as _ from 'underscore';
 
-import * as base from './base';
-import * as cardlist from './sets/cardlist';
-import * as cards from './cards';
+import * as utils from './utils';
+import { CardType, DiscardDestination, DiscardSource, GainDestination,
+         GainSource, GameState, RevealSource, TrashSource, TurnPhase } from './base';
+import { AllKingdomCards } from './sets/cardlist';
+import {
+    asNames,
+    Card,
+    CardGroup,
+    CardGroupType,
+    CardInPlay,
+    CardStack,
+    randomizedKingdomCards,
+    ReactionType,
+    removeFirst,
+    removeIdentical,
+    SupplyPile
+} from './cards';
+import { defaultStartingDeck, generateDefaultPiles, Province } from './sets/common';
+import Decider from './decider';
 import * as decisions from './decisions';
-import * as effects from './effects';
-import Player from './player';
-import * as scoring from './scoring';
+import { Decision, DecisionType } from './decisions';
+
+import { Effect, EffectTemplate, PlayActionEffect, Target } from './effects';
+import { EventEmitter, EventListener } from './event';
+import { Player, PlayerIdentifier } from './player';
+import { calculateScore } from './scoring';
 import TurnState from './turnstate';
 
-import GainDestination = base.GainDestination;
-import GainSource = base.GainSource;
-import Resolution = effects.Resolution;
-import Target = effects.Target;
+const NumKingdomCards = 10;
+const HandSize = 5;
+const ShufflePlayerStartingDecks = true;
 
-var NumKingdomCards = 10;
-var HandSize = 5;
-var MasqueradePassedCardsKey = 'MasqueradePassedCards';
+export type GameStep = Decision<any> | Effect | null;
 
-interface EventFunction {
-    ():Resolution;
-}
+class Game {
 
-var randomizedKingdomCards = function(forcedCards:cards.Card[], numCards:number) : cards.Card[] {
-    if (forcedCards.length >= numCards) {
-        return forcedCards;
-    }
+    players: Player[];
+    kingdomPiles: SupplyPile[];
 
-    var randomOptions = _.difference<cards.Card>(cardlist.AllKingdomCards, forcedCards);
-    var randomCards = _.sample<cards.Card>(randomOptions, numCards - forcedCards.length);
-    return forcedCards.concat(randomCards);
-};
+    trash = new CardGroup(null, CardGroupType.Trash);
+    setAside = new CardGroup(null, CardGroupType.SetAside);
+    inPlay = new CardStack(null, CardGroupType.InPlay);
 
-function groupKingdomCards(kingdomCards:cards.Card[], kingdomCount:number, vpCount:number, curseCount:number) : cards.Pile[][] {
-    var kingdomPileGroups:cards.Pile[][] = [];
-    var sortedKingdomCards = _.sortBy(kingdomCards, 'cost');
-    var kingdomCardCount = kingdomCards.length;
-    var coinCount = 99;
+    effectStack: Effect[] = [];
+    hasGameStarted: boolean = false;
+    hasGameEnded: boolean = false;
 
-    var kingdomPiles:cards.Pile[] = sortedKingdomCards.map(c => {
-        return new cards.Pile(c, c.isVictory() ? vpCount : kingdomCount);
-    });
+    activePlayerIndex: number = -1;
+    turnState: TurnState;
+    turnCount: number = 0;
+    emptyPilesToEndGame: number;
 
-    kingdomPileGroups.push(kingdomPiles);
-    kingdomPileGroups.push([
-        new cards.Pile(cards.Estate, vpCount),
-        new cards.Pile(cards.Duchy, vpCount),
-        new cards.Pile(cards.Province, vpCount),
-        new cards.Pile(cards.Copper, coinCount),
-        new cards.Pile(cards.Silver, coinCount),
-        new cards.Pile(cards.Gold, coinCount),
-    ]);
+    pendingDecision: Decision<any> | null = null;
 
-    kingdomPileGroups.push([new cards.Pile(cards.Curse, curseCount)]);
-    return kingdomPileGroups;
-}
+    eventEmitter: EventEmitter = new EventEmitter();
 
-class Game extends base.BaseGame {
+    printLog = false;
+    
+    constructor(playerNames: string[], forcedKingdomCards: Card[] = []) {
+        const kingdomCards = randomizedKingdomCards(forcedKingdomCards, AllKingdomCards, NumKingdomCards);
+        const startingDeck = defaultStartingDeck();
 
-    players:Player[];
-    kingdomCards:cards.Card[];
-    kingdomPileGroups:cards.Pile[][];
-    kingdomPiles:cards.Pile[];
-    turnCount:number;
+        this.players = playerNames.map(name => {
+            let deck = this.vendStartingCards(startingDeck);
+            
+            if (ShufflePlayerStartingDecks) {
+                deck = _.shuffle<CardInPlay>(deck);
+            }
 
-    trash:cards.Card[];
-    inPlay:cards.Card[];
-    setAside:cards.Card[];
-
-    eventStack:EventFunction[];
-    hasGameStarted:boolean;
-    hasGameEnded:boolean;
-
-    activePlayerIndex:number;
-    activePlayer:Player;
-    inactivePlayers:Player[];
-
-    turnState:TurnState;
-    attackImmunity:Player[];
-
-    emptyPilesToEndGame:number;
-    storedState:any;
-
-    // TODO: gameListener should be initialized or a required param
-    constructor(players:Player[], kingdomCards:cards.Card[]=[]) {
-        super();
-
-        this.kingdomCards = randomizedKingdomCards(kingdomCards, NumKingdomCards);
-
-        this.activePlayerIndex = -1;
-        this.turnCount = 0;
-        this.players = players;
-
-        this.inPlay = [];
-        this.setAside = [];
-        this.eventStack = [];
-        this.hasGameStarted = false;
-        this.hasGameEnded = false;
-        this.emptyPilesToEndGame = players.length >= 5 ? 4 : 3;
-
-        this.storedState = {};
-
-        var kingdomCardCount = 10;
-        var victoryCardCount = this.players.length == 2 ? 8 : 12;
-        var curseCount = (this.players.length - 1) * 10;
-
-        this.kingdomPileGroups = groupKingdomCards(
-            this.kingdomCards, kingdomCardCount, victoryCardCount, curseCount);
-
-        this.kingdomPiles = _.flatten(this.kingdomPileGroups);
-        this.trash = [];
-
-        _.each(players, player => {
-            player.setGame(this);
+            return new Player(name, deck);
         });
-    }
 
-    log(...args: any[]) {
-        var msg = _.toArray(args).join(' ');
-        this.gameListener.log(msg);
+        this.emptyPilesToEndGame = this.players.length >= 5 ? 4 : 3;
+
+        this.kingdomPiles = generateDefaultPiles(kingdomCards, this.players.length);
     }
 
     assertGameIsActive() {
@@ -129,16 +84,15 @@ class Game extends base.BaseGame {
     }
 
     drawInitialHands() {
-        _.each(this.players, player => {
+        for (let player of this.players) {
             // May already be populated in tests or other artificial scenarios
-            if (player.hand === null) {
-                player.hand = [];
+            if (player.hand.empty) {
                 this.drawCards(player, HandSize);
             }
-        });
+        }
     }
 
-    gameState() : base.GameState {
+    gameState() : GameState {
         return {
             activePlayer: this.activePlayer.name,
             turnCount: this.turnCount,
@@ -146,19 +100,18 @@ class Game extends base.BaseGame {
         };
     }
 
-    stateUpdated() {
-        this.gameListener.stateUpdated(this.gameState());
-    }
-
-    isGameOver() {
-        var provincePile = this.pileForCard(cards.Province);
+    isGameOver() : boolean {
+        const provincePile = this.pileForCard(Province);
         if (provincePile.count === 0) {
             return true;
         }
 
-        var emptyCount = util.mapSum<cards.Pile>(this.kingdomPiles, function(pile) {
-            return pile.count === 0 ? 1 : 0;
-        });
+        let emptyCount = 0;
+        for (const pile of this.kingdomPiles) {
+            if (pile.count === 0) {
+                emptyCount++;
+            } 
+        }
 
         if (emptyCount >= this.emptyPilesToEndGame) {
             return true;
@@ -167,12 +120,29 @@ class Game extends base.BaseGame {
         return false;
     }
 
-    isActivePlayer(player:Player) : boolean {
+    get activePlayer(): Player {
+        return this.players[this.activePlayerIndex];
+    }
+
+    get inactivePlayers(): Player[] {
+        return this.playersAsideFrom(this.activePlayer);
+    }
+
+    get decidingPlayerIndex(): number {
+        if (!this.pendingDecision) {
+            throw new Error('No pending decision');
+        }
+
+        const player = this.playerForIdentifier(this.pendingDecision.player);
+        return this.players.indexOf(player);
+    }
+
+    isActivePlayer(player: Player) : boolean {
         return this.activePlayer === player;
     }
 
-    playersAsideFrom(player:Player) {
-        var index = this.players.indexOf(player);
+    playersAsideFrom(player: Player) {
+        const index = this.players.indexOf(player);
         if (index > -1) {
             return this.players.slice(index + 1).concat(
                 this.players.slice(0, index));
@@ -181,157 +151,106 @@ class Game extends base.BaseGame {
         }
     }
 
-    playerLeftOf(player:Player) : Player {
-        var index = this.players.indexOf(player) + 1;
+    playerLeftOf(player: Player) : Player {
+        const index = this.players.indexOf(player) + 1;
         return this.players[index % this.players.length];
     }
 
-    advanceTurn() {
+    // Phases
+
+    beginNewTurn() {
         if (this.isGameOver()) {
             this.hasGameEnded = true;
+            this.endGame();
             return;
         }
 
-        if (this.setAside.length > 0) {
-            throw new Error('Ending turn with uncleared set aside cards: ' + this.setAside.join(', '));
-        }
-
-        var storedKeys = _.keys(this.storedState);
-        if (storedKeys.length > 0) {
-            throw new Error('Ending turn with uncleared storedState: ' + storedKeys.join(', '));
+        if (this.setAside.count > 0) {
+            throw new Error(`Ending turn with uncleared set aside cards: ${this.setAside.cards.join(', ')}`);
         }
 
         this.activePlayerIndex = (this.activePlayerIndex + 1) % this.players.length;
-        this.activePlayer = this.players[this.activePlayerIndex];
-        this.inactivePlayers = this.playersAsideFrom(this.activePlayer);
-
         this.turnState = new TurnState();
-        this.attackImmunity = [];
-
-        this.storedState = {};
 
         if (this.activePlayerIndex == 0) {
             this.turnCount++;
         }
 
-        this.log(this.activePlayer + ' begins turn ' + this.turnCount);
-        this.stateUpdated();
+        this.log(`=== Turn ${this.turnCount} - ${this.activePlayer.name} ===`);
     }
 
-    handleActionPhase() {
-        var playableActions = this.currentlyPlayableActions();
-        var actionDecision = decisions.makePlayActionDecision(playableActions);
-        // TODO?: adapt to single card
-        var resolution = this.activePlayer.promptForCardDecision(actionDecision, cs => {
-            if (cs.length > 0) {
-                return this.playAction(cs[0]);
-            } else {
-                this.turnState.phase = base.TurnPhase.BuyPlayTreasure;
-                this.stateUpdated();
-                return Resolution.Advance;
-            }
-        });
-        this.checkEffectResolution(resolution);
+    handleActionPhase() : GameStep {
+        const playableActions = this.currentlyPlayableActions();
+
+        if (playableActions.length == 0) {
+            this.turnState.phase = TurnPhase.BuyPlayTreasure;
+            return this.advanceGameState();
+        }
+
+        return new decisions.PlayActionDecision(this.activePlayer.identifier, null, playableActions);
     }
 
-    handleBuyPlayTresaurePhase() {
-        var treasures = cards.getTreasures(this.activePlayer.hand);
-        var decision = decisions.makePlayTreasureDecision(this.activePlayer, treasures);
-        var resolution = this.activePlayer.promptForCardDecision(decision, cs => {
-            // TODO: this won't work for effectful Treasures like Horn of Plenty
-            if (cs.length > 0) {
-                cs.forEach(c => {
-                    this.playTreasure(c);
-                });
-            }
-
-            this.turnState.phase = base.TurnPhase.BuyPurchaseCard;
-            this.stateUpdated();
-            return Resolution.Advance;
-        });
-        this.checkEffectResolution(resolution);
+    handleBuyPlayTresaurePhase() : GameStep {
+        const treasures = this.activePlayer.hand.ofType(CardType.Treasure);
+        if (treasures.length == 0) {
+            this.turnState.phase = TurnPhase.BuyPurchaseCard;
+            return this.advanceGameState();
+        }
+        return new decisions.PlayTreasureDecision(this.activePlayer.identifier, null, treasures);
     }
 
-    handleBuyGainCardPhase() {
-        var buyableCards = cards.cardsFromPiles(this.currentlyBuyablePiles());
-        var buyDecision = decisions.makeBuyDecision(this.activePlayer, buyableCards);
-        var resolution = this.activePlayer.promptForGainDecision(buyDecision);
-        this.checkEffectResolution(resolution);
+    handleBuyGainCardPhase() : GameStep {
+        const buyableCards = this.currentlyBuyablePiles().map(p => p.card);
+        if (this.turnState.buyCount == 0) {
+            this.turnState.phase = TurnPhase.Cleanup;
+            return this.advanceGameState();
+        } 
+
+        return new decisions.BuyCardDecision(this.activePlayer.identifier, buyableCards);
     }
 
-    handleCleanupPhase() {
-        this.activePlayer.discard = this.activePlayer.discard.concat(this.inPlay);
-        this.inPlay = [];
-
-        this.gameListener.playAreaEmptied();
+    handleCleanupPhase() : GameStep {
+        if (!this.inPlay.empty) {
+            this.moveCards(this.inPlay.cards, this.activePlayer.discard);
+        }
 
         this.discardHand(this.activePlayer);
         this.drawCards(this.activePlayer, HandSize);
 
-        this.advanceTurn();
+        this.beginNewTurn();
 
         if (this.hasGameEnded) {
-            this.endGame();
+            return null;
         } else {
-            this.advanceGameState();
+            return this.advanceGameState();
         }
     }
 
-    advanceGameState() {
-        this.assertGameIsActive();
-        if (this.eventStack.length > 0) {
-            var event = this.eventStack.pop();
-            var resolution = event();
-            this.checkEffectResolution(resolution);
-            return;
-        }
+    // Revealing
 
-        switch (this.turnState.phase) {
-            case base.TurnPhase.Action:
-                this.handleActionPhase();
-                return;
-            case base.TurnPhase.BuyPlayTreasure:
-                this.handleBuyPlayTresaurePhase();
-                return;
-            case base.TurnPhase.BuyPurchaseCard:
-                this.handleBuyGainCardPhase();
-                return;
-            case base.TurnPhase.Cleanup:
-                this.handleCleanupPhase();
-                return;
+    revealPlayerCards(player: Player, cards: CardInPlay[]) {
+        if (cards.length > 0) {
+            this.log(`${player.name} reveals ${asNames(cards)}`);
+            this.eventEmitter.playerRevealsCards(player, cards, RevealSource.Hand);
         }
     }
 
-    checkEffectResolution(resolution:Resolution) {
-        this.assertGameIsActive();
-        if (resolution == Resolution.Advance) {
-            this.advanceGameState();
-        } else if (resolution !== Resolution.Wait) {
-            throw new Error('Unexpected resolution: ' + resolution);
+    revealPlayerHand(player: Player) {
+        this.revealPlayerCards(player, player.hand.cards);
+    }
+
+    // Players
+
+    playerForIdentifier(identifier: PlayerIdentifier) : Player {
+        for (let player of this.players) {
+            if (player.identifier === identifier) {
+                return player;
+            }
         }
+        throw new Error('No player found for identifier ' + identifier);
     }
 
-    revealPlayerCards(player:Player, cs:cards.Card[]) {
-        if (cs.length > 0) {
-            this.gameListener.playerRevealedCards(player, cs);
-        }
-    }
-
-    revealPlayerHand(player:Player) {
-        this.revealPlayerCards(player, player.hand);
-    }
-
-    playerRevealsReaction(player:Player, reactionCard:cards.Card, trigger:cards.Card, reactionType:effects.ReactionType) {
-        this.revealPlayerCards(player, [reactionCard]);
-        this.pushEvent(() => {
-            return this.promptPlayerForReaction(trigger, player, reactionType);
-        });
-        this.pushEventsForPlayer(reactionCard, reactionCard.reaction[1], player);
-    }
-
-    // Game Events
-
-    playersForTarget(target:Target, choosingPlayer?:Player) : Player[] {
+    playersForTarget(target: Target, choosingPlayer?: Player) : Player[] {
         switch (target) {
             case Target.ActivePlayer:
                 return [this.activePlayer];
@@ -348,243 +267,166 @@ class Game extends base.BaseGame {
         }
     }
 
-    pushEvent(e:EventFunction) {
-        this.eventStack.push(e);
+    // Game state advancement
+
+    private processGameStep(gameStep: GameStep) {
+        if (gameStep instanceof Effect) {
+            this.queueEffect(gameStep);
+        } else if (gameStep instanceof Decision) {
+            this.queueDecision(gameStep);
+        } else {
+            // Nothing
+        }
     }
 
-    // Takes events in forward chronological order,
-    // and adds them in event stack order (reversed).
-    pushEvents(events:EventFunction[]) {
-        this.eventStack = this.eventStack.concat(util.reverse(events));
+    private processQueuedEffect() : GameStep {
+        let effect = this.dequeueEffect();
+        if (!effect) {
+            throw new Error(`processQueuedEffect called with empty effect queue`);
+        }
+
+        return effect.resolve(this);
     }
 
-    promptPlayerForReaction(trigger:cards.Card, targetPlayer:Player, reactionType:effects.ReactionType) : Resolution {
-        var reactions = cards.getReactions(targetPlayer.hand, reactionType);
-        var decision = decisions.makeRevealCardDecision(reactions, trigger);
+    advanceGameState() : GameStep {
+        this.assertGameIsActive();
 
-        return targetPlayer.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                this.playerRevealsReaction(targetPlayer, cs[0], trigger, reactionType);
+        if (this.pendingDecision) {
+            throw new Error("advanceGameState(): pending decision already exists");
+        }
+
+        if (this.hasQueuedEffect) {
+            return this.processQueuedEffect();
+        }
+
+        switch (this.turnState.phase) {
+            case TurnPhase.Action:
+                return this.handleActionPhase();
+            case TurnPhase.BuyPlayTreasure:
+                return this.handleBuyPlayTresaurePhase();
+            case TurnPhase.BuyPurchaseCard:
+                return this.handleBuyGainCardPhase();
+            case TurnPhase.Cleanup:
+                return this.handleCleanupPhase();
+        }
+    }
+
+    advanceToNextDecision() {
+        this.assertGameIsActive();
+
+        if (this.pendingDecision) {
+            return;
+        }
+
+        while (!this.hasGameEnded) {
+            const gameStep = this.advanceGameState();
+            this.processGameStep(gameStep);
+            if (this.pendingDecision) {
+                return;
             }
+        }
+    }
 
-            return Resolution.Advance;
-        });
+    // Effect handling
+
+    queueEffect(e: Effect) {
+        this.effectStack.push(e);
+    }
+
+    dequeueEffect() : Effect | null {
+        return this.effectStack.pop() || null;
+    }
+
+    get hasQueuedEffect() : boolean {
+        return this.effectStack.length > 0;
     }
 
     // TODO: immunity won't work with multiple reactions
-    pushEventsForSingleEffect(e:effects.Effect, trigger:cards.Card) {
-        var players = this.playersForTarget(e.getTarget());
-        var events = players.map(p => {
-            return () => {
-                if (_.contains(this.attackImmunity, p)) {
-                    return Resolution.Advance;
-                } else {
-                    return e.process(this, p, trigger);
-                }
-            };
-        });
-        this.pushEvents(events);
-    }
-
-    pushEventsForActionEffects(card:cards.Card) {
-        util.reverse(card.effects).forEach(e => {
-            this.pushEventsForSingleEffect(e, card);
-        });
-
-        this.attackImmunity = [];
-        if (card.isAttack()) {
-            var otherPlayers = this.playersForTarget(Target.OtherPlayers);
-            this.pushEvents(otherPlayers.map(p => {
-                return () => {
-                    return this.promptPlayerForReaction(card, p, effects.ReactionType.OnAttack);
-                }
-            }));
+    queueEffectsForTemplate(template: EffectTemplate, trigger: CardInPlay, ignoredPlayers: PlayerIdentifier[] = []) {
+        // Effects should be queued starting with the last to resolve, i.e. reverse order
+        const players = this.playersForTarget(template.target).reverse();
+        for (let p of players) {
+            if (!ignoredPlayers.includes(p.identifier)) {
+                this.queueEffect(template.bindTargets(p.identifier, trigger));
+            }
         }
     }
 
-    // Intended for Reaction and Money effects. Only works for ActivePlayer effects.
-    pushEventsForPlayer(trigger:cards.Card, effects:effects.Effect[], player:Player) {
-        util.reverse(effects).forEach(e => {
-            if (e.getTarget() !== Target.ActivePlayer) {
-                throw new Error('Invalid player target for ' + e);
-            }
-            this.pushEvent(() => {
-                return e.process(this, player, trigger);
-            });
-        });
-    }
-
-    playerChoosesEffects(player:Player, es:effects.LabelledEffect[], trigger:cards.Card) {
-        var labels = _.map(es, e => e.getLabel());
+    // Used by cards like Steward and Torturer
+    playerChoosesEffects(player: Player, effects: EffectTemplate[], trigger: CardInPlay) {
+        const labels = effects.map(e => e.label);
         this.log(player.name, 'chooses', labels.join(', '));
 
-        var events:EventFunction[] = [];
-        es.forEach(e => {
-            var targets = this.playersForTarget(e.getTarget(), player);
-            targets.forEach(p => {
-                events.push(() => {
-                    return e.process(this, p, trigger);
-                });
-            });
-        });
-        this.pushEvents(events);
-    }
+        // Effects should be queued starting with the last to resolve, i.e. reverse order
 
-    logPlayerShuffle(player:Player) {
-        this.log(player.name, 'shuffles');
-    }
-
-    currentlyPlayableActions() : cards.Card[] {
-        if (this.turnState.actionCount == 0) {
-            return [];
-        } else {
-            return cards.getActions(this.activePlayer.getHand());
-        }
-    }
-
-    allBuyablePiles() : cards.Pile[] {
-        return this.kingdomPiles.filter(pile => {
-            return pile.count > 0;
-        });
-    }
-
-    pileForCard(card:cards.Card) : cards.Pile {
-        var pile = _.find(this.kingdomPiles, (pile:cards.Pile) => {
-            return pile.card.isSameCard(card);
-        });
-
-        if (!pile) {
-            throw new Error('No pile for card ' + card.name);
-        }
-
-        return pile;
-    }
-
-    effectiveCardCost(card:cards.Card) : number {
-        return Math.max(card.cost - this.turnState.cardDiscount, 0);
-    }
-
-    computeMaximumPurchaseCost() : number {
-        return this.turnState.coinCount + util.mapSum(this.activePlayer.hand, (card:cards.Card) => {
-            if (card.isSameCard(cards.Copper)) {
-                return this.turnState.copperValue;
-            } else if (card.isBasicTreasure()) {
-                return card.money;
-            } else {
-                return 0;
+        for (let e of effects.reverse()) {
+            const players = this.playersForTarget(e.target, player).reverse();
+            for (let p of players) {
+                this.queueEffect(e.bindTargets(p.identifier, trigger));
             }
-        });
-    }
-
-    currentlyBuyablePiles() : cards.Pile[] {
-        if (this.turnState.buyCount == 0) {
-            return [];
-        } else {
-            var maximumCost = this.computeMaximumPurchaseCost();
-            return _.filter(this.allBuyablePiles(), (pile:cards.Pile) => {
-                return this.effectiveCardCost(pile.card) <= maximumCost;
-            });
-        }        
-    }
-
-    // Misc. state storage
-
-    getStoredState(key:string, alt:any=null) : any {
-        var r = this.storedState[key];
-        if (r !== undefined) {
-            return r;
-        } else if (alt !== null) {
-            return alt;
-        } else {
-            throw new Error('Undefined value for stored state key: ' + key);
         }
     }
 
-    setStoredState(key:string, value:any) {
-        this.storedState[key] = value;
+    // Decision handling
+
+    queueDecision(decision: Decision<any>) {
+        if (this.pendingDecision !== null) {
+            throw new Error(`Can't queue decision ${decision.label}, already existing decision ${this.pendingDecision.label}`);
+        }
+        this.pendingDecision = decision;
     }
 
-    clearStoredState(key:string) {
-        delete this.storedState[key];
+    resolveDecision(choice: any[]) {
+        if (!this.pendingDecision) {
+            throw new Error('Cannot resolve decision: pendingDecision is null');
+        }
+
+        const decision = this.pendingDecision;
+        decision.validateChoice(choice);
+
+        this.pendingDecision = null;
+
+        const gameStep = decision.followup(this, choice);
+        this.processGameStep(gameStep);
     }
 
-    getAndClearStoredState(key:string) : any {
-        var r = this.getStoredState(key);
-        this.clearStoredState(key);
-        return r;
-    }
 
     // Game-state changes
 
-    playAction(card:cards.Card) : Resolution {
-        if (this.turnState.actionCount <= 0) {
+    playAction(card: CardInPlay, playCount: number = 1, normalActionPlay: boolean = true) {
+        if (normalActionPlay && this.turnState.actionCount <= 0) {
             throw new Error('Unable to play ' + card.name + ' with action count ' + this.turnState.actionCount);
         }
 
-        var card = cards.removeFirst(this.activePlayer.hand, card);
-        this.inPlay.push(card);
-        this.turnState.playedActionCount++;
-        this.turnState.actionCount--;
-
-        this.log(this.activePlayer.name, 'plays', card.name);
-        this.pushEventsForActionEffects(card);
-        this.gameListener.playerPlayedCard(this.activePlayer, card);
-        this.stateUpdated();
-        return Resolution.Advance;
-    }
-
-    playClonedAction(card:cards.Card, playCount:number) {
-        this.log(this.activePlayer.name, 'plays', card.name, '(' + (playCount+1) + ')');
-        this.turnState.playedActionCount++;
-        this.pushEventsForActionEffects(card);
-        this.gameListener.playerPlayedClonedCard(this.activePlayer, card);
-        return Resolution.Advance;
-    }
-
-    givePlayerAttackImmunity(player:Player) {
-        if (!_.contains(this.attackImmunity, player)) {
-            this.attackImmunity.push(player);
+        if (normalActionPlay) {
+            this.turnState.actionCount--;
         }
+
+        this.moveCard(card, this.inPlay);
+
+        for (let i = 0; i < playCount; i++) {
+            this.queueEffect(PlayActionEffect.initialPlay(card, this));
+        }
+
+        this.log(`${this.activePlayer.name} plays ${card.name}`);
+        this.eventEmitter.playerPlayedCard(this.activePlayer, card, true);
     }
 
-    playTreasure(card:cards.Card) {
-        var card = cards.removeFirst(this.activePlayer.hand, card);
-        this.inPlay.push(card);
-
-        this.log(this.activePlayer, 'plays', card);
-        if (card.isSameCard(cards.Copper)) {
-            this.turnState.coinCount += this.turnState.copperValue;
-        } else {
-            this.turnState.coinCount += card.money;
-        }
+    playTreasure(card: CardInPlay) {
+        this.moveCard(card, this.inPlay);
+        this.turnState.coinCount += card.money;
 
         if (card.moneyEffect) {
-            this.pushEventsForPlayer(card, [card.moneyEffect], this.activePlayer);
+            this.queueEffect(card.moneyEffect.bindTargets(this.activePlayer.identifier, card));
         }
 
-        this.gameListener.playerPlayedCard(this.activePlayer, card);
+        this.log(`${this.activePlayer.name} plays ${card.name}`);
+        this.eventEmitter.playerPlayedCard(this.activePlayer, card, true);
     }
 
-    vendCardFromPile(pile:cards.Pile) : cards.Card {
-        if (pile.count <= 0) {
-            throw new Error('Unable to gain from empty pile');
-        }
-
-        pile.count--;
-        return _.clone(pile.card);
-    }
-
-    playerSkipsBuy() : Resolution {
-        this.turnState.phase = base.TurnPhase.Cleanup;
-        this.stateUpdated();
-        return Resolution.Advance;
-    }
-
-    playerBuysCard(card:cards.Card) : Resolution {
-        this.log(this.activePlayer.name, 'buys', card.name);
-
-        var cost = this.effectiveCardCost(card);
-        var pile = this.pileForCard(card);
+    playerBuysCard(card: Card) : GameStep {
+        const cost = this.effectiveCardCost(card);
+        const pile = this.pileForCard(card);
 
         if (!pile) {
             throw new Error('No pile for card: ' + card);
@@ -599,277 +441,150 @@ class Game extends base.BaseGame {
         this.turnState.buyCount--;
         this.turnState.coinCount -= cost;
         this.turnState.cardBought = true;
-
-        this.stateUpdated();
-        this.playerGainsCard(this.activePlayer, card);;
-
-        return Resolution.Advance;
+        
+        this.log(`${this.activePlayer.name} buys ${card.name}`);
+        this.eventEmitter.playerBuysCard(this.activePlayer, card);
+        
+        return this.playerGainsFromSupply(this.activePlayer, card);
     }
 
-    playerGainsCard(player:Player, card:cards.Card, dest:GainDestination=GainDestination.Discard, source:GainSource=GainSource.Pile) {
-        switch (source) {
-            case GainSource.Pile:
-                var pile = this.pileForCard(card);
-                card = this.vendCardFromPile(pile);
-                break;
-            case GainSource.Trash:
-                card = cards.removeFirst(this.trash, card);
-                break;
+    playerGainsFromSupply(player: Player, card: Card,  destination: GainDestination=GainDestination.Discard) : GameStep {
+        const pile = this.pileForCard(card);
+        const gainedCard = this.vendCardFromPile(pile);
+        const cardGroup = player.cardGroupForGainDestination(destination);
+        this.moveCard(gainedCard, cardGroup);
+
+        this.log(`${this.activePlayer.name} gains ${card.name}`);
+        this.eventEmitter.playerGainedCards(player, [gainedCard], GainSource.Pile, destination);
+
+        return null; // TODO: on-gain reactions like Watchtower will trigger a decision
+    }
+
+    // Card moving
+
+    moveCard(card: CardInPlay, destination: CardGroup) {
+        if (!(card instanceof CardInPlay)) {
+            throw new Error(`moveCard: invalid argument ${card} called for destination ${destination.toString()}`);
         }
 
-        switch (dest) {
-            case GainDestination.Discard:
-                this.log(player, 'gains', card);
-                player.addCardToDiscard(card);
-                break;
-            case GainDestination.Hand:
-                this.log(player, 'gains', card, 'into hand');
-                player.addCardToHand(card);
-                break;
-            case GainDestination.Deck:
-                this.log(player, 'gains', card, 'onto deck');
-                player.addCardToTopOfDeck(card);
-                break;
+        if (card.location) {
+            card.location.removeCard(card);
         }
-
-        this.gameListener.playerGainedCard(player, card, source, dest);
+        destination.insertCard(card);
     }
 
-    // Card Passing
-
-    playerPassesCard(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
-        sourcePlayer.removeCardFromHand(card);
-        targetPlayer.addCardToHand(card);
-        this.log(sourcePlayer, 'passes', card, 'to', targetPlayer);
-        this.gameListener.playerPassedCard(sourcePlayer, targetPlayer, card);
+    moveCardToBottom(card: CardInPlay, destination: CardStack) {
+        if (card.location) {
+            card.location.removeCard(card);
+        }
+        destination.insertCard(card);
     }
 
-    playerSelectsCardToPass(sourcePlayer:Player, targetPlayer:Player, card:cards.Card) {
-        var passedCards = this.getStoredState(MasqueradePassedCardsKey, []);
-        passedCards.push([sourcePlayer, targetPlayer, card]);
-        this.setStoredState(MasqueradePassedCardsKey, passedCards);
-    }
-
-    distributePassedCards() {
-        var triples = this.getAndClearStoredState(MasqueradePassedCardsKey);
-        triples.forEach((t:any) => {
-            var sourcePlayer = t[0];
-            var targetPlayer = t[1];
-            var card = t[2];
-            if (card) {
-                this.playerPassesCard(sourcePlayer, targetPlayer, card);
-            }
-        });
-    }
-
-    discardHand(player:Player) {
-        if (player.hand.length > 0) {
-            this.discardCards(player, player.hand);
+    moveCards(cards: CardInPlay[], destination: CardGroup) {
+        for (let c of cards) {
+            this.moveCard(c, destination);
         }
     }
 
-    discardCards(player:Player, cs:cards.Card[], destination:base.DiscardDestination=base.DiscardDestination.Discard) {
-        var ontoDeck = destination === base.DiscardDestination.Deck;
-        _.each(_.clone(cs), card => {
-            var card = cards.removeFirst(player.hand, card);
-            if (ontoDeck) {
-                player.deck.push(card);
-            } else {
-                player.discard.push(card);
-            }
-        });
-
-        this.log(player.name, 'discards', cards.getNames(cs).join(', '), ontoDeck ? 'onto deck' : '');
-        this.gameListener.playerDiscardedCards(player, cs);
-    }
-
-    // TODO?: consolidate logic for trashing from different containers
-
-    trashCards(player:Player, cs:cards.Card[]) {
-        // clone cs to avoid iterating while mutating
-        _.each(_.clone(cs), card => {
-            var card = cards.removeFirst(player.hand, card);
-            this.trash.push(card);
-        });
-
-        this.log(player.name, 'trashes', cs.join(', '));
-        this.gameListener.playerTrashedCards(player, cs);
-    }
-
-    // For use with 'floating' cards, e.g. cards revealed by thief.
-    // Normal trashing from hand should use trashCards.
-    addCardToTrash(player:Player, card:cards.Card) {
-        this.log(player.name, 'trashes', card.name);
-        this.trash.push(card);
-        this.gameListener.addCardToTrash(card);
-    }
-
-    trashCardFromPlay(player:Player, card:cards.Card) : boolean {
-        if (this.isExactCardInPlay(card)) {
-            cards.removeIdentical(this.inPlay, card);
-            this.log(player.name, 'trashes', card.name);
-            this.trash.push(card);
-            this.gameListener.trashCardFromPlay(card);
-            return true;
-        } else {
-            return false;
+    moveCardsToBottom(cards: CardInPlay[], destination: CardStack) {
+        for (let c of cards.reverse()) {
+            this.moveCardToBottom(c, destination);
         }
     }
 
-    trashCardFromDeck(player:Player) : cards.Card {
-        var card = player.takeCardFromDeck();
-        if (!card) {
-            return null;
+    playerPassesCard(sourcePlayer: Player, targetPlayer: Player, card: CardInPlay) {
+        this.moveCard(card, targetPlayer.hand);
+
+        this.log(`${sourcePlayer.name} passes a card to ${targetPlayer.name}`);
+        this.eventEmitter.playerPassedCard(sourcePlayer, targetPlayer, card);
+    }
+
+    discardHand(player: Player) {
+        if (!player.hand.empty) {
+            this.discardCards(player, player.hand.cards);
         }
-
-        this.log(player.name, 'trashes', card.name);
-        this.trash.push(card);
-        this.gameListener.playerTrashedCardFromDeck(player, card);
-        return card;
     }
 
-    // Checks if this exact object is in play.
-    isExactCardInPlay(card:cards.Card) : boolean {
-        return cards.containsIdentical(this.inPlay, card);
+    discardCards(player: Player, cards: CardInPlay[], destination: DiscardDestination = DiscardDestination.Discard) {
+        const destinationGroup = player.cardGroupForDiscardDestination(destination);
+        this.moveCards(cards, destinationGroup);
+        
+        this.log(`${player.name} discards ${cards.map(c => c.name).join(', ')}`);
+        this.eventEmitter.playerDiscardedCards(player, cards, DiscardSource.Hand, destination);
     }
 
-    // Methods to increment active player's turn counts.
+    trashCards(player: Player, cards: CardInPlay[]) {
+        this.moveCards(cards, this.trash);
+        
+        this.log(`${player.name} trashes ${cards.map(c => c.name).join(', ')}`);
+        this.eventEmitter.playerTrashedCards(player, cards, TrashSource.Hand);
+    }
+
+    //// Methods to increment active player's turn counts.
 
     incrementActionCount(n:number) {
         this.assertGameIsActive();
         this.turnState.actionCount += n;
-        this.stateUpdated();
     }
 
     incrementBuyCount(n:number) {
         this.assertGameIsActive();
         this.turnState.buyCount += n;
-        this.stateUpdated();
     }
 
     incrementCoinCount(n:number) {
         this.assertGameIsActive();
         this.turnState.coinCount += n;
-        this.stateUpdated();
     }
 
     incrementCardDiscount(n:number) {
         this.assertGameIsActive();
         this.turnState.cardDiscount += n;
-        this.stateUpdated();
     }
 
-    // Card management methods
+    //// Card management methods
 
-    drawCards(player:Player, num:number) {
-        var cards = player.takeCardsFromDeck(num);
-        player.addCardsToHand(cards);
-        this.log(player, 'draws', num, util.pluralize('card', num));
-        this.gameListener.playerDrewCards(player, cards);
-    }
-
-    drawTakenCard(player:Player, card:cards.Card, revealCards:boolean=false) {
-        this.drawTakenCards(player, [card], revealCards);
-    }
-
-    // Used when card is taken from deck, and optionally drawn.
-    // Assumes that the card has already been removed from the deck!
-    // The cards may or may not be revealed to all players.
-    drawTakenCards(player:Player, cs:cards.Card[], revealCards:boolean) {
-        player.addCardsToHand(cs);
-        if (revealCards) {
-            this.log(player, 'draws', cs.join(', '));
-        } else {
-            this.log(player, 'draws', util.pluralize('card', cs.length));
+    drawCards(player: Player, num: number) {
+        if (player.deck.count < num) {
+            player
         }
 
-        this.gameListener.playerDrewCards(player, cs);
+        const cards = player.topCardsOfDeck(this, num);
+        this.moveCards(cards, player.hand);
+
+        this.log(`${player.name} draws ${num} ${utils.pluralize('card', num)}`);
+        this.eventEmitter.playerDrewCards(player, cards);
     }
 
-    // Used when player reveals cards, and discards some.
-    // Assumes that the card has already been taken from the deck.
-    addCardsToDiscard(player:Player, cards:cards.Card[]) {
-        if (cards.length === 0) {
-            return;
+    setAsideCard(player: Player, card: CardInPlay) {
+        this.log(`${player.name} sets aside ${card.name}`);
+        this.moveCard(card, this.setAside);
+    }
+
+    discardDeck(player: Player) {
+        this.discardFromDeck(player, player.deck.count);
+    }
+
+    discardFromDeck(player: Player, num: number) : CardInPlay[] {
+        const cards = player.topCardsOfDeck(this, num);
+
+        if (cards.length > 0) {
+            this.moveCards(cards, player.discard);
         }
 
-        this.log(player.name, 'discards', cards.join(', '));
-        player.addCardsToDiscard(cards);
-        this.gameListener.playerDiscardedCards(player, cards);
+        return cards;
     }
-
-    setAsideCard(player:Player, card:cards.Card) {
-        this.setAside.push(card);
-    }
-
-    discardSetAsideCards(player:Player) {
-        player.discard = player.discard.concat(this.setAside);
-        this.setAside = [];
-        // TODO?: gameListener event
-    }
-
-    discardCardsFromDeck(player:Player, num:number) : cards.Card[] {
-        var discarded = player.discardCardsFromDeck(num);
-
-        if (discarded.length > 0) {
-            this.log(player.name, 'discards', discarded.join(', '));
-            this.gameListener.playerDiscardedCardsFromDeck(player, discarded);
-        }
-
-        return discarded;
-    }
-
-    // This method assumes the cards have already been 'taken' from the deck.
-    drawAndDiscardFromDeck(player:Player, draw:cards.Card[], discard:cards.Card[]) {
-        player.hand = player.hand.concat(draw);
-        player.discard = player.discard.concat(discard);
-
-        // TODO: add listener method
-        if (draw.length > 0 && discard.length > 0) {
-            this.log(player, 'draws', draw, 'and discards', discard);
-        } else if (draw.length > 0) {
-            this.log(player, 'draws', draw);
-        } else if (discard.length > 0) {
-            this.log(player, 'discards', discard.join(', '));
-        }
-
-        this.gameListener.playerDrewAndDiscardedCards(player, draw, discard);
-    }
-
-    putCardsOnDeck(player:Player, cards:cards.Card[]) {
-        player.putCardsOnDeck(cards);
-        this.log(player.name, 'puts', cards, 'onto their deck');
-    }
-
-    revealCardFromDeck(player:Player) : cards.Card {
-        var card = player.topCardOfDeck();
+    
+    revealCardFromDeck(player: Player) : CardInPlay | null {
+        const card = player.topCardOfDeck(this);
         if (card) {
             this.revealPlayerCards(player, [card]);
         }
         return card;
     }
 
-    playActionMultipleTimes(card:cards.Card, num:number) : Resolution {
-        var card = cards.removeFirst(this.activePlayer.hand, card);
-        this.inPlay.push(card);
-        var playEvents = _.times(num, (i) => {
-            return () => {
-                return this.playClonedAction(card, i);
-            };
-        });
-
-        this.pushEvents(playEvents);
-        this.gameListener.playerPlayedCard(this.activePlayer, card);
-        return Resolution.Advance;
-    }
-
-    increaseCopperValueBy(num:number) {
-        this.turnState.copperValue += num;
-        this.stateUpdated();
-    }
-
-    filterGainablePiles(minCost:number, maxCost:number, cardType:cards.Type=cards.Type.All) : cards.Pile[] {
-        return _.filter<cards.Pile>(this.kingdomPiles, (pile:cards.Pile) => {
+    filterGainablePiles(minCost: number, maxCost: number, cardType: CardType=CardType.All) : SupplyPile[] {
+        return this.kingdomPiles.filter(pile => {
             if (pile.count == 0) {
                 return false;
             } else if (!pile.card.matchesType(cardType)) {
@@ -881,29 +596,129 @@ class Game extends base.BaseGame {
         });
     }
 
+    // Convenience functions
+
+    currentlyPlayableActions() : CardInPlay[] {
+        if (this.turnState.actionCount == 0) {
+            return [];
+        } else {
+            return this.activePlayer.hand.ofType(CardType.Action);
+        }
+    }
+
+    allBuyablePiles() : SupplyPile[] {
+        return this.kingdomPiles.filter(pile => {
+            return pile.count > 0;
+        });
+    }
+
+    /// Returns all cards in game for card naming.
+    allCardsInGame() : Card[] {
+        let cards: Card[] = [];
+        for (const pile of this.kingdomPiles) {
+            cards.push(pile.card);
+        }
+        return cards;
+    }
+
+    pileForCard(card: Card) : SupplyPile {
+        for (const pile of this.kingdomPiles) {
+            if (pile.card.name === card.name) {
+                return pile;
+            }
+        }
+
+        throw new Error('No pile for card ' + card.name);
+    }
+
+    effectiveCardCost(card: Card) : number {
+        return Math.max(card.cost - this.turnState.cardDiscount, 0);
+    }
+
+    currentlyBuyablePiles() : SupplyPile[] {
+        if (this.turnState.buyCount == 0) {
+            return [];
+        } else {
+            return this.allBuyablePiles().filter(pile => {
+                return this.effectiveCardCost(pile.card) <= this.turnState.coinCount;
+            });
+        }
+    }
+
+    // Card vending
+
+    generateCardIdentifier(card: Card) : string {
+        return utils.Guid.newGuid();
+    } 
+
+    vendStartingCards(cards: Card[]) : CardInPlay[] {
+        return cards.map(c => new CardInPlay(c, this.generateCardIdentifier(c)));
+    }
+
+    vendCardFromPile(pile: SupplyPile) : CardInPlay {
+        if (pile.count <= 0) {
+            throw new Error('Unable to gain from empty pile');
+        }
+
+        pile.count--;
+        return new CardInPlay(pile.card, this.generateCardIdentifier(pile.card));
+    }
+
     // Blast off!
 
+    async completeWithDeciders(deciders: Decider[]) {
+        try {
+            if (deciders.length !== this.players.length) {
+                throw new Error(`Must provide ${this.players.length} deciders`);
+            }
+
+            this.start();
+
+            while (this.pendingDecision !== null) {
+                const decider = deciders[this.decidingPlayerIndex];
+                const promise = decider.decide(this.pendingDecision);
+                
+                const answer = await promise;
+                this.resolveDecision(answer);
+                this.advanceToNextDecision();
+            }
+        } catch (err) {
+            console.error("An exception occured while executing game logic. This likely indicates a bug!");
+            console.error(err);
+        }
+    }
+
     start() {
+        if (this.hasGameStarted) {
+            throw new Error("Cannot start game twice");
+        }
+
         this.hasGameStarted = true;
-        this.log('The game is afoot!');
         this.drawInitialHands();
-        this.advanceTurn();
-        this.advanceGameState();
+        this.beginNewTurn();
+        this.advanceToNextDecision();
     }
 
     endGame() {
-        this.log('Game ends:');
+        this.log('=== Game Over ===');
 
-        _.each(this.players, (player) => {
-            var score = scoring.calculateScore(player.getFullDeck());
-            this.log('-', player, 'has', score, 'VP');
-        });
+        for (const player of this.players) {
+            const score = calculateScore(player.getFullDeck());
+            this.log(`${player} has ${score} VP`);
+        }
 
-        var fullDecks = this.players.map(function(p) {
-            return p.getFullDeck();
-        });
+        const fullDecks = this.players.map(p => p.getFullDeck());
+        this.eventEmitter.gameEnds();
+    }
 
-        this.gameListener.gameEnded(fullDecks);
+    // Misc.
+
+    // Output text message by converting arguments to strings.
+    log(...args: any[]) {
+        if (this.printLog) {
+            var msg = Array(args).join(' ');
+            console.log(msg);
+        }
     }
 }
 

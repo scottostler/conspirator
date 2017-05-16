@@ -2,15 +2,14 @@ import * as base from './base';
 
 class TurnState {
 
-    phase:base.TurnPhase;
-    actionCount:number;
-    playedActionCount:number;
-    buyCount:number;
-    coinCount:number;
+    phase: base.TurnPhase;
+    actionCount: number;
+    playedActionCount: number;
+    buyCount: number;
+    coinCount: number;
 
-    cardDiscount:number;
-    copperValue:number;
-    cardBought:boolean;
+    cardDiscount: number;
+    cardBought: boolean;
 
     constructor() {
         this.phase = base.TurnPhase.Action;
@@ -20,7 +19,6 @@ class TurnState {
         this.coinCount = 0;
 
         this.cardDiscount = 0;
-        this.copperValue = 1;
         this.cardBought = false;
     }
 }

@@ -1,28 +1,44 @@
-import _ = require('underscore');
-import chai = require('chai');
+import * as _ from 'underscore';
+import { assert, expect } from 'chai';
 
-import base = require('../src/base');
-import baseset = require('../src/sets/baseset');
-import cards = require('../src/cards');
-import decider = require('../src/decider');
-import decisions = require('../src/decisions');
-import effects = require('../src/effects');
-import scoring = require('../src/scoring');
-import Game = require('../src/game');
-import Player = require('../src/player');
-import util = require('../src/util');
+import * as util from '../src/utils';
+import * as baseset from '../src/sets/baseset';
+import { GainDestination } from '../src/base';
+import { Card, CardGroup, CardInPlay, difference, asNames } from '../src/cards';
+import Decider from '../src/decider';
+import { Decision, DecisionType, SetAsideCardDecision} from '../src/decisions';
+import { Effect } from '../src/effects';
+import { EventListener, GameEvent, CardsRevealedEvent } from '../src/event';
+import { CardRecord } from '../src/gamerecord';
+import Game from '../src/game';
+import { PlayerIdentifier, Player } from '../src/player';
+import { calculateScore } from '../src/scoring';
 
-import expect = chai.expect;
+import { Copper, Estate } from '../src/sets/common';
 
-import BasePlayer = base.BasePlayer;
-import Card = cards.Card;
-import DecisionType = decisions.DecisionType;
-import GainDestination = base.GainDestination;
-import GameState = base.GameState;
+export function duplicateCard(c: Card, n: number) : Card[] {
+    return _.times<Card>(n, () => {
+        return c;
+    });
+}
 
-export var copperHand = util.duplicate(cards.Copper, 5);
-export var copperEstateHand = util.duplicate(cards.Copper, 3).concat(util.duplicate(cards.Estate, 2));
-export var threeCopperHand = util.duplicate(cards.Copper, 3);
+export function expectNonNull<T>(val: T | null) : T {
+    if (val === null) {
+        throw new Error('Expected non-null value, got null');
+    }
+    return val;
+}
+
+export function expectDefined<T>(val: T | undefined) : T {
+    if (val === undefined) {
+        throw new Error('Expected defined value, got undefined');
+    }
+    return val;
+}
+
+export const copperHand = duplicateCard(Copper, 5);
+export const copperEstateHand = duplicateCard(Copper, 3).concat(duplicateCard(Estate, 2));
+export const threeCopperHand = duplicateCard(Copper, 3);
 
 var NumKingdomCards = 10;
 
@@ -33,216 +49,254 @@ var neutralKingdomCards = [
     baseset.Smithy, baseset.Village, baseset.Woodcutter];
 
 
-export function neutralCardsWith(cs:cards.Card[]) : cards.Card[] {
-    var withoutCards = cards.difference(neutralKingdomCards, cs);
-    return _.sample<cards.Card>(withoutCards, NumKingdomCards - cs.length).concat(cs);
+export function neutralCardsWith(cs: Card[]) : Card[] {
+    var withoutCards = difference(neutralKingdomCards, cs);
+    return _.sample<Card>(withoutCards, NumKingdomCards - cs.length).concat(cs);
 }
 
-function expectEqualCardNames(a:string[], b:Card[]) {
-    expect(a.concat().sort()).to.eql(cards.getNames(b).concat().sort());
+export function expectEqualCards(a: Card[], b: Card[]) {
+    expect(a.map(a => a.name)).to.eql(b.map(b => b.name));
 }
 
-export function expectEqualCards(a:Card[], b:Card[]) {
-    expectEqualCardNames(cards.getNames(a), b);
+export function expectEqualCardRecords(a: CardRecord[], b: Card[]) {
+    expect(a.map(a => a.name)).to.eql(b.map(b => b.name));
 }
 
-export function expectDeckScore(cs:Card[], score:number) {
-    expect(scoring.calculateScore(cs)).to.eql(score);
+export function expectDeckScore(cs: Card[], score: number) {
+    expect(calculateScore(cs)).to.eql(score);
 }
 
-export function expectTopDeckCard(player:Player, c:Card) {
-    expect(player.deck).to.have.length.of.at.least(1);
-    expect(_.last(player.deck).name).to.equal(c.name);
+export function expectTopDeckCard(player: Player, c: Card) {
+    const card = expectNonNull(player.deck.topCard);
+    expect(card.name).to.equal(c.name);
 }
 
-export function expectDiscardCards(player:Player, cs:Card[]) {
-    expectEqualCards(player.discard, cs);
+export function expectDiscardCards(player: Player, cs: Card[]) {
+    expectEqualCards(player.discard.cards, cs);
 }
 
 export function expectTopDiscardCard(player:Player, c:Card) {
-    expect(player.discard).to.have.length.of.at.least(1);
-    expect(_.last(player.discard).name).to.equal(c.name);
+    expect(player.discard.cards).to.have.length.of.at.least(1);
+    expect(expectDefined(_.last(player.discard.cards)).name).to.equal(c.name);
 }
 
-export function expectTopTrashCard(game:Game, c:Card) {
-    expect(game.trash).to.have.length.of.at.least(1);
-    expect(_.last(game.trash).name).to.eql(c.name, 'Top card of trash should be ' + c.name);
+export function expectTopTrashCard(game: Game, c: Card) {
+    expect(game.trash.cards).to.have.length.of.at.least(1);
+    expect(expectDefined(_.last(game.trash.cards)).name).to.eql(c.name, 'Top card of trash should be ' + c.name);
 }
 
-export function expectActionCount(game:Game, count:number) {
+export function expectActionCount(game: Game, count: number) {
     expect(game.turnState.actionCount).to.eql(count, 'Action count should be ' + count);
 }
 
-export function expectBuyCount(game:Game, count:number) {
+export function expectBuyCount(game: Game, count: number) {
     expect(game.turnState.buyCount).to.eql(count, 'Buy count should be ' + count);
 }
 
-export function expectCoinCount(game:Game, count:number) {
+export function expectCoinCount(game: Game, count: number) {
     expect(game.turnState.coinCount).to.eql(count, 'Coin count should be ' + count);
 }
 
-export function expectPlayerHandSize(player:Player, size:number) {
-    expect(player.hand).to.have.length(size, player.name + ' should have hand size of ' + size);
+export function expectPlayerHandSize(player: Player, size: number) {
+    expect(player.hand.count).to.be.eql(size, player.name + ' should have hand size of ' + size);
 }
 
-export function setPlayerDeck(game:Game, player:Player, cs:Card[]) {
-    expect(game.hasGameStarted).to.be.false;
-    player.deck = cards.clone(cs);
-}
-
-export class TestingGameListener implements base.BaseGameListener {
-    revealedCardQueue:Card[][];
+export class TestGameListener implements EventListener {
+    revealedCardQueue: CardRecord[][];
 
     constructor() {
         this.revealedCardQueue = [];
     }
 
-    log(msg:string) {}
-    stateUpdated(state:GameState) {}
-    playAreaEmptied() {}
-    playerDrewCards(player:BasePlayer, cards:Card[]) {}
-    playerGainedCard(player:BasePlayer, card:Card, source:base.GainSource, dest:GainDestination) {}
-    playerGainedCardFromTrash(player:BasePlayer, card:Card) {}
-    playerPassedCard(player:BasePlayer, targetPlayer:BasePlayer, card:Card) {}
-    playerPlayedCard(player:BasePlayer, card:Card) {}
-    playerPlayedClonedCard(player:BasePlayer, card:Card) {}
-    playerDiscardedCards(player:BasePlayer, cards:Card[]) {}
-    playerDiscardedCardsFromDeck(player:BasePlayer, cards:Card[]) {}
-    playerTrashedCards(player:BasePlayer, cards:Card[]) {}
-    playerTrashedCardFromDeck(player:BasePlayer, card:Card) {}
-    playerDrewAndDiscardedCards(player:BasePlayer, drawn:Card[], discard:Card[]) {}
-    playerRevealedCards(player:BasePlayer, cards:Card[]) {
-        this.revealedCardQueue.push(cards);
+    handleEvent(event: GameEvent) {
+        if (event instanceof CardsRevealedEvent) {
+            this.revealedCardQueue.push(event.cards);
+        }
     }
-    trashCardFromPlay(card:Card) {}
-    addCardToTrash(card:Card) {}
-    gameEnded(decks:Card[][]) {}
 }
 
-export function expectRevealedCards(game:Game, cs:Card[]) {
-    var revealedQueue = (<TestingGameListener>game.gameListener).revealedCardQueue;
-    expect(revealedQueue).to.be.not.empty;
+export function expectRevealedCards(game: Game, cs: Card[]) {
+    const testListener = <TestGameListener>game.eventEmitter.eventListeners.find(l => l instanceof TestGameListener);
+    if (!testListener) {
+        throw new Error('Missing TestingGameListener');
+    }
 
-    var revealed = revealedQueue.shift();
-    expectEqualCards(revealed, cs);
+    expect(testListener.revealedCardQueue).to.be.not.empty;
+    const revealed = expectDefined(testListener.revealedCardQueue.shift());
+    assert.sameMembers(cs.map(c => c.name), revealed.map(c => c.name));
 }
 
-export class TestingDecider implements decider.Decider {
+export class TestDecider {
 
-    player:base.BasePlayer;
-    pendingCallback:util.StringArrayCallback;
-    pendingDecision:decisions.Decision;
-
-    constructor() {
-        this.player = null;
-        this.pendingCallback = null;
-        this.pendingDecision = null;
+    constructor(readonly game: Game, readonly player : PlayerIdentifier, readonly label: string = "TestDecider") {}
+    
+    get pendingDecision() : Decision<any> | null {
+        if (this.game.pendingDecision && this.game.pendingDecision.player == this.player) {
+            return this.game.pendingDecision;
+        } else {
+            return null;
+        }
     }
 
-    setPlayer(player:base.BasePlayer) {
-        this.player = player;
-    }
+    hasSelectionCounts(minSelections: number, maxSelections: number) {
+        if (!this.pendingDecision) { throw new Error(`No pending decision`); }
 
-    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
-        expect(this.pendingDecision).to.not.exist;
-        this.pendingCallback = onDecide;
-        this.pendingDecision = decision;
-    }
-
-    hasSelectionCounts(minSelections:number, maxSelections:number) {
         expect(this.pendingDecision.minSelections).to.eql(minSelections);
         expect(this.pendingDecision.maxSelections).to.eql(maxSelections);
     }
 
-    expectPendingDecisionType(d:DecisionType) {
-        var dType = DecisionType[d];
-        expect(this.pendingDecision).to.not.eql(
-            null, 'No pending decision of type ' + dType + ' for ' + this.player.getName());
+    expectPendingDecisionType(d: DecisionType) {
+        const dType = DecisionType[d];
+        if (!this.pendingDecision) {
+            const gameD = this.game.pendingDecision;
+            if (gameD) {
+                throw new Error(`No pending ${dType} decision for ${this.label}, but game has pending decision ${gameD.label}`);
+            } else {
+                throw new Error(`No pending ${dType} decision for ${this.label}`);
+            }
+        } else if (this.pendingDecision.player !== this.player) {
+            throw new Error(`Pending decision ${this.pendingDecision.label} exists, but decider for ${this.player} was called`);
+        }
+
         expect(DecisionType[this.pendingDecision.decisionType]).to.eql(
             DecisionType[d], 'Wrong decision type');
     }
 
-    makeDiscardDeckDecision(result:boolean) {
-        this.expectPendingDecisionType(DecisionType.DiscardDeck);
-        var callback = this.pendingCallback;
-        this.pendingCallback = null;
-        this.pendingDecision = null;
-        callback([result ? decisions.Yes : decisions.No]);
-    }
-
-    makeEffectsDecision(es:effects.LabelledEffect[]) {
-        this.expectPendingDecisionType(DecisionType.ChooseEffect);
-        var callback = this.pendingCallback;
-        this.pendingCallback = null;
-        this.pendingDecision = null;
-
-        var labels = _.map(es, e => e.getLabel());
-        callback(labels);
-    }
-
-    makeCardsDecision(d:DecisionType, cs:Card[]) {
+    private makeBooleanDecision(d: DecisionType, result: boolean) {
         this.expectPendingDecisionType(d);
-        var callback = this.pendingCallback;
-        this.pendingCallback = null;
-        this.pendingDecision = null;
-        callback(cards.getNames(cs));
+        this.game.resolveDecision([result]);
+        this.game.advanceToNextDecision();
     }
 
-    makeCardDecision(d:DecisionType, card:Card) {
-        this.makeCardsDecision(d, card !== null ? [card] : []);
+    discardDeck(result: boolean) {
+        this.makeBooleanDecision(DecisionType.DiscardDeck, result);
     }
 
-    playAction(card:Card) {
+    setAsideCard(result: boolean, card: Card) {
+        this.expectPendingDecisionType(DecisionType.SetAsideCard);
+        
+        const decision = (<SetAsideCardDecision>this.pendingDecision);
+        assert.equal(decision.card.name, card.name, `Unxpected card for SetAsideCardDecision`);
+
+        this.makeBooleanDecision(DecisionType.SetAsideCard, result);
+    }
+
+    private makeEffectsDecision(es: Effect[]) {
+        this.expectPendingDecisionType(DecisionType.ChooseEffect);
+        const labels = _.map(es, e => e.label);
+        this.game.resolveDecision(labels);
+        this.game.advanceToNextDecision();
+    }
+
+    // Matches Cards to CardInPlays by name
+    private matchInPlayCards(input: Card[], target: CardInPlay[]) : CardInPlay[] {
+        const targetCopy = target.slice();
+        const result = new Array<CardInPlay>();
+
+        for (const [inputIdx, card] of input.entries()) {
+            let matchIdx: number;
+            if (card instanceof CardInPlay) {
+                matchIdx = targetCopy.findIndex((v, _) => v.isExactCard(card));
+            } else if (card instanceof Card) {
+                matchIdx = targetCopy.findIndex((v, _) => v.isSameCard(card));
+            } else {
+                throw new Error(`Unexpected argument: ${card}`);
+            }
+
+            if (matchIdx == -1) {
+                const decision = this.pendingDecision;
+                if (decision) {
+                    throw new Error(`Can't match ${asNames(input, true)} to ${asNames(target, true)} for ${decision.label}: no match for ${card.debugDescription} at index ${inputIdx}`);
+                } else {
+                    throw new Error(`Can't match ${asNames(input, true)} to ${asNames(target, true)}: no match for ${card.debugDescription} at index ${inputIdx}`);
+                }
+            }
+
+            const val = targetCopy[matchIdx];
+            result.push(val);
+            targetCopy.splice(matchIdx, 1);
+        }
+
+        return result;
+    }
+
+    makeCardsDecision(d: DecisionType, cs: Card[]) {
+        this.expectPendingDecisionType(d);
+        const decision = this.pendingDecision!;
+
+        let matchedCards: Card[];
+        if (decision.optionConstructor === CardInPlay) {
+            matchedCards = this.matchInPlayCards(cs, decision.options);
+        } else {
+            matchedCards = cs;
+        }
+
+        this.game.resolveDecision(matchedCards);
+        this.game.advanceToNextDecision();
+    }
+
+    makeCardDecision(d: DecisionType, card: Card | null) {
+        if (card === null) {
+            this.makeCardsDecision(d, []);
+        } else if (card instanceof Card) {
+            this.makeCardsDecision(d, [card]);            
+        } else {
+            throw new Error(`Invalid card argument: ${card}`);
+        }
+    }
+
+    playAction(card: Card) {
         this.makeCardDecision(DecisionType.PlayAction, card);
     }
 
-    playTreasures(cs:Card[]) {
+    playTreasures(cs: Card[]) {
         this.makeCardsDecision(DecisionType.PlayTreasure, cs);
     }
 
-    canGain(cs:Card[]) {
+    canGain(cs: Card[]) {
         expect(this.pendingDecision).not.to.be.null;
-        expect(this.pendingDecision.decisionType).to.eql(DecisionType.GainCard);
-        expectEqualCardNames(this.pendingDecision.options, cs);
+        const decision = this.pendingDecision!;
+        assert.equal(DecisionType[decision.decisionType], DecisionType[DecisionType.GainCard]);
+        assert.sameMembers(asNames(decision.options), asNames(cs));
     }
 
-    gainCard(card:Card) {
+    gainCard(card: Card | null) {
         this.makeCardDecision(DecisionType.GainCard, card);
     }
 
-    discardCards(cs:Card[]) {
+    buyCard(card: Card | null) {
+        this.makeCardDecision(DecisionType.BuyCard, card);
+    }
+
+    discardCards(cs: Card[]) {
         this.makeCardsDecision(DecisionType.DiscardCard, cs);
     }
 
-    discardCard(c:Card) {
+    discardCard(c: Card | null) {
         this.makeCardDecision(DecisionType.DiscardCard, c);
     }
 
-    trashCard(c:Card) {
+    trashCard(c: Card) {
         this.makeCardDecision(DecisionType.TrashCard, c);
     }
 
-    trashCards(cs:Card[]) {
+    trashCards(cs: Card[]) {
         this.makeCardsDecision(DecisionType.TrashCard, cs);
     }
 
-    revealCard(c:Card) {
+    revealCard(c: Card | null) {
         this.makeCardDecision(DecisionType.RevealCard, c);
-    }
-
-    setAsideCard(c:Card) {
-        this.makeCardDecision(DecisionType.SetAsideCard, c);
     }
 
     nameCard(c:Card) {
         this.makeCardDecision(DecisionType.NameCard, c);
     }
 
-    chooseEffect(e:effects.LabelledEffect) {
+    chooseEffect(e: Effect) {
         this.makeEffectsDecision(e !== null ? [e] : []);
     }
 
-    chooseEffects(es:effects.LabelledEffect[]) {
+    chooseEffects(es: Effect[]) {
         this.makeEffectsDecision(es);
     }
 
@@ -255,41 +309,51 @@ export class TestingDecider implements decider.Decider {
     }
 }
 
-export function setupTwoPlayerGame(d1:TestingDecider, d2:TestingDecider, h1:Card[]=null, h2:Card[]=null, kingdom:Card[]=[]) : Game {
-    var player1 = new Player('Player 1', d1);
-    var player2 = new Player('Player 2', d2);
-    var game = new Game([player1, player2], neutralCardsWith(kingdom));
-    game.gameListener = new TestingGameListener();
+class TestGame extends Game {
 
-    if (h1 !== null) {
-        player1.hand = cards.clone(h1);
+    setPlayerHand(player: Player, cards: Card[]) {
+        const vended = this.vendStartingCards(cards);
+        player.hand.dropAllCards();
+        player.hand.setCards(vended);
     }
 
-    if (h2 !== null) {
-        player2.hand = cards.clone(h2);
+    setPlayerDeck(player: Player, cards: Card[]) {
+        const vended = this.vendStartingCards(cards);
+        player.deck.dropAllCards();
+        player.deck.setCards(vended);
     }
-
-    return game;
 }
 
-export function setupThreePlayerGame(d1:TestingDecider, d2:TestingDecider, d3:TestingDecider, h1:Card[]=null, h2:Card[]=null, h3:Card[]=null, kingdom:Card[]=[]) : Game {
-    var player1 = new Player('Player 1', d1);
-    var player2 = new Player('Player 2', d2);
-    var player3 = new Player('Player 3', d3);
-    var game = new Game([player1, player2, player3], neutralCardsWith(kingdom));
-    game.gameListener = new TestingGameListener();
-
+export function setupTwoPlayerGame(h1: Card[] | null = null, h2: Card[] | null = null, kingdom: Card[] = []) : [TestGame, TestDecider, TestDecider] {
+    const game = new TestGame(['Player 1', 'Player 2'], neutralCardsWith(kingdom));
+    game.eventEmitter.addEventListener(new TestGameListener());
+    
     if (h1 !== null) {
-        player1.hand = cards.clone(h1);
+        game.setPlayerHand(game.players[0], h1);
     }
 
     if (h2 !== null) {
-        player2.hand = cards.clone(h2);
+        game.setPlayerHand(game.players[1], h2);
+    }
+
+    return [game, new TestDecider(game, 'Player 1'), new TestDecider(game, 'Player 2')];
+}
+
+export function setupThreePlayerGame(h1: Card[] | null = null, h2: Card[] | null = null, h3: Card[] | null = null, kingdom: Card[] = []) : [TestGame, TestDecider, TestDecider, TestDecider] {
+    const game = new TestGame(['Player 1', 'Player 2', 'Player 3'], neutralCardsWith(kingdom));
+    game.eventEmitter.addEventListener(new TestGameListener());
+    
+    if (h1 !== null) {
+        game.setPlayerHand(game.players[0], h1);
+    }
+
+    if (h2 !== null) {
+        game.setPlayerHand(game.players[1], h2);
     }
 
     if (h3 !== null) {
-        player3.hand = cards.clone(h3);
+        game.setPlayerHand(game.players[2], h3);
     }
 
-    return game;
+    return [game, new TestDecider(game, 'Player 1'), new TestDecider(game, 'Player 2'), new TestDecider(game, 'Player 3')];
 }

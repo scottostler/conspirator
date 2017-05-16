@@ -1,21 +1,18 @@
-import _ = require("underscore");
+import * as _ from "underscore";
 
-import * as base from './base';
-import * as cards from './cards';
-import * as effects from './effects';
-import Player from './player';
-
-import Card = cards.Card;
-import DiscardDestination = base.DiscardDestination;
-import GainDestination = base.GainDestination;
-import GainSource = base.GainSource;
-
-export var Yes = 'Yes';
-export var No = 'No';
+import { ReactionType } from './cards';
+import { GameState, TurnPhase } from './base';
+import { DiscardDestination, GainDestination, GainSource } from './base';
+import { Card, CardInPlay, reactionTypeLabel } from './cards';
+import { Effect, EffectTemplate, PlayActionEffect } from './effects';
+import { Player, PlayerIdentifier } from './player';
+import { listToOption } from './utils';
+import Game, { GameStep } from './game';
 
 export enum DecisionType {
     PlayAction,              // Action Phase or cloned action
     PlayTreasure,            // Buy Phase
+    BuyCard,                 // Buy Phase
     GainCard,                // Buy Phase or otherwise
     DiscardCard,             // From hand, can be to deck or discard
     TrashCard,               // For optional benefit
@@ -28,241 +25,291 @@ export enum DecisionType {
     PassCard,                // For Masquerade
 }
 
-export interface Decision {
-    decisionType:DecisionType;
-    trigger:string;             // What caused the decision. Card name, 'Action Phase' or 'Buy Phase'
-    minSelections:number;       // Minimum # of options to pick
-    maxSelections:number;       // Maximum # of options to pick
-    options:string[];
+// Validate type of decision choices
+function decisionOptionConstructor(dType: DecisionType) : any {
+    switch (dType) {
+        case DecisionType.PlayAction:
+        case DecisionType.PlayTreasure:
+        case DecisionType.DiscardCard:
+        case DecisionType.TrashCard:
+        case DecisionType.RevealCard:
+        case DecisionType.OrderCards:
+        case DecisionType.PassCard:
+            return CardInPlay;
+        case DecisionType.NameCard:
+        case DecisionType.GainCard:
+        case DecisionType.BuyCard:
+            return Card;
+        case DecisionType.ChooseEffect:
+            return Effect
+        case DecisionType.DiscardDeck:
+        case DecisionType.SetAsideCard:
+            return Boolean;
+    }
+    
+    throw new Error(`Invalid decision type value: ${dType}`);
 }
 
-export function doesOrderMatter(d:Decision) {
-    return d.decisionType === DecisionType.OrderCards;
+type DecisionFollowup<T> = (game: Game, choice: T[]) => GameStep;
+
+class DecisionValidationError extends Error {}
+
+export abstract class Decision<T> {
+    readonly decisionType: DecisionType;
+    readonly player: PlayerIdentifier;
+    readonly trigger: CardInPlay | null;  // What card caused the decision, if any
+    readonly minSelections: number;       // Minimum # of options to pick
+    readonly maxSelections: number;       // Maximum # of options to pick
+    readonly options: T[];
+    readonly followup: DecisionFollowup<T>;
+    
+    get label() : string { return `${this.constructor.name} (${this.player})` }
+    get optionConstructor() : any { return decisionOptionConstructor(this.decisionType) }
+
+    constructor(decisionType: DecisionType, player: PlayerIdentifier, trigger: CardInPlay | null, minSelections: number, maxSelections: number, options: T[], followup: DecisionFollowup<T>) {
+        this.decisionType = decisionType;
+        this.player = player;
+        this.trigger = trigger;
+        this.minSelections = minSelections;
+        this.maxSelections = maxSelections;
+        this.options = options;
+        this.followup = followup;
+
+        if (this.maxSelections == 0) {
+            throw new Error(`Can't create a decision with no possible options`);
+        }
+    }
+
+    validateChoice(xs: any[]) {
+        if (xs.length < this.minSelections) {
+            throw new DecisionValidationError(`Too few choices provided for ${this.label}: ${xs.length} given, at least ${this.minSelections} required`);
+        } else if (xs.length > this.maxSelections) {
+            throw new DecisionValidationError(`Too many choices provided for ${this.label}: ${xs.length} given, at most ${this.maxSelections} required`);
+        }
+
+        const optionConstuctor = decisionOptionConstructor(this.decisionType);
+        for (const [idx, x] of xs.entries()) {
+            if (x.constructor !== optionConstuctor) {
+                throw new DecisionValidationError(`Invalid choice at index ${idx} for ${this.label}: ${x} has type ${x.constructor.name}, expected ${optionConstuctor.name}`);
+            }
+        }
+    }
 }
 
-export interface PlayActionDecision extends Decision {
-    playCount:number;
+// Concrete Decision Types
+
+export class BinaryDecision extends Decision<boolean> {
+    constructor(decisionType: DecisionType, player: PlayerIdentifier, trigger: CardInPlay | null, followup: DecisionFollowup<boolean>) {
+        super(decisionType, player, trigger, 0, 1, [true, false], followup);
+    }
 }
 
-export interface PlayTreasureDecision extends Decision {}
-
-export interface GainCardDecision extends Decision {
-    source:base.GainSource;
-    destination:base.GainDestination;
-    targetPlayer:Player;
-    isBuy:boolean;
+export class PlayActionDecision extends Decision<CardInPlay> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay | null, cards: CardInPlay[], playCount: number = 1, normalActionPlay: boolean = true, mustPlay: boolean = false) {
+        const playActionFollowup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            if (choice.length > 0) {
+                game.playAction(choice[0], playCount, normalActionPlay);
+            } else if (normalActionPlay) {
+                game.turnState.phase = TurnPhase.BuyPlayTreasure;
+            }
+            return null;
+        };
+        super(DecisionType.PlayAction, player, trigger, mustPlay ? 1 : 0, 1, cards, playActionFollowup);
+    }
 }
 
-export interface DiscardCardDecision extends Decision {
-    destination:DiscardDestination;
-    targetPlayer:Player;
+export class PlayTreasureDecision extends Decision<CardInPlay> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay | null, cards: CardInPlay[]) {
+        const playTreasureFollowup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            if (choice.length > 0) {
+                for (let c of choice) {
+                    game.playTreasure(c);
+                }
+            } else {
+                game.turnState.phase = TurnPhase.BuyPurchaseCard;
+            }
+            return null;
+        };
+
+        super(DecisionType.PlayTreasure, player, trigger, 0, cards.length, cards, playTreasureFollowup);
+    }
 }
 
-export enum TrashCardSource {
-    Hand,
-    InPlay, // e.g. Mining Village
-    CardSet // e.g. Thief
+export class BuyCardDecision extends Decision<Card> {
+    constructor(player: PlayerIdentifier, cards: Card[]) {
+        const buyCardFollowup = (game: Game, choice: Card[]) : GameStep => {
+            if (choice.length > 0) {
+                game.playerBuysCard(choice[0]) ;
+            } else {
+                game.turnState.phase = TurnPhase.Cleanup;
+            }
+            return null;
+        };
+
+        super(DecisionType.BuyCard, player, null, 0, 1, cards, buyCardFollowup);
+    }
 }
 
-export interface TrashCardDecision extends Decision {
-    trashFrom:TrashCardSource;
-    targetPlayer:string;
+export class GainFromPileDecision extends Decision<Card> {
+    destination: GainDestination;
+
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: Card[], destination: GainDestination, mustGain: boolean) {
+        const gainFromPileFollowup = (game: Game, choice: Card[]) : GameStep => {
+            if (choice.length > 0) {
+                const playerObject = game.playerForIdentifier(this.player);
+                game.playerGainsFromSupply(playerObject, choice[0], this.destination)
+            }
+            return null;
+        };
+
+        super(DecisionType.GainCard, player, trigger, mustGain ? 1 : 0, 1, cards, gainFromPileFollowup);
+        this.destination = destination;
+    }
 }
 
-// For OrderCardsDecision, the order of selected choices is significant.
-export interface OrderCardsDecision extends Decision {}
+export class DiscardCardDecision extends Decision<CardInPlay> {
+    readonly destination: DiscardDestination;
+    readonly revealFirst: boolean;
 
-export interface SetAsideCardDecision extends Decision {}
-
-export interface RevealCardDecision extends Decision {}
-export interface ChooseEffectDecision extends Decision {}
-export interface DiscardDeckDecision extends Decision {}
-export interface NameCardDecision extends Decision {}
-
-export interface PassCardDecision extends Decision {
-    toPlayer:string;
+    constructor(playerId: PlayerIdentifier, trigger: CardInPlay, minSelections: number, maxSelections: number, cards: CardInPlay[], destination: DiscardDestination, followup: DecisionFollowup<CardInPlay> | null = null, revealFirst: boolean = false) {
+        const baseFollowup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            const player = game.playerForIdentifier(playerId);
+            if (revealFirst) {
+                game.revealPlayerCards(player, choice);
+            }
+            game.discardCards(player, choice, this.destination);
+            return followup ? followup(game, choice) : null;
+        };
+        super(DecisionType.DiscardCard, playerId, trigger, minSelections, maxSelections, cards, baseFollowup);
+        this.destination = destination;
+        this.revealFirst = revealFirst;
+    }
 }
 
-//---------- Helper Functions
-
-export function makePlayActionDecision(cs:Card[]) : PlayActionDecision {
-    return {
-        decisionType:DecisionType.PlayAction,
-        trigger:'Action Phase',
-        minSelections:0,
-        maxSelections:1,
-        options:cards.getNames(cs),
-        playCount:1
-    };
+export class TrashCardDecision extends Decision<CardInPlay> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, minSelections: number, maxSelections: number, cards: CardInPlay[], followup?: DecisionFollowup<CardInPlay>) {
+        const trashCardFollowup = (game: Game, choice: CardInPlay[]) => {
+            if (choice.length > 0) {
+                const playerObject = game.playerForIdentifier(player);
+                game.trashCards(playerObject, choice);
+            }
+            return followup ? followup(game, choice) : null;
+        };
+        super(DecisionType.TrashCard, player, trigger, minSelections, maxSelections, cards, trashCardFollowup);
+    }
 }
 
-export function makePlayMultipliedActionDecision(cs:Card[], trigger:Card, playCount:number) : PlayActionDecision {
-    return {
-        decisionType:DecisionType.PlayAction,
-        trigger:trigger.name,
-        minSelections:1, // for Throne Room
-        maxSelections:1,
-        options:cards.getNames(cs),
-        playCount:playCount
-    };
+export class SetAsideCardDecision extends Decision<boolean> {
+    readonly card: CardInPlay;
+
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, card: CardInPlay, followup: DecisionFollowup<CardInPlay> | null = null) {
+        const setAsideFollowup = (game: Game, choice: boolean[]) => {
+            const shouldSetAside = choice[0];
+            const setAsideCards = shouldSetAside ? [this.card] : [];
+            if (shouldSetAside) {
+                game.setAsideCard(game.playerForIdentifier(player), card);
+            }
+            return followup ? followup(game, setAsideCards) : null;
+        };
+        super(DecisionType.SetAsideCard, player, trigger, 0, 1, [true, false], setAsideFollowup);
+        this.card = card;
+    }
 }
 
-export function makePlayTreasureDecision(player:Player, cs:Card[]) : PlayTreasureDecision {
-    return {
-        decisionType:DecisionType.PlayTreasure,
-        trigger:'Buy Phase',
-        minSelections:0,
-        maxSelections:cs.length,
-        options:cards.getNames(cs),
-    };
+export class RevealReactionDecision extends Decision<CardInPlay> {
+    readonly reactionType: ReactionType;
+    readonly triggerEffect: PlayActionEffect;
+
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: CardInPlay[], reactionType: ReactionType, triggerEffect: PlayActionEffect) {
+        const revealAttackReactionFollowup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            if (choice.length > 0) {
+                let [rxnType, effectTemplates] = choice[0].reaction;
+                if (rxnType != this.reactionType) {
+                    throw new Error(`Invalid ReactionType: ${rxnType} on ${choice[0].name}`);
+                }
+
+                game.queueEffect(new RevealReactionDecisionEffect(game, player, ReactionType.OnAttack, trigger, triggerEffect));
+
+                const playerObject = game.playerForIdentifier(player);
+                for (let effectTemplate of effectTemplates.reverse()) {
+                    const boundEffect = effectTemplate.bindTargets(playerObject, choice[0], triggerEffect);
+                    game.queueEffect(boundEffect);
+                }
+            }
+            return null;
+        };
+
+        super(DecisionType.RevealCard, player, trigger, 0, 1, cards, revealAttackReactionFollowup);
+        this.reactionType = reactionType;
+        this.triggerEffect = triggerEffect;
+    }
 }
 
-export function makeBuyDecision(player:Player, cs:Card[]) : GainCardDecision {
-    return {
-        decisionType:DecisionType.GainCard,
-        trigger:'Buy Phase',
-        minSelections:0,
-        maxSelections:1,
-        options:cards.getNames(cs),
-        source:GainSource.Pile,
-        destination:base.GainDestination.Discard,
-        targetPlayer:player,
-        isBuy:true
-    };
+class RevealReactionDecisionEffect extends Effect {
+    
+    get label() : string {
+        const player = this.game.playerForIdentifier(this.player);
+        const typeLabel = reactionTypeLabel(this.reactionType); 
+        return `Reveal ${typeLabel} Reactions (${player.name})`;
+    }
+
+    constructor(readonly game: Game, readonly player: PlayerIdentifier, readonly reactionType: ReactionType, readonly trigger: CardInPlay, readonly triggerEffect: PlayActionEffect) {
+        super();
+    }
+
+    resolve(game: Game) : GameStep {
+        const player = game.playerForIdentifier(this.player);
+        const revealableCards = player.hand.ofReactionType(this.reactionType);
+        if (revealableCards.length > 0) {
+            return new RevealReactionDecision(this.player, this.trigger, revealableCards, this.reactionType, this.triggerEffect);
+        } else {
+            return null;
+        }
+    }
 }
 
-export function makeGainDecision(player:Player, cs:Card[], trigger:Card, destination:GainDestination) : GainCardDecision {
-    return {
-        decisionType:DecisionType.GainCard,
-        trigger:trigger.name,
-        minSelections:1,
-        maxSelections:1,
-        options:cards.getNames(cs),
-        source:GainSource.Pile,
-        destination:destination,
-        targetPlayer:player,
-        isBuy:false
-    };
+export class ChooseEffectDecision extends Decision<EffectTemplate> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, effects: EffectTemplate[]) {
+        super(DecisionType.ChooseEffect, player, trigger, 1, 1, effects, (game: Game, choice: EffectTemplate[]) => {
+            const playerObject = game.playerForIdentifier(player);
+            game.playerChoosesEffects(playerObject, effects, trigger);
+            return null;
+        });
+    }
 }
 
-export function makeGainFromTrashDecision(player:Player, cs:Card[], trigger:Card) : GainCardDecision {
-    return {
-        decisionType:DecisionType.GainCard,
-        trigger:trigger.name,
-        minSelections:0,
-        maxSelections:cs.length,
-        options:cards.getNames(cs),
-        source:GainSource.Trash,
-        destination:GainDestination.Discard,
-        targetPlayer:player,
-        isBuy:false
-    };
+export class DiscardDeckDecision extends Decision<boolean> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay) {
+        const discardFollowup = (game: Game, choice: boolean[]) : GameStep => {
+            if (choice[0]) {
+                const playerObject = game.playerForIdentifier(player);
+                game.discardDeck(playerObject);
+            }
+            return null;
+        };
+        super(DecisionType.DiscardDeck, player, trigger, 1, 1, [true, false], discardFollowup);
+    }
 }
 
-export function makeDiscardCardDecision(player:Player, cs:Card[], trigger:Card, min:number, max:number, destination:DiscardDestination) : DiscardCardDecision {
-    return {
-        decisionType:DecisionType.DiscardCard,
-        trigger:trigger.name,
-        minSelections:min,
-        maxSelections:max,
-        options:cards.getNames(cs),
-        destination:destination,
-        targetPlayer:player
-    };
+export class NameCardDecision extends Decision<Card> {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: Card[], followup: DecisionFollowup<Card>) {
+        super(DecisionType.NameCard, player, trigger, 1, 1, cards, followup);
+    }
 }
 
-export function makeTrashCardDecision(player:Player, cs:Card[], trigger:Card, min:number, max:number, trashFrom:TrashCardSource=TrashCardSource.Hand) : TrashCardDecision {
-    return {
-        decisionType:DecisionType.TrashCard,
-        trigger:trigger.name,
-        minSelections:min,
-        maxSelections:max,
-        options:cards.getNames(cs),
-        trashFrom:trashFrom,
-        targetPlayer:player.name
-    };
-}
+export class PassCardDecision extends Decision<CardInPlay> {
+    toPlayer: PlayerIdentifier;
 
-export function makeTrashInPlayCardDecision(player:Player, card:Card, trigger:Card) : TrashCardDecision {
-    return {
-        decisionType:DecisionType.TrashCard,
-        trigger:trigger.name,
-        minSelections:0,
-        maxSelections:1,
-        options:[card.name],
-        trashFrom:TrashCardSource.InPlay,
-        targetPlayer:player.name
-    };
-
-}
-
-export function makeRevealCardDecision(cs:Card[], trigger:Card) : RevealCardDecision {
-    return {
-        decisionType:DecisionType.RevealCard,
-        trigger:trigger.name,
-        minSelections:0,
-        maxSelections:1,
-        options:cards.getNames(cs)
-    };
-}
-
-export function makeEffectsDecision(es:effects.LabelledEffect[], trigger:Card, num:number) : ChooseEffectDecision{
-    return {
-        decisionType:DecisionType.ChooseEffect,
-        trigger:trigger.name,
-        minSelections:num,
-        maxSelections:num,
-        options:_.map(es, e => e.getLabel())
-    };
-}
-
-export function makeOrderCardsDecision(cs:Card[], trigger:Card) : OrderCardsDecision {
-    return {
-        decisionType:DecisionType.OrderCards,
-        trigger:trigger.name,
-        minSelections:cs.length,
-        maxSelections:cs.length,
-        options:cards.getNames(cs)
-    };
-}
-
-export function makeSetAsideCardDecision(card:Card, trigger:Card) : SetAsideCardDecision {
-    return {
-        decisionType:DecisionType.SetAsideCard,
-        trigger:trigger.name,
-        minSelections:0,
-        maxSelections:1,
-        options:[card.name]
-    };
-}
-
-export function makeDiscardDeckDecision(trigger:Card) : DiscardDeckDecision {
-    return {
-        decisionType:DecisionType.DiscardDeck,
-        trigger:trigger.name,
-        minSelections:1,
-        maxSelections:1,
-        options:[Yes, No]
-    };
-}
-
-export function makeNameCardDecision(cs:Card[], trigger:Card) : NameCardDecision {
-    return {
-        decisionType:DecisionType.NameCard,
-        trigger:trigger.name,
-        minSelections:1,
-        maxSelections:1,
-        options:cards.getNames(cs)
-    };
-}
-
-export function makePassCardDecision(cs:Card[], trigger:Card, toPlayer:Player) : PassCardDecision {
-    return {
-        decisionType:DecisionType.PassCard,
-        trigger:trigger.name,
-        minSelections:1,
-        maxSelections:1,
-        options:cards.getNames(cs),
-        toPlayer:toPlayer.name
-    };
+    constructor(player: PlayerIdentifier, toPlayer: PlayerIdentifier, trigger: CardInPlay, cards: CardInPlay[]) {
+        const followup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            if (choice.length > 0) {
+                const fromPlayer = game.playerForIdentifier(this.player);
+                const toPlayer = game.playerForIdentifier(this.toPlayer);
+                game.playerPassesCard(fromPlayer, toPlayer, choice[0]);
+            }
+            return null;
+        };
+        super(DecisionType.PassCard, player, trigger, 1, 1, cards, followup);
+        this.toPlayer = toPlayer;
+    }
 }

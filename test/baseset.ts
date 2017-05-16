@@ -1,15 +1,14 @@
-/// <reference path="../typings/mocha/mocha.d.ts" />
-/// <reference path="../typings/chai/chai.d.ts" />
+import { expectPlayerHandSize } from './testsupport';
+import * as _  from 'underscore';
+import { assert, expect } from 'chai';
 
-import _ = require('underscore');
-import chai = require('chai');
+import * as baseset from '../src/sets/baseset';
+import { Copper, Estate, Silver, Duchy, Gold, Curse } from '../src/sets/common';
+import * as cards from '../src/cards';
+import * as testsupport from './testsupport';
+import * as util from '../src/utils';
 
-import baseset = require('../src/sets/baseset');
-import cards = require('../src/cards');
-import testsupport = require('./testsupport');
-import util = require('../src/util');
-
-import expect = chai.expect;
+import expectNonNull = testsupport.expectNonNull;
 import expectDeckScore = testsupport.expectDeckScore;
 import expectEqualCards = testsupport.expectEqualCards;
 import expectRevealedCards = testsupport.expectRevealedCards;
@@ -20,295 +19,235 @@ import expectActionCount = testsupport.expectActionCount;
 import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
 
+import duplicateCard = testsupport.duplicateCard;
 import copperHand = testsupport.copperHand;
 import copperEstateHand = testsupport.copperEstateHand;
 import threeCopperHand = testsupport.threeCopperHand;
 
-describe('Adventurer', () => {
-    it('should draw two treasures', (done) => {
-        var adventurerHand = [baseset.Adventurer, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, adventurerHand);
-
-        testsupport.setPlayerDeck(game, game.players[0], [cards.Copper, cards.Estate, cards.Copper]);
-
+describe('Bureaucrat', function() {
+    it('should gain silver, make opponent reveal and discard a victory card', function() {
+        const bureaucratHand = [baseset.Bureaucrat, Estate, Estate, Estate, Estate];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(bureaucratHand, copperEstateHand);
         game.start();
-        decider1.playAction(baseset.Adventurer);
-        expectRevealedCards(game, [cards.Copper]);
-        expectRevealedCards(game, [cards.Estate]);
-        expectRevealedCards(game, [cards.Copper]);
-        decider1.playTreasures([cards.Copper, cards.Copper]);
-        done();
+        
+        decider1.playAction(baseset.Bureaucrat);
+        decider2.discardCard(Estate);
+        
+        expectPlayerHandSize(game.players[1], 4);
+        expectRevealedCards(game, [Estate]);
+        expectTopDeckCard(game.players[1], Estate);
     });
-});
 
-describe('Bureaucrat', () => {
-    it('should gain silver, make opponent reveal and discard a victory card', (done) => {
-        var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, bureaucratHand, copperEstateHand);
+    it('should make opponent w/o victory cards reveal their hand', function() {
+        const bureaucratHand = [baseset.Bureaucrat, Estate, Estate, Estate, Estate];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(bureaucratHand, copperHand);
         game.start();
 
         decider1.playAction(baseset.Bureaucrat);
-        decider2.discardCard(cards.Estate);
-        expect(game.players[1].hand).to.have.length(4);
-        expectRevealedCards(game, [cards.Estate]);
-        expectTopDeckCard(game.players[1], cards.Estate);
-        done();
-    });
-
-    it('should make opponent w/o victory cards reveal their hand', (done) => {
-        var bureaucratHand = [baseset.Bureaucrat, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, bureaucratHand, copperHand);
-        game.start();
-
-        decider1.playAction(baseset.Bureaucrat);
-        expect(game.players[1].hand).to.have.length(5);
+        expectPlayerHandSize(game.players[1], 5);
         expectRevealedCards(game, copperHand);
-        done();
     });
 });
 
-describe('Cellar', () => {
-    it('should allow discard for draw', (done) => {
-        var cellarHand = [baseset.Cellar, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, cellarHand);
+describe('Cellar', function() {
+    it('should allow discard for draw', function() {
+        const cellarHand = [baseset.Cellar, Estate, Estate, Estate, Estate];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(cellarHand);
         game.start();
 
         decider1.playAction(baseset.Cellar);
-        decider1.discardCards([cards.Estate, cards.Estate, cards.Estate, cards.Estate]);
-        expect(game.players[0].hand).to.have.length(4);
+        decider1.discardCards([Estate, Estate, Estate, Estate]);
+        expectPlayerHandSize(game.players[0], 4);
         expectActionCount(game, 1);
-        done();
     });
 });
 
-describe('Chapel', () => {
-    it('should trash 0-4 cards', (done) => {
-        var chapelHand = [baseset.Chapel, cards.Estate, cards.Estate, cards.Copper, cards.Copper, cards.Copper];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, chapelHand);
+describe('Chapel', function() {
+    it('should trash 0-4 cards', function() {
+        const chapelHand = [baseset.Chapel, Estate, Estate, Copper, Copper, Copper];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(chapelHand);
+        
         game.start();
-        expect(game.players[0].hand).to.have.length(6);
+        expectPlayerHandSize(game.players[0], 6);
         decider1.playAction(baseset.Chapel);
         decider1.hasSelectionCounts(0, 4);
-        decider1.trashCards([cards.Copper, cards.Estate, cards.Estate]);
-        expect(game.players[0].hand).to.have.length(2);
-        done();
+        decider1.trashCards([Copper, Estate, Estate]);
+        expectPlayerHandSize(game.players[0], 2);
     });
 });
 
-describe('Chancellor', () => {
-    var chancellorHand = [baseset.Chancellor].concat(util.duplicate(cards.Copper, 4));
-    it('should let player discard deck', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, chancellorHand);
+describe('Chancellor', function() {
+    const chancellorHand = [baseset.Chancellor].concat(duplicateCard(Copper, 4));
+    it('should let player discard deck', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(chancellorHand);
         game.start();
-        expect(game.activePlayer.deck).to.have.length(10);
-        expect(game.activePlayer.discard).to.have.length(0);
+        
+        expect(game.activePlayer.deck.cards).to.have.length(10);
+        expect(game.activePlayer.discard.cards).to.have.length(0);
         decider1.playAction(baseset.Chancellor);
-        decider1.makeDiscardDeckDecision(true);
-        expect(game.activePlayer.deck).to.have.length(0);
-        expect(game.activePlayer.discard).to.have.length(10);
-        done();
+        decider1.discardDeck(true);
+        expect(game.activePlayer.deck.cards).to.have.length(0);
+        expect(game.activePlayer.discard.cards).to.have.length(10);
     });
 });
 
-describe('Council Room', () => {
-    var councilRoomHand = [baseset.CouncilRoom].concat(util.duplicate(cards.Copper, 4));
-    it('should give +4 cards, +1 buy, and draw opponent a card', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, councilRoomHand);
+describe('Council Room', function() {
+    var councilRoomHand = [baseset.CouncilRoom].concat(duplicateCard(Copper, 4));
+    it('should give +4 cards, +1 buy, and draw opponent a card', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(councilRoomHand);
         game.start();
 
         decider1.playAction(baseset.CouncilRoom);
         expectBuyCount(game, 2);
-        expect(game.activePlayer.hand).to.have.length(8);
-        expect(game.players[1].hand).to.have.length(6);
+        expectPlayerHandSize(game.activePlayer, 8);
+        expectPlayerHandSize(game.players[1], 6);
         decider1.playTreasures([]);
-        decider1.gainCard(cards.Curse);
-        decider1.gainCard(cards.Copper);
-        done();
+        decider1.buyCard(Curse);
+        decider1.buyCard(Copper);
     });
 
-    it('should handle opponent with empty deck', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, councilRoomHand, copperHand);
-        testsupport.setPlayerDeck(game, game.players[1], []);
-
+    it('should handle opponent with empty deck', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(councilRoomHand, copperHand);
+        
+        game.setPlayerDeck(game.players[1], []);
         game.start();
 
         decider1.playAction(baseset.CouncilRoom);
         expectBuyCount(game, 2);
-        expect(game.activePlayer.hand).to.have.length(8);
-        expect(game.players[1].hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 8);
+        expectPlayerHandSize(game.players[1], 5);
         decider1.playTreasures([]);
-        decider1.gainCard(cards.Curse);
-        decider1.gainCard(cards.Copper);
-        done();
+        decider1.buyCard(Curse);
+        decider1.buyCard(Copper);
     });
 });
 
-describe('Feast', () => {
-    it('should gain card costing 0-5', done => {
-        var feastHand = [baseset.Feast].concat(util.duplicate(cards.Copper, 4));
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, feastHand);
+describe('Feast', function() {
+    it('should gain card costing 0-5', function() {
+        const feastHand = [baseset.Feast].concat(duplicateCard(Copper, 4));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(feastHand);
         game.start();
 
         decider1.playAction(baseset.Feast);
-        decider1.gainCard(cards.Duchy);
-        done();
+        decider1.gainCard(Duchy);
     });
 
-    it('should gain twice when played with Throne Room', done => {
-        var hand = [baseset.Feast, baseset.ThroneRoom, cards.Copper];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
+    it('should gain twice when played with Throne Room', function() {
+        const hand = [baseset.Feast, baseset.ThroneRoom, Copper];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
 
         game.start();
 
         decider1.playAction(baseset.ThroneRoom);
-        // Forced to play Feast
-        decider1.gainCard(cards.Duchy);
-        decider1.gainCard(cards.Silver);
-        done();
+        decider1.playAction(baseset.Feast);
+
+        decider1.gainCard(Duchy);
+        decider1.gainCard(Silver);
     });
 });
 
-describe('Festival', () => {
-    it('should give +2 actions, +1 buy, +2 coin', (done) => {
-        var festivalHand = [baseset.Festival].concat(util.duplicate(cards.Copper, 4));
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, festivalHand);
+describe('Festival', function() {
+    it('should give +2 actions, +1 buy, +2 coin', function() {
+        const festivalHand = [baseset.Festival].concat(duplicateCard(Copper, 4));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(festivalHand);
         game.start();
 
         decider1.playAction(baseset.Festival);
         expectActionCount(game, 2);
         expectBuyCount(game, 2);
         expectCoinCount(game, 2);
-        expect(game.activePlayer.hand).to.have.length(4);
-        done();
+        expectPlayerHandSize(game.activePlayer, 4);
     });
 });
 
-describe('Gardens', () => {
-    it('should give 1 VP per 10 cards', (done) => {
+describe('Gardens', function() {
+    it('should give 1 VP per 10 cards', function() {
         expectDeckScore([baseset.Gardens], 0);
-        expectDeckScore([baseset.Gardens].concat(util.duplicate(cards.Copper, 9)), 1);
-        expectDeckScore([baseset.Gardens, baseset.Gardens].concat(util.duplicate(cards.Copper, 9)), 2);
-        expectDeckScore([baseset.Gardens, baseset.Gardens].concat(util.duplicate(cards.Copper, 18)), 4);
-        done();
+        expectDeckScore([baseset.Gardens].concat(duplicateCard(Copper, 9)), 1);
+        expectDeckScore([baseset.Gardens, baseset.Gardens].concat(duplicateCard(Copper, 9)), 2);
+        expectDeckScore([baseset.Gardens, baseset.Gardens].concat(duplicateCard(Copper, 18)), 4);
     });
 });
 
-describe('Laboratory', () => {
-    it('should give +2 cards, +1 action', (done) => {
-        var labHand = [baseset.Laboratory, baseset.Laboratory].concat(util.duplicate(cards.Copper, 3));
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, labHand);
+describe('Laboratory', function() {
+    it('should give +2 cards, +1 action', function() {
+        const labHand = [baseset.Laboratory, baseset.Laboratory].concat(duplicateCard(Copper, 3));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(labHand);
         game.start();
 
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         decider1.playAction(baseset.Laboratory);
         decider1.playAction(baseset.Laboratory);
         expectActionCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(7);
-        done();
+        expectPlayerHandSize(game.activePlayer, 7);
     });
 });
 
-describe('Library', () => {
-    var libraryHand = [baseset.Library].concat(util.duplicate(cards.Copper, 4));
+describe('Library', function() {
+    const libraryHand = [baseset.Library].concat(duplicateCard(Copper, 4));
 
-    it('should draw and let player set aside card', (done) => {
-        var deck = [cards.Copper, cards.Estate, cards.Copper, baseset.Library, baseset.Library];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, libraryHand);
+    it('should draw and let player set aside card', function() {
+        const deck = [Copper, Estate, Copper, baseset.Feast, baseset.Library];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(libraryHand);
 
-        testsupport.setPlayerDeck(game, game.players[0], deck);
+        game.setPlayerDeck(game.players[0], deck);
         game.start();
 
         decider1.playAction(baseset.Library);
-        decider1.setAsideCard(baseset.Library);
-        decider1.setAsideCard(null);
-        expect(game.activePlayer.hand).to.have.length(7);
-        expectTopDiscardCard(game.activePlayer, baseset.Library);
-        expectEqualCards(game.activePlayer.hand,
-            [cards.Copper, cards.Copper, cards.Copper, cards.Copper, cards.Copper,
-             cards.Estate, baseset.Library]);
-        done();
+        decider1.setAsideCard(false, baseset.Library);
+        decider1.setAsideCard(true, baseset.Feast);
+        
+        expectTopDiscardCard(game.activePlayer, baseset.Feast);
+        expectPlayerHandSize(game.activePlayer, 7);
+        assert.sameMembers(
+            game.activePlayer.hand.cards.map(c => c.name),
+            [Copper, Copper, Copper, Copper, Copper, Estate, baseset.Library].map(c => c.name));
     });
 });
 
-describe('Market', () => {
-    it('should give +1 action, +1 card, +1 coin, +1 buy', (done) => {
-        var marketHand = [baseset.Market].concat(util.duplicate(cards.Copper, 4));
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, marketHand);
+describe('Market', function() {
+    it('should give +1 action, +1 card, +1 coin, +1 buy', function() {
+        const marketHand = [baseset.Market].concat(duplicateCard(Copper, 4));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(marketHand);
         game.start();
 
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         decider1.playAction(baseset.Market);
 
         expectActionCount(game, 1);
         expectBuyCount(game, 2);
         expectCoinCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(5);
-        done();
+        expectPlayerHandSize(game.activePlayer, 5);
     });
 });
 
-describe('Militia', () => {
-    var militiaHand = [baseset.Militia, baseset.Militia].concat(util.duplicate(cards.Copper, 3));
-    it('should cause opponent w/ 5 cards to discard', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand);
+describe('Militia', function() {
+    const militiaHand = [baseset.Militia, baseset.Militia].concat(duplicateCard(Copper, 3));
+
+    it('should cause opponent w/ 5 cards to discard', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(militiaHand);
         game.start();
 
-        expect(game.players[1].hand).to.have.length(5);
+        expectPlayerHandSize(game.players[1], 5);
         decider1.playAction(baseset.Militia);
-        decider2.discardCards([cards.Copper, cards.Copper]);
-        expect(game.players[1].hand).to.have.length(3);
-        done();
+        decider2.discardCards([Copper, Copper]);
+        expectPlayerHandSize(game.players[1], 3);
     });
 
-    it('should not cause opponent w/ 3 cards to discard', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand, threeCopperHand);
+    it('should not cause opponent w/ 3 cards to discard', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(militiaHand, threeCopperHand);
         game.start();
 
-        expect(game.players[1].hand.length).to.eql(3);
+        expectPlayerHandSize(game.players[1], 3);
         decider1.playAction(baseset.Militia);
-        expect(game.players[1].hand.length).to.eql(3);
+        expectPlayerHandSize(game.players[1], 3);
         decider1.playTreasures([]);
-        decider1.gainCard(cards.Copper);
-        done();
+        decider1.buyCard(Copper);
     });
 
-    it('should be prevented by Moat', done => {
-        var moatHand = [baseset.Moat, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, militiaHand, moatHand);
+    it('should be prevented by Moat', function() {
+        const moatHand = [baseset.Moat, Copper, Copper, Copper, Copper];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(militiaHand, moatHand);
         game.start();
 
         game.incrementActionCount(1);
@@ -318,150 +257,125 @@ describe('Militia', () => {
         decider2.revealCard(baseset.Moat);
         decider2.revealCard(baseset.Moat); // lol
         decider2.revealCard(null);
-        expect(game.players[1].hand.length).to.eql(5);
+        expectPlayerHandSize(game.players[1], 5);
 
         decider1.playAction(baseset.Militia);
         decider2.revealCard(null);
-        decider2.discardCards([cards.Copper, cards.Copper]);
-        expect(game.players[1].hand.length).to.eql(3);
+        decider2.discardCards([Copper, Copper]);
+        expectPlayerHandSize(game.players[1], 3);
 
-        decider1.playTreasures([cards.Copper]);
-        done();
+        decider1.playTreasures([Copper]);
     });
 });
 
-describe('Mine', () => {
-    var twoMineHand = [baseset.Mine, baseset.Mine].concat(util.duplicate(cards.Copper, 3));
-    it('should let player upgrade treasure', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, twoMineHand);
+describe('Mine', function() {
+    const twoMineHand = [baseset.Mine, baseset.Mine].concat(duplicateCard(Copper, 3));
+    it('should let player upgrade treasure', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(twoMineHand);
         game.start();
         game.incrementActionCount(1);
         decider1.playAction(baseset.Mine);
-        decider1.trashCard(cards.Copper);
-        decider1.gainCard(cards.Silver);
+        decider1.trashCard(Copper);
+        decider1.gainCard(Silver);
         decider1.playAction(baseset.Mine);
-        decider1.trashCard(cards.Silver);
-        decider1.gainCard(cards.Gold);
-        decider1.playTreasures([cards.Gold, cards.Copper, cards.Copper]);
-        decider1.gainCard(cards.Duchy);
-        done();
+        decider1.trashCard(Silver);
+        decider1.gainCard(Gold);
+        decider1.playTreasures([Gold, Copper, Copper]);
+        decider1.buyCard(Duchy);
     });
 });
 
-describe('Moat', () => {
-    var moatHand = [baseset.Moat, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
-    it('should give +2 cards', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moatHand);
+describe('Moat', function() {
+    const moatHand = [baseset.Moat, Copper, Copper, Copper, Copper];
+    it('should give +2 cards', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(moatHand);
         game.start();
 
         decider1.playAction(baseset.Moat);
-        expect(game.activePlayer.hand).to.have.length(6);
-        done();
+        expectPlayerHandSize(game.activePlayer, 6);
     });
 });
 
-describe('Moneylender', () => {
-    var moneylenderHand = [baseset.Moneylender, cards.Copper, cards.Copper, cards.Copper, cards.Copper];
-    var moneylenderNoCopperHand = [baseset.Moneylender, cards.Estate, cards.Estate, cards.Estate, cards.Estate];
-    it('should let player trash Copper for +3 coin', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moneylenderHand);
+describe('Moneylender', function() {
+    const moneylenderHand = [baseset.Moneylender, Copper, Copper, Copper, Copper];
+    const moneylenderNoCopperHand = [baseset.Moneylender, Estate, Estate, Estate, Estate];
+    it('should let player trash Copper for +3 coin', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(moneylenderHand);
         game.start();
 
         decider1.playAction(baseset.Moneylender);
-        decider1.trashCard(cards.Copper);
-        expectTopTrashCard(game, cards.Copper);
-        expectEqualCards(game.activePlayer.hand, [cards.Copper, cards.Copper, cards.Copper]);
+        decider1.trashCard(Copper);
+
+        expectTopTrashCard(game, Copper);
+        expectEqualCards(game.activePlayer.hand.cards, [Copper, Copper, Copper]);
 
         expectCoinCount(game, 3);
-        done();
     });
 
-    it('should do nothing if no Copper is trashed', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, moneylenderNoCopperHand);
+    it('should do nothing if no Copper is trashed', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(moneylenderNoCopperHand);
         game.start();
 
         decider1.playAction(baseset.Moneylender);
         expectCoinCount(game, 0);
-        decider1.gainCard(cards.Copper);
-        done();
+        decider1.buyCard(Copper);
     });
 });
 
-describe('Remodel', () => {
-    var remodelHand = [baseset.Remodel, cards.Duchy, cards.Copper, cards.Copper, cards.Copper];
-    it('should replace card with card costing up to 2 more', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, remodelHand);
+describe('Remodel', function() {
+    const remodelHand = [baseset.Remodel, Duchy, Copper, Copper, Copper];
+    it('should replace card with card costing up to 2 more', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(remodelHand);
         game.start();
 
         decider1.playAction(baseset.Remodel);
-        decider1.trashCard(cards.Duchy);
-        expectTopTrashCard(game, cards.Duchy);
-        expectEqualCards(game.activePlayer.hand, [cards.Copper, cards.Copper, cards.Copper]);
+        decider1.trashCard(Duchy);
+        expectTopTrashCard(game, Duchy);
+        expectEqualCards(game.activePlayer.hand.cards, [Copper, Copper, Copper]);
 
-        decider1.gainCard(cards.Gold);
-        decider1.playTreasures([cards.Copper, cards.Copper]);
-        done();
+        decider1.gainCard(Gold);
+        decider1.playTreasures([Copper, Copper]);
     });
 });
 
-describe('Smithy', () => {
-    var smithyHand = [baseset.Smithy].concat(util.duplicate(cards.Copper, 4));
-    it('should draw 3 cards', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, smithyHand);
+describe('Smithy', function() {
+    const smithyHand = [baseset.Smithy].concat(duplicateCard(Copper, 4));
+    it('should draw 3 cards', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(smithyHand);
         game.start();
 
         decider1.playAction(baseset.Smithy);
-        expect(game.activePlayer.hand).to.have.length(7);
+        expectPlayerHandSize(game.activePlayer, 7);
         decider1.playTreasures([]);
-        done();
     });
 });
 
-describe('Spy', () => {
-    var spyHand = [baseset.Spy].concat(util.duplicate(cards.Copper, 4));
-    it('should give +1 card, +1 action, and discard option', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, spyHand);
+describe('Spy', function() {
+    const spyHand = [baseset.Spy].concat(duplicateCard(Copper, 4));
+    it('should give +1 card, +1 action, and discard option', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(spyHand);
         game.start();
 
         decider1.playAction(baseset.Spy);
         expectActionCount(game, 1);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
 
-        var player1TopCard = game.players[0].topCardOfDeck();
-        var player2TopCard = game.players[1].topCardOfDeck();
-
+        const player1TopCard = expectNonNull(game.players[0].deck.topCard);
         decider1.discardCard(player1TopCard);
         expectRevealedCards(game, [player1TopCard]);
         expectTopDiscardCard(game.activePlayer, player1TopCard);
 
+        const player2TopCard = expectNonNull(game.players[1].deck.topCard);
         decider1.discardCard(null);
         expectRevealedCards(game, [player2TopCard]);
         expectTopDeckCard(game.players[1], player2TopCard);
-
-        done();
     });
 });
 
-describe('Throne Room', () => {
-    it('should play action twice', done => {
-        var hand = [baseset.ThroneRoom, baseset.Festival, baseset.Market];
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
+describe('Throne Room', function() {
+    it('should play action twice', function() {
+        const hand = [baseset.ThroneRoom, baseset.Festival, baseset.Market];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
         game.start();
 
         decider1.playAction(baseset.ThroneRoom);
@@ -469,131 +383,85 @@ describe('Throne Room', () => {
         expectActionCount(game, 4);
         expectBuyCount(game, 3);
         expectCoinCount(game, 4);
-        done();
     });
 
-    it('should play itself twice', done => {
-        var hand = [
+    it('should play itself twice', function() {
+        const hand = [
             baseset.ThroneRoom, baseset.ThroneRoom,
-            baseset.Moneylender, baseset.Woodcutter, cards.Copper, cards.Copper];
-
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, hand);
+            baseset.Moneylender, baseset.Woodcutter, Copper, Copper];
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
         game.start();
 
         decider1.playAction(baseset.ThroneRoom);
         decider1.playAction(baseset.ThroneRoom);
         decider1.playAction(baseset.Moneylender);
-        decider1.trashCard(cards.Copper);
-        // Copper is forced to trash
-        // Woodcutter is forced to play
+        decider1.trashCard(Copper);
+        expectCoinCount(game, 3);
+        decider1.trashCard(Copper);
+        expectCoinCount(game, 6);
+        decider1.playAction(baseset.Woodcutter);
 
         expectBuyCount(game, 3);
         expectCoinCount(game, 10);
-        done();
     });
 });
 
-describe('Thief', () => {
-    var thiefHand = [baseset.Thief].concat(util.duplicate(cards.Copper, 4));
-    it("should reveal 2 cards from opponent's deck, trash and optionally gain one treasure", (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var decider3 = new testsupport.TestingDecider();
-        var game = testsupport.setupThreePlayerGame(decider1, decider2, decider3, thiefHand, copperHand, copperHand);
-
-        testsupport.setPlayerDeck(game, game.players[1], [cards.Estate, cards.Silver]);
-        testsupport.setPlayerDeck(game, game.players[2], [cards.Copper, cards.Gold]);
-
-        game.start();
-
-        decider1.playAction(baseset.Thief);
-        expectRevealedCards(game, [cards.Estate, cards.Silver]);
-        expectRevealedCards(game, [cards.Copper, cards.Gold]);
-
-        decider1.trashCard(cards.Gold);
-        decider1.gainCard(cards.Gold);
-
-        expectTopDiscardCard(game.players[1], cards.Estate);
-        expectTopDiscardCard(game.players[2], cards.Copper);
-
-        decider1.playTreasures(null);
-        decider1.gainCard(null);
-
-        decider2.playTreasures(null);
-
-        done();
-    });
-});
-
-describe('Village', () => {
-    var villageHand = [baseset.Village, baseset.Village].concat(util.duplicate(cards.Copper, 3));
-    it('should give +1 card, +2 actions', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, villageHand);
+describe('Village', function() {
+    const villageHand = [baseset.Village, baseset.Village].concat(duplicateCard(Copper, 3));
+    it('should give +1 card, +2 actions', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(villageHand);
         game.start();
 
         decider1.playAction(baseset.Village);
         decider1.playAction(baseset.Village);
-        expect(game.activePlayer.hand).to.have.length(5);
+        expectPlayerHandSize(game.activePlayer, 5);
         expectActionCount(game, 3);
         decider1.playTreasures([]);
-        done();
     });
 });
 
-describe('Witch', () => {
-    var witchHand = [baseset.Witch].concat(util.duplicate(cards.Copper, 4));
-    it('should curse opponent and give +2 cards', (done) => {
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, witchHand);
+describe('Witch', function() {
+    const witchHand = [baseset.Witch].concat(duplicateCard(Copper, 4));
+    it('should curse opponent and give +2 cards', function() {
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(witchHand);
         game.start();
 
         decider1.playAction(baseset.Witch);
-        expect(game.activePlayer.hand).to.have.length(6);
+        expectPlayerHandSize(game.activePlayer, 6);
         expectDeckScore(game.players[1].getFullDeck(), 2);
-        done();
     });
 });
 
-describe('Woodcutter', () => {
-    it('should let player buy twice', (done) => {
-        var woodcutterHand = [baseset.Woodcutter].concat(util.duplicate(cards.Copper, 4));
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, woodcutterHand);
+describe('Woodcutter', function() {
+    it('should let player buy twice', function() {
+        const woodcutterHand = [baseset.Woodcutter].concat(duplicateCard(Copper, 4));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(woodcutterHand);
         game.start();
 
         decider1.playAction(baseset.Woodcutter);
-        expectBuyCount(game, 2);
         decider1.playTreasures([]);
-        decider1.gainCard(cards.Estate);
-        decider1.gainCard(cards.Copper);
+        expectBuyCount(game, 2);
+        decider1.buyCard(Estate);
+        expectBuyCount(game, 1);
+        decider1.buyCard(Copper);
+
         decider2.playTreasures([]);
-        decider2.gainCard(cards.Copper);
-        done();
+        decider2.buyCard(Copper);
     });
 });
 
-describe('Workshop', () => {
-    it('should let player gain 0-4 cost card', (done) => {
-        var workshopHand = [baseset.Workshop, baseset.Workshop].concat(util.duplicate(cards.Copper, 3));
-
-        var decider1 = new testsupport.TestingDecider();
-        var decider2 = new testsupport.TestingDecider();
-        var game = testsupport.setupTwoPlayerGame(decider1, decider2, workshopHand, copperHand);
+describe('Workshop', function() {
+    it('should let player gain 0-4 cost card', function() {
+        const workshopHand = [baseset.Workshop, baseset.Workshop].concat(duplicateCard(Copper, 3));
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(workshopHand, copperHand);
         game.start();
 
-        var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4));
+        const gainableCards = game.filterGainablePiles(0, 4).map(p => p.card);
 
         decider1.playAction(baseset.Workshop);
         decider1.canGain(gainableCards);
-        decider1.gainCard(cards.Silver);
+        decider1.gainCard(Silver);
         decider1.playTreasures([]);
-        decider1.gainCard(cards.Copper);
-        done();
+        decider1.buyCard(Copper);
     });
 });

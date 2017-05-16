@@ -1,39 +1,32 @@
 // SocketDecider proxies decisions to a connected socketio client.
 
-import _ = require('underscore');
+import * as socketIo from 'socket.io';
+import Decider from '../decider';
+import { Decision } from '../decisions';
 
-import * as util from './util';
-import * as cards from '../cards';
-import Player from '../player';
-import * as base from './base';
-import Game from './game';
-import * as decider from './decider';
-import * as decisions from './decisions';
-import * as serialization from './serialization';
+type PromiseCallbacks = [(arg: any) => void, (arg: any) => void];
 
-export class SocketDecider implements decider.Decider {
+class SocketDecider extends Decider {
 
-    socket:any;
-    pendingRequestCallback:any;
-    player:Player;
+    socket: SocketIO.Socket;
+    pendingPromise: PromiseCallbacks | null;
 
-    constructor(socket:any) {
+    constructor(socket: SocketIO.Socket) {
+        super();
+
         this.socket = socket;
-        this.pendingRequestCallback = null;
+        this.pendingPromise = null;
 
-        this.socket.on('decision', () => {
-            if (!this.pendingRequestCallback) {
-                console.error('Error: decision made with no pending callback');
-                return;
+        this.socket.on('decision', (choices: any[]) => {
+            if (!this.pendingPromise) {
+                throw new Error('Decision made with no pending callback')
             }
 
-            // Decisions don't return players, so no lookup func.
-            var callbackArgs = serialization.deserialize(_.toArray(arguments));
-
             // Clear before invoking.
-            var callback = this.pendingRequestCallback;
-            this.pendingRequestCallback = null;
-            callback.apply(null, callbackArgs);
+            const callbackPair = this.pendingPromise;
+            this.pendingPromise = null;
+
+            callbackPair[0](null);
         });
     }
 
@@ -42,26 +35,17 @@ export class SocketDecider implements decider.Decider {
     // As players can only make one decision at a time,
     // at most one callback should be stored.
     assertNoCallback() {
-        if (this.pendingRequestCallback) {
-            console.error('SocketDecider already has a stored callback', this.pendingRequestCallback);
+        if (this.pendingPromise) {
+            console.error('SocketDecider already has a stored promise pair', this.pendingPromise);
         }
     }
 
-    assertPlayer() {
-        if (!this.player) {
-            console.error('Missing valid player', this);
-        }
-    }
-
-    setPlayer(player:Player) {
-        this.player = player;
-    }
-
-    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback) {
-        this.assertPlayer();
+    decide<T>(d: Decision<T>) : Promise<T[]> {
         this.assertNoCallback();
-        this.pendingRequestCallback = onDecide;
-        this.socket.emit('promptForDecision', serialization.serialize(decision));
-    }
-
+        return new Promise<T[]>(function(resolve, reject) {
+            this.pendingPromise = [resolve, reject];
+        });
+     }
 }
+
+export default SocketDecider;

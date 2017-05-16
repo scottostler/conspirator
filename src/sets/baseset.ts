@@ -1,446 +1,362 @@
-import _ = require('underscore');
+import * as _ from 'underscore';
 
-import * as base from '../base';
-import * as cards from '../cards';
+import { CardType, DiscardDestination, GainDestination } from '../base';
+import { makeIsCardPredicate, removeIdentical, Card, CardInPlay, ReactionType } from '../cards';
 import * as decisions from '../decisions';
-import * as effects from '../effects';
-import Game from '../game';
-import Player from '../player';
-import * as util from '../util';
+import {
+    AttackReactionEffectTemplate,
+    Effect,
+    EffectTemplate,
+    PlayActionEffect,
+    Target,
+    VPEffect
+} from '../effects';
 
-import DiscardDestination = base.DiscardDestination;
-import GainDestination = base.GainDestination;
-import TrashCardSource = decisions.TrashCardSource;
-import e = effects;
-import Effect = e.Effect;
-import VPEffect = e.VPEffect;
-import Resolution = e.Resolution;
-import Target = e.Target;
+import {
+    Copper,
+    Curse,
+    Silver,
+    DiscardToEffect,
+    DrawEffect,
+    GainActionsEffect,
+    GainBuysEffect,
+    GainCardEffect,
+    GainCardWithCostEffect,
+    GainCoinsEffect,
+    PlayActionManyTimesEffect,
+    TrashEffect,
+    TrashThisCardEffect,
+    TrashForEffect,
+    TrashToGainPlusCostEffect
+} from './common';
 
-export var SetName = 'Base';
+import Game, { GameStep } from '../game';
+import { Player } from '../player';
+import * as utils from '../utils';
 
-class AdventurerDrawEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
+export const SetName = 'Base';
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var num = 2;
-        var cardType = cards.Type.Treasure;
-        var selectedCards:cards.Card[] = [];
-        var revealedCards:cards.Card[] = [];
+class BureaucratDiscardEffect extends EffectTemplate {
 
-        while (selectedCards.length < num && player.canDraw()) {
-            game.revealCardFromDeck(player);
-            var card = player.takeCardFromDeck();
-            if (card.matchesType(cardType)) {
-                selectedCards.push(card);
-            } else {
-                revealedCards.push(card);
-            }
-        }
-
-        game.drawAndDiscardFromDeck(player, selectedCards, revealedCards);
-        return Resolution.Advance;
-    }
-}
-
-class BureaucratDiscardEffect implements Effect {
-
-    getTarget() { return Target.OtherPlayers; }
+    get target() { return Target.OtherPlayers; }
+    get label() : string { return 'Bureaucrat Discard Attack'; }
     
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var matchingCards = cards.getVictories(player.getHand());
-        if (matchingCards.length > 0) {
-            var decision = decisions.makeDiscardCardDecision(
-                player, matchingCards, trigger, 1, 1, DiscardDestination.Deck);
-            // TODO: better handle revealing
-            return player.promptForCardDecision(decision, cs => {
-                game.revealPlayerCards(player, cs);
-                game.discardCards(player, cs, DiscardDestination.Deck);
-                return Resolution.Advance;
-            });
+    resolve(game: Game, target: Player, trigger: CardInPlay) {
+        const vpCards = target.hand.ofType(CardType.Victory);
+        if (vpCards.length > 0) {
+            return new decisions.DiscardCardDecision(target.identifier, trigger, 1, 1, vpCards, DiscardDestination.Deck, null, true);
         } else {
-            game.revealPlayerHand(player);
-            return Resolution.Advance;
+            game.revealPlayerHand(target);
+            return null;
         }
     }
 }
 
-class ChancellorEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
+class ChancellorEffect extends EffectTemplate {
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeDiscardDeckDecision(trigger);
-        return player.promptForBooleanDecision(decision, choice => {
-            if (choice) {
-                player.putDeckIntoDiscard();
-            }
+    get target() { return Target.ActivePlayer; }
+    get label() : string { return 'Chancellor Effect'; }
 
-            return Resolution.Advance;
-        });
+    resolve(game: Game, player: Player, trigger: CardInPlay) {
+        return new decisions.DiscardDeckDecision(player.identifier, trigger);
     }
 }
 
-class DiscardToDrawEffect implements Effect{
-    getTarget() { return Target.ActivePlayer; }
+class DiscardToDrawEffect extends EffectTemplate {
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var decision = decisions.makeDiscardCardDecision(
-            player, player.hand, trigger, 0, player.hand.length, DiscardDestination.Discard);
-        return player.promptForDiscardDecision(decision, cs => {
-            if (cs.length > 0) {
-                game.drawCards(player, cs.length);
+    get target() { return Target.ActivePlayer; }
+    get label() : string { return 'Chancellor Effect'; }
+
+    resolve(game: Game, player: Player, trigger: CardInPlay) {
+        const drawFollowup = (game: Game, choices: CardInPlay[]) => {
+            if (choices.length > 0) {
+                game.drawCards(player, choices.length);
             }
-            return Resolution.Advance;
-        });
+            return null;
+        }
+        return new decisions.DiscardCardDecision(player.identifier, trigger, 0,
+                                                 player.hand.count, player.hand.cards,
+                                                 DiscardDestination.Discard, drawFollowup);
     }
 }
 
 class GardenVPEffect implements VPEffect {
-    calculatePoints(deck:cards.Card[]) : number {
-        var cardsPerVP = 10;
+    calculatePoints(deck: CardInPlay[]) : number {
+        const cardsPerVP = 10;
         return Math.floor(deck.length / cardsPerVP);
     }
 }
 
-class LibraryDrawEffect implements Effect {
+class LibraryDrawEffect extends EffectTemplate {
 
-    getTarget() { return Target.ActivePlayer; }
+    target = Target.ActivePlayer;
+    label = "Library draw"
 
-    doneDrawingForPlayer(player:Player) : boolean {
-        var targetHandSize = 7;
-        return !player.canDraw() || player.hand.length >= targetHandSize;
-    }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var discardType = cards.Type.Action;
-
-        var drawCardEvent = () => {
-            if (this.doneDrawingForPlayer(player)) {
-                game.discardSetAsideCards(player);
-                return Resolution.Advance;
-            }
-
-            var takenCard = player.takeCardFromDeck();
-            if (takenCard.matchesType(discardType)) {
-                var decision = decisions.makeSetAsideCardDecision(takenCard, trigger);
-                return player.promptForCardDecision(decision, cs => {
-                    if (cs.length > 0) {
-                        game.setAsideCard(player, takenCard);
-                    } else {
-                        game.drawTakenCard(player, takenCard);
-                    }
-
-                    game.pushEvent(drawCardEvent);
-                    return Resolution.Advance;
-                });
-            } else {
-                game.drawTakenCard(player, takenCard);
-                game.pushEvent(drawCardEvent);
-                return Resolution.Advance;
-            }
-        };
-
-        game.pushEvent(drawCardEvent);
-        return Resolution.Advance;
+    resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
+        return new LibraryDrawEffectImpl(player, trigger);
     }
 }
 
-class SpyAttackEffect implements Effect {
+class LibraryDrawEffectImpl extends Effect {
+    label = "Library draw"
+    readonly setAsideCards: CardInPlay[] = [];
 
-    getTarget() { return Target.AllPlayers; }
+    constructor(readonly player: Player, readonly trigger: CardInPlay) {
+        super();
+    }
 
-    process(game:Game, targetPlayer:Player, card:cards.Card) {
-        var attackingPlayer = game.activePlayer;
-        var revealedCard = game.revealCardFromDeck(targetPlayer);
-        var decision = decisions.makeDiscardCardDecision(
-            targetPlayer, [revealedCard], card, 0, 1, DiscardDestination.Discard);
+    resolve(game: Game) : GameStep {
+        const handLimit = 7;
+        let topCard: CardInPlay | null;
 
-        // TODO: handle discard source logic
-        return attackingPlayer.promptForCardDecision(decision, cs => {
-            if (cs.length === 1) {
-                game.discardCardsFromDeck(targetPlayer, 1);
-            }
-            return Resolution.Advance;
-        });
+        if (this.player.hand.count >= handLimit || !(topCard = this.player.topCardOfDeck(game))) {
+            game.discardCards(this.player, this.setAsideCards);
+            return null;
+        }
+
+        game.drawCards(this.player, 1);
+
+        if (topCard.isAction) {
+            const followup = (game: Game, choice: CardInPlay[]) => {
+                const card = utils.listToOption(choice);
+                if (card) {
+                    this.setAsideCards.push(card);
+                }
+                return this;
+            };
+            return new decisions.SetAsideCardDecision(this.player.identifier, this.trigger, topCard, followup);
+        } else {
+            return this;
+        }
     }
 }
 
-var ThiefTrashedCardsKey = 'ThiefTrashedCards';
+class MoatReaction extends AttackReactionEffectTemplate {
 
-class ThiefTrashEffect implements Effect {
+    label = "Moat reaction"
 
-    getTarget() { return Target.OtherPlayers; }
-
-    trashAndRememberCard(game:Game, targetPlayer:Player, card:cards.Card) {
-        var trashedCards = game.getStoredState(ThiefTrashedCardsKey, []);
-        trashedCards = trashedCards.concat([card]);
-        game.setStoredState(ThiefTrashedCardsKey, trashedCards);
-        game.addCardToTrash(targetPlayer, card);
-    }
-
-    process(game:Game, targetPlayer:Player, trigger:cards.Card) {
-        var attackingPlayer = game.activePlayer;
-        var numCards = 2;
-        var cardType = cards.Type.Treasure;
-
-        var takenCards = targetPlayer.takeCardsFromDeck(numCards);
-        var matchingCards = cards.filterByType(takenCards, cardType);
-        var nonMatchingCards = _.difference(takenCards, matchingCards);
-
-        // TODO?: delay discarding non-matching cards until trash?
-        game.revealPlayerCards(targetPlayer, takenCards);
-        targetPlayer.addCardsToDiscard(nonMatchingCards);
-
-        var decision = decisions.makeTrashCardDecision(
-            targetPlayer, matchingCards, trigger, 1, 1, TrashCardSource.CardSet);
-        return attackingPlayer.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                var cardToTrash = cards.removeFirst(matchingCards, cs[0]);
-                this.trashAndRememberCard(game, targetPlayer, cardToTrash);
-                matchingCards.forEach(c => {
-                    targetPlayer.addCardToDiscard(c);
-                });
-            }
-            return Resolution.Advance;
-        });
+    resolve(game: Game, target: Player, trigger: CardInPlay, actionEffect: PlayActionEffect) : GameStep {
+        actionEffect.giveAttackImmunity(target.identifier);
+        return null;
     }
 }
 
-class ThiefGainEffect implements Effect {
+class SpyAttackEffect extends EffectTemplate {
 
-    getTarget() { return Target.ActivePlayer; }
+    target = Target.AllPlayers;
+    label = "Reveal and discard";
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var trashedCards:cards.Card[] = game.getAndClearStoredState(ThiefTrashedCardsKey);
-        var decision = decisions.makeGainFromTrashDecision(player, trashedCards, trigger);
-        return player.promptForGainDecision(decision);
+    resolve(game: Game, player: Player, trigger: CardInPlay) {
+        const attackingPlayer = game.activePlayer;
+        const revealedCard = game.revealCardFromDeck(player);
+        if (revealedCard) {
+            return new decisions.DiscardCardDecision(attackingPlayer.identifier, trigger, 0, 1, [revealedCard], DiscardDestination.Discard);
+        } else {
+            return null;
+        }
     }
 }
 
-class TrashThisCardEffect implements Effect {
-    getTarget() { return Target.ActivePlayer; }
+// Cards
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        game.trashCardFromPlay(player, trigger);
-        return Resolution.Advance;
-    }
-}
-
-export var Adventurer = new cards.Card({
-    name: 'Adventurer',
-    cost: 6,
-    effects: [new AdventurerDrawEffect()],
-    set: SetName
-});
-
-export var Bureaucrat = new cards.Card({
+export const Bureaucrat = new Card({
     name: 'Bureaucrat',
     cost: 4,
     attack:true,
     effects: [
-        new e.GainCardEffect(cards.Silver, Target.ActivePlayer, GainDestination.Deck),
+        new GainCardEffect(Silver, Target.ActivePlayer, GainDestination.Deck),
         new BureaucratDiscardEffect()],
     set: SetName
 });
 
-export var Cellar = new cards.Card({
+export const Cellar = new Card({
     name: 'Cellar',
     cost: 2,
     effects: [
-        new e.GainActionsEffect(1),
+        new GainActionsEffect(1),
         new DiscardToDrawEffect()],
     set: SetName
 });
 
-export var Chancellor = new cards.Card({
+export const Chancellor = new Card({
     name: 'Chancellor',
     cost: 3,
     effects: [
-        new e.GainCoinsEffect(2),
+        new GainCoinsEffect(2),
         new ChancellorEffect()],
     set: SetName
 });
 
-export var Chapel = new cards.Card({
+export const Chapel = new Card({
     name: 'Chapel',
     cost: 2,
-    effects: [new e.TrashEffect(0, 4)],
+    effects: [new TrashEffect(0, 4)],
     set: SetName
 });
 
-export var CouncilRoom = new cards.Card({
+export const CouncilRoom = new Card({
     name: 'Council Room',
     cost: 5,
     effects: [
-        new e.DrawEffect(4),
-        new e.GainBuysEffect(1),
-        new e.DrawEffect(1, Target.OtherPlayers)],
+        new DrawEffect(4),
+        new GainBuysEffect(1),
+        new DrawEffect(1, Target.OtherPlayers)],
     set: SetName
 });
 
-export var Feast = new cards.Card({
+export const Feast = new Card({
     name: 'Feast',
     cost: 4,
     effects: [
         new TrashThisCardEffect(),
-        new e.GainCardWithCostEffect(0, 5)],
+        new GainCardWithCostEffect(0, 5)],
     set: SetName
 });
 
-export var Festival = new cards.Card({
+export const Festival = new Card({
     name: 'Festival',
     cost: 5,
     effects: [
-        new e.GainActionsEffect(2),
-        new e.GainBuysEffect(1),
-        new e.GainCoinsEffect(2)],
+        new GainActionsEffect(2),
+        new GainBuysEffect(1),
+        new GainCoinsEffect(2)],
     set: SetName
 });
 
-export var Gardens = new cards.Card({
+export const Gardens = new Card({
     name: 'Gardens',
     cost: 4,
     vp: new GardenVPEffect(),
     set: SetName
 });
 
-export var Laboratory = new cards.Card({
+export const Laboratory = new Card({
     name: 'Laboratory',
     cost: 5,
     effects: [
-        new e.DrawEffect(2),
-        new e.GainActionsEffect(1)],
+        new DrawEffect(2),
+        new GainActionsEffect(1)],
     set: SetName
 });
 
-export var Library = new cards.Card({
+export const Library = new Card({
     name: 'Library',
     cost: 5,
     effects: [new LibraryDrawEffect()],
     set: SetName
 });
 
-export var Market = new cards.Card({
+export const Market = new Card({
     name: 'Market',
     cost: 5,
     effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(1),
-        new e.GainBuysEffect(1),
-        new e.GainCoinsEffect(1)],
+        new DrawEffect(1),
+        new GainActionsEffect(1),
+        new GainBuysEffect(1),
+        new GainCoinsEffect(1)],
     set: SetName
 });
 
-export var Mine = new cards.Card({
+export const Mine = new Card({
     name: 'Mine',
     cost: 5,
-    effects: [
-        new e.TrashToGainPlusCostEffect(3, cards.Type.Treasure, GainDestination.Hand)],
+    effects: [new TrashToGainPlusCostEffect(3, CardType.Treasure, GainDestination.Hand)],
     set: SetName
 });
 
-export var Militia = new cards.Card({
+export const Militia = new Card({
     name: 'Militia',
     cost: 4,
     effects: [
-        new e.GainCoinsEffect(2),
-        new e.DiscardToEffect(Target.OtherPlayers, 3)],
+        new GainCoinsEffect(2),
+        new DiscardToEffect(Target.OtherPlayers, 3)],
     attack: true,
     set: SetName
 });
 
-export var Moat = new cards.Card({
+export const Moat = new Card({
     name: 'Moat',
     cost: 2,
-    effects: [new e.DrawEffect(2)],
-    reaction: [e.ReactionType.OnAttack, [new e.MoatReaction()]],
+    effects: [new DrawEffect(2)],
+    reaction: [ReactionType.OnAttack, [new MoatReaction()]],
     set: SetName
 });
 
-export var Moneylender = new cards.Card({
+export const Moneylender = new Card({
     name: 'Moneylender',
     cost: 4,
     effects: [
-        new e.TrashForEffect(
-            new e.GainCoinsEffect(3),
-            cards.makeIsCardPredicate(cards.Copper))],
+        new TrashForEffect(
+            new GainCoinsEffect(3),
+            makeIsCardPredicate(Copper))],
     set: SetName
 });
 
-export var Remodel = new cards.Card({
+export const Remodel = new Card({
     name: 'Remodel',
     cost: 4,
     effects: [
-        new e.TrashToGainPlusCostEffect(2)],
+        new TrashToGainPlusCostEffect(2)],
     set: SetName
 });
 
-export var Smithy = new cards.Card({
+export const Smithy = new Card({
     name: 'Smithy',
     cost: 4,
-    effects: [new e.DrawEffect(3)],
+    effects: [new DrawEffect(3)],
     set: SetName
 });
 
-export var Spy = new cards.Card({
+export const Spy = new Card({
     name: 'Spy',
     cost: 4,
     effects: [
-        new e.DrawEffect(1),
-        new e.GainActionsEffect(1),
+        new DrawEffect(1),
+        new GainActionsEffect(1),
         new SpyAttackEffect()],
     attack: true,
     set: SetName
 });
 
-export var Thief = new cards.Card({
-    name: 'Thief',
-    cost: 4,
-    effects: [new ThiefTrashEffect(), new ThiefGainEffect()],
-    attack: true,
-    set: SetName
-});
-
-export var ThroneRoom = new cards.Card({
+export const ThroneRoom = new Card({
     name: 'Throne Room',
     cost: 4,
-    effects: [new e.PlayActionManyTimesEffect(2)],
+    effects: [new PlayActionManyTimesEffect(2)],
     set: SetName
 });
 
-export var Village = new cards.Card({
+export const Village = new Card({
     name: 'Village',
     cost: 3,
-    effects: [new e.DrawEffect(1), new e.GainActionsEffect(2)],
+    effects: [new DrawEffect(1), new GainActionsEffect(2)],
     set: SetName
 });
 
-export var Witch = new cards.Card({
+export const Witch = new Card({
     name: 'Witch',
     cost: 5,
     effects: [
-        new e.DrawEffect(2),
-        new e.GainCardEffect(cards.Curse, Target.OtherPlayers)],
+        new DrawEffect(2),
+        new GainCardEffect(Curse, Target.OtherPlayers, GainDestination.Discard)],
     attack: true,
     set: SetName
 });
 
-export var Woodcutter = new cards.Card({
+export const Woodcutter = new Card({
     name: 'Woodcutter',
     cost: 3,
-    effects: [new e.GainCoinsEffect(2), new e.GainBuysEffect(1)],
+    effects: [new GainCoinsEffect(2), new GainBuysEffect(1)],
     set: SetName
 });
 
-export var Workshop = new cards.Card({
+export const Workshop = new Card({
     name: 'Workshop',
     cost: 3,
-    effects: [new e.GainCardWithCostEffect(0, 4)],
+    effects: [new GainCardWithCostEffect(0, 4)],
     set: SetName
 });
 
-export var Cardlist:cards.Card[] = [
-    Adventurer,
+export const Cardlist = [
     Bureaucrat,
     Cellar,
     Chapel,
@@ -459,7 +375,6 @@ export var Cardlist:cards.Card[] = [
     Remodel,
     Smithy,
     Spy,
-    Thief,
     ThroneRoom,
     Village,
     Witch,

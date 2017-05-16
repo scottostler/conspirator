@@ -1,41 +1,34 @@
-import util = require('../util');
-import cards = require('../cards');
-import View = require('./view');
+import * as $ from 'jquery';
+import View from './view';
 
-var Card = cards.Card;
+class CardView extends View {
 
-export class CardView extends View {
+    // Used to uniquely identify this CardView instance.
+    // Can be singleton string for a specific global cardview (aka 'Trash'),
+    // or the identifier from a specific card instance.
+    //
+    // No global registry is kept, so CardViews must be iterated in the view hierarchy
+    // to find a particular CardView.
+    identifier:string;
 
-    card:cards.Card;
     $badge:any;
     $vpBadge:any;
 
-    constructor(card:cards.Card, useCardback:boolean=false) {
+    constructor(cardURL:string, identifier:string) {
         super();
-        this.card = card;
+        this.identifier = identifier;
         this.$el = $('<div>').addClass('card');
         this.$badge = $('<div>').addClass('badge count-badge badge-warning').hide();
         this.$vpBadge = null;
         this.$el.append(this.$badge);
-
-        if (useCardback) {
-            this.setCardImage(cards.cardbackURL());
-        } else if (card) {
-            this.setCardImage(card.assetURL);
-        } else {
-            this.setCardImage(null);
-        }
-
+        this.setCardImage(cardURL);
         this.$el.data('view', this);
     }
 
+    // Can pass null to clear image.
     setCardImage(cardURL:string) {
         this.$el.find('.card-inner').remove();
-        if (cardURL) {
-            $('<img>').attr('src', cardURL).addClass('card-inner').appendTo(this.$el);
-        } else {
-            $('<span>').addClass('card-inner').appendTo(this.$el);
-        }
+        $('<img>').attr('src', cardURL).addClass('card-inner').appendTo(this.$el);
     }
 
     setBadgeCount(count:number) {
@@ -54,41 +47,10 @@ export class CardView extends View {
 
         this.$vpBadge.text(count);
     }
-}
 
-
-export class PileView extends View {
-
-    pile:cards.Pile;
-    $badge:any;
-    $vpBadge:any;
-
-    constructor(pile:cards.Pile) {
-        super();
-        this.pile = pile;
-        this.$el = $('<div>').addClass('card');
-        var $img = $('<img>').appendTo(this.$el);
-        $img.attr('src', this.pile.card.assetURL);
-
-        this.$badge = $('<div>').text(this.pile.count).addClass('badge count-badge badge-warning');
-        this.$el.append(this.$badge);
-        this.updateCount(pile.count);
-
-        this.$el.data('view', this);
-    }
-
-    updateCount(newCount:number) {
-        if (this.$badge) {
-            this.$badge.text(newCount);
-        }
-    }
-
-    setVPBadgeCount(count:number) {
-        if (!this.$vpBadge) {
-            this.$vpBadge = $('<div>').addClass('badge vp-badge badge-success');
-            this.$el.append(this.$vpBadge);
-        }
-
-        this.$vpBadge.text(count);
+    unhighlight() {
+        this.$el.removeClass('highlight not-highlight');
     }
 }
+
+export default CardView;

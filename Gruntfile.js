@@ -6,52 +6,24 @@ module.exports = function (grunt) {
 
     grunt.initConfig({
         ts: {
-            options: {
-                compile: true,                 // perform compilation. [true (default) | false]
-                comments: false,               // same as !removeComments. [true | false (default)]
-                target: 'es6',                 // target javascript language. [es3 | es5 (grunt-ts default) | es6]
-                module: 'amd',                 // target javascript module style. [amd (default) | commonjs]
-                sourceMap: true,               // generate a source map for every output js file. [true (default) | false]
-                sourceRoot: '',                // where to locate TypeScript files. [(default) '' == source ts location]
-                mapRoot: '',                   // where to locate .map.js files. [(default) '' == generated js location.]
-                noImplicitAny: true
-            },
-
             build: {
                 src: ["src/**/*.ts"],
-                html: ['src/html/*.tpl.html'],
                 outDir: 'build',
+                tsconfig: true,
             },
-
-            watch: {
-                src: ["src/**/*.ts"],
-                html: ['src/html/*.tpl.html'],
-                outDir: 'build',
-                watch: 'src',
-            },
-
-            test: {
-                options: {
-                    module: 'commonjs',
-                    sourceMap: false
-                },
-                src: ["src/**/*.ts", "test/**/*.ts", "!src/ui/*.ts", "!src/server/*.ts"],
-                html: ['src/html/*.tpl.html'],
-                outDir: 'build_test',
-            }
         },
 
         mochaTest: {
             test: {
                 options: {
+                    require: 'ts-node/register'
                 },
-                src: ['build_test/**/*.js']
+                src: ['src/**/*.ts', 'test/**/*.ts', "!src/ui/*.ts", "!src/server/*.ts"]
             },
         }
 
     });
 
     grunt.registerTask("default", ["ts:build"]);
-    grunt.registerTask("watch", ["ts:watch"]);
-    grunt.registerTask("test", ["ts:test", 'mochaTest:test']);
+    grunt.registerTask("test", ["mochaTest:test"]);
 };

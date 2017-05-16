@@ -1,9 +1,9 @@
-import * as base from './base';
-import * as cards from './cards';
-import * as decisions from './decisions';
-import * as util from './util';
+import { Decision, DecisionType } from './decisions';
 
-export interface Decider {
-    setPlayer(player:base.BasePlayer):void;
-    promptForDecision(decision:decisions.Decision, onDecide:util.StringArrayCallback):void;
+abstract class Decider {
+    /// Optional identifying label for logging and debugging.
+    label: string | null;
+    abstract decide<T>(d: Decision<T>) : Promise<T[]>;
 }
+
+export default Decider;

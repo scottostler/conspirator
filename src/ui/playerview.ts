@@ -1,45 +1,40 @@
-import $ = require('jquery');
-import _ = require('underscore');
+import * as $ from 'jquery';
+import * as _  from 'underscore';
 
-import util = require('../util');
-import base = require('../base');
-import cards = require('../cards');
-import View = require('./view');
-import gameview = require('./gameview');
-import cardview = require('./cardview');
+import { Card, CardInPlay } from '../cards';
+import { PlayerRecord } from '../gamerecord';
 
-import Card = cards.Card;
+import { cardImageURL, CardbackImageURL } from './gameview';
+import CardView from './cardview';
+import View from './view';
 
-var PlayerLocations = ['south', 'north'];
-var PlayerColors = ['blue', 'red'];
+const PlayerLocations = ['south', 'north'];
+const PlayerColors = ['blue', 'red'];
 
 export class PlayerView extends View {
 
-    player:base.BasePlayer;
-    gameView:gameview.GameView;
-    deckView:cardview.CardView;
-    discardView:cardview.CardView;
-    cardViewsInHand:cardview.CardView[];
+    playerRecord: PlayerRecord;
+    deckView: CardView;
+    discardView: CardView;
+    cardViewsInHand: CardView[];
 
-    $nameLabel:any;
-    $handContainer:any;
+    $nameLabel: JQuery;
+    $handContainer: JQuery;
 
-    constructor(gameView:gameview.GameView, player:base.BasePlayer, index:number) {
+    constructor(playerRecord: PlayerRecord, index: number) {
         super();
 
-        var classes = ['player-area', this.divClass(), PlayerLocations[index], PlayerColors[index]];
+        const classes = ['player-area', PlayerLocations[index], PlayerColors[index]];
         this.$el.addClass(classes.join(' '));
 
-        this.player = player;
-        this.gameView = gameView;
-
-        this.$nameLabel = $('<div>').text(player.getName()).addClass('name-label');
+        this.playerRecord = playerRecord;
+        this.$nameLabel = $('<div>').text(playerRecord.name).addClass('name-label');
         this.$el.append(this.$nameLabel);
 
-        this.deckView = new cardview.CardView(null, true)
+        this.deckView = new CardView(null, 'Deck');
         this.addViews([this.deckView]);
 
-        this.discardView = new cardview.CardView(null);
+        this.discardView = new CardView(null, 'Discard');
         this.discardView.$el.addClass('discard');
         this.$el.append(this.discardView.$el);
 
@@ -50,41 +45,39 @@ export class PlayerView extends View {
     }
 
     updateDeckAndDiscardViews() {
-        this.deckView.setCardImage(this.player.deckCount() === 0 ? null : cards.cardbackURL());
-        this.deckView.setBadgeCount(this.player.deckCount());
+        this.deckView.setCardImage(this.playerRecord.deckCount === 0 ? null : CardbackImageURL);
+        this.deckView.setBadgeCount(this.playerRecord.deckCount);
 
-        var topDiscard = this.player.topDiscard();
-        this.discardView.setCardImage(topDiscard ? topDiscard.assetURL : null);
+        var topDiscard = this.playerRecord.topDiscard;
+        this.discardView.setCardImage(topDiscard ? cardImageURL(topDiscard) : null);
     }
 
-    makeCardViewForCard(card:cards.Card) : cardview.CardView {
-        return new cardview.CardView(card, !this.isActivePlayer());
+    makeCardViewForCard(card: CardInPlay) : CardView {
+        return new CardView(cardImageURL(card), card.identifier);
     }
 
-    viewForCard(card:cards.Card) : cardview.CardView {
-        var view = _.find(this.cardViewsInHand, function(view:any) {
-            return view.card.isIdenticalCard(card);
-        });
-
-        if (!view) {
-            console.error('Missing card view', this, card);
+    viewForCardInHand(card: CardInPlay) : CardView {
+        for (const view of this.cardViewsInHand) {
+            if (view.identifier == card.identifier) {
+                return view;
+            }
         }
 
-        return view;
+        throw new Error('Missing card view for ' + card);
     }
 
-    removeCardViewFromHand(cardView:cardview.CardView) : void {
+    removeCardViewFromHand(cardView: CardView) : void {
         this.cardViewsInHand = _.without(this.cardViewsInHand, cardView);
         cardView.$el.remove();
         this.applyHandTransformations();
     }
 
-    removeCardFromHand(card:cards.Card) {
-        var cardView = this.viewForCard(card);
+    removeCardFromHand(card: CardInPlay) {
+        var cardView = this.viewForCardInHand(card);
         this.removeCardViewFromHand(cardView);
     }
 
-    addCardToHand(card:cards.Card) {
+    addCardToHand(card: CardInPlay) {
         var cv = this.makeCardViewForCard(card);
         this.$handContainer.append(cv.$el);
         this.cardViewsInHand.push(cv);
@@ -97,87 +90,41 @@ export class PlayerView extends View {
             .removeClass('selectable not-selectable selected highlight not-highlight');
     }
 
-    drawCards(cards:cards.Card[]) {
-        _.each(cards, _.bind(this.addCardToHand, this));
+    drawCards(cards: CardInPlay[]) {
+        for (const card of cards) {
+            this.addCardToHand(card);
+        }
+
         this.applyHandTransformations();
         this.updateDeckAndDiscardViews();
     }
 
-    discardCards(cards:cards.Card[]) {
-        _.each(cards, _.bind(this.removeCardFromHand, this));
+    discardCards(cards:CardInPlay[]) {
+        for (const card of cards) {
+            this.removeCardFromHand(card);
+        }
         this.updateDeckAndDiscardViews();
     }
-
-    // Abstract methods
-
-    divClass() : string {
-        throw new Error('Unimplemented');
-    }
-
-
-    isActivePlayer() : boolean {
-        throw new Error('Unimplemented');
-    }
-
+    
     applyHandTransformations() {
-        throw new Error('Unimplemented');
-    }
+        const $this = $(this);
 
-    highlightBasicTreasures() {}
+        if (this.playerRecord.hand !== null) {
+            $this.addClass('human-player');
+            $this.removeClass('remote-player');
+        } else {
+            $this.removeClass('human-player');
+            $this.addClass('remote-player');
 
-    unhighlightCardViews() {}
+            const cards = this.$handContainer.children().toArray();
+            const leftMargin = 5;
+            const degreeSpan = 45;
+            const degrees = _.range(-degreeSpan, degreeSpan, degreeSpan * 2 / cards.length);
 
-}
-
-export class HumanPlayerView extends PlayerView {
-
-    divClass() {
-        return 'human-player';
-    }
-
-    applyHandTransformations() {}
-
-    isActivePlayer() {
-        return true;
-    }
-
-    highlightBasicTreasures() {
-        _.each(this.cardViewsInHand, function(cv:any) {
-            if (cv.card.isBasicTreasure()) {
-                cv.$el.addClass('highlight');
-            } else {
-                 cv.$el.addClass('not-highlight');
+            for (let [i, cardView] of cards.entries()) {
+                $(cardView).css({ rotate: degrees[i], transformOrigin: '10px bottom' });
             }
-        });
-    }
-
-    unhighlightCardViews() {
-        _.each(this.cardViewsInHand, function(cv:any) {
-            cv.$el.removeClass('highlight not-highlight');
-        });
-    }
-
-}
-
-export class RemotePlayerView extends PlayerView {
-
-    divClass() {
-        return 'remote-player';
-    }
-
-    applyHandTransformations() {
-        var $cards = this.$handContainer.children();
-        var leftMargin = 5;
-        var degreeSpan = 45;
-        var degrees = _.range(-degreeSpan, degreeSpan, degreeSpan * 2 / $cards.length);
-
-        _.each($cards, (cardView, i) => {
-            $(cardView).css({ rotate: degrees[i], transformOrigin: '10px bottom' });
-        });
-    }
-
-    isActivePlayer() {
-        return false;
+        }
     }
 
 }

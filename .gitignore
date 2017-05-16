@@ -4,10 +4,9 @@ bundle.js
 .idea
 .tscache/
 build/
-build_test/
-typings/
 tmp/
 .vscode/
+dist/
 
 Conspirator.sublime-project
 Conspirator.sublime-workspace

@@ -1,32 +1,31 @@
-import _ = require('underscore');
-import util = require('../util');
-import base = require('../base');
-import cards = require('../cards');
-import scoring = require('../scoring')
+import * as _  from 'underscore';
+import { pad } from '../utils';
+import { Card } from '../cards';
+import { calculateScore } from '../scoring';
+import { cardImageURL } from './gameview';
+import CardView from './cardview';
+import View from './view';
 
-import View = require('./view');
-import cardview = require('./cardview');
+type PlayerDeckPair = [string, Card[]];
+
+interface ScoredDeckInfo {
+    name: string;
+    deck: Card[];
+    score: number;
+}
 
 class ScoreSheet extends View {
 
-    game:base.BaseGame;
-    sortedPlayers:base.BasePlayer[];
-    fullDecks:cards.Card[][]
-    scores:number[];
+    sortedDecks: ScoredDeckInfo[];
 
-    constructor(game:base.BaseGame, fullDecks:cards.Card[][], selector:any) {
+    constructor(decks: PlayerDeckPair[], selector: any) {
         super(selector);
-
-        this.game = game;
-        this.fullDecks = fullDecks;
-
-        this.scores = _.map(game.players, player => {
-            return scoring.calculateScore(this.deckForPlayer(player));
+        
+        let scoredDecks = decks.map(d => {
+            return { name: d[0], deck: d[1], score: calculateScore(d[1]) };
         });
 
-        this.sortedPlayers = _.sortBy(game.players, player => {
-            return -this.scoreForPlayer(player);
-        });
+        this.sortedDecks = _.sortBy(scoredDecks, d => -d.score);
         
         this.$el.find('.modal-body').empty();
         this.buildTitleView();
@@ -38,36 +37,30 @@ class ScoreSheet extends View {
         });
     }
 
-    deckForPlayer(player:base.BasePlayer) : cards.Card[] {
-        var idx = this.game.players.indexOf(player);
-        return this.fullDecks[idx];
-    }
-
-    scoreForPlayer(player:base.BasePlayer) : number {
-        var idx = this.game.players.indexOf(player);
-        return this.scores[idx];
-    }
-
     buildTitleView() {
-        var isTie = this.scoreForPlayer(this.sortedPlayers[0]) == this.scoreForPlayer(this.sortedPlayers[1]);
-        var title = isTie ? 'Tie Game!' : this.sortedPlayers[0].getName() + ' wins!';
+        if (this.sortedDecks.length < 2) {
+            return;
+        }
+
+        var isTie = this.sortedDecks[0].score == this.sortedDecks[1].score;  
+        var title = isTie ? 'Tie Game!' : this.sortedDecks[0].name + ' wins!';
         this.$el.find('.modal-title').text(title);
     }
 
-    sortKeyForCard(card:cards.Card) : string {
+    sortKeyForCard(card: Card) : string {
         var index = '';
-        if (card.isVictory()) {
+        if (card.isVictory) {
             index += 'A';
-        } else if (card.isCurse()) {
+        } else if (card.isCurse) {
             index += 'B';
-        } else if (card.isTreasure()) {
+        } else if (card.isTreasure) {
             index += 'C';
         } else {
             index += 'D';
         }
 
         // assumes card costs range 0-99
-        index += util.pad(99 - card.cost, 2);
+        index += pad(99 - card.cost, 2);
         index += card.name;
         return index;
     }
@@ -76,37 +69,36 @@ class ScoreSheet extends View {
         var $summaryTable = $('<table class="scoresheet">');
         var $summary = $('<div>').addClass('summary').append($summaryTable);
 
-        _.each(this.sortedPlayers, (player:base.BasePlayer) => {
-            var $tr = $('<tr>');
+        for (const deck of this.sortedDecks) {
+            const $tr = $('<tr>');
+            $tr.append($('<td>').text(deck.name + ': '));
+            $tr.append($('<td>').text(deck.score + ' VP'));
 
-            $tr.append($('<td>').text(player.getName() + ': '));
-            $tr.append($('<td>').text(this.scoreForPlayer(player) + 'VP'));
-
-            var sortedDeck = _.sortBy<cards.Card, string>(this.deckForPlayer(player), this.sortKeyForCard);
-            var deckBreakdownHTML = $('<div>');
-            var deckBreakdown = _.countBy<cards.Card>(sortedDeck, card => {
+            const sortedDeck = _.sortBy<Card, string>(deck.deck, this.sortKeyForCard);
+            const deckBreakdownHTML = $('<div>');
+            const deckBreakdown = _.countBy<Card>(sortedDeck, card => {
                 return card.name;
             });
-            var cardLookup = _.indexBy<cards.Card>(sortedDeck, card => {
+            const cardLookup = _.indexBy<Card>(sortedDeck, card => {
                 return card.name;
             });
 
-            _.each(_.keys(deckBreakdown), cardName => {
+            for (const cardName of Object.keys(deckBreakdown)) {
                 var card = cardLookup[cardName];
-                var currentCardView = new cardview.CardView(card);
+                var currentCardView = new CardView(cardImageURL(card), null);
                 currentCardView.setBadgeCount(deckBreakdown[cardName]);
 
-                if (card.isVictory()) {
-                    var vp = card.vp.calculatePoints(sortedDeck);
+                if (card.isVictory) {
+                    const vp = card.vp.calculatePoints(sortedDeck);
                     currentCardView.setVPBadgeCount(vp);
                 }
 
                 deckBreakdownHTML.append(currentCardView.$el);
-            });
+            };
 
             $tr.append($('<td>').append(deckBreakdownHTML));
             $summaryTable.append($tr);
-        });
+        }
 
         $summary.appendTo(this.$el.find('.modal-body'));
     }
@@ -120,4 +112,4 @@ class ScoreSheet extends View {
     }
 }
 
-export = ScoreSheet;
+export default ScoreSheet;

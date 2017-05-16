@@ -1,19 +1,16 @@
-import * as base from '../base';
 import * as cards from '../cards';
 import * as decisions from '../decisions';
-import * as effects from '../effects';
 import Game from '../game';
-import Player from '../player';
-import * as util from '../util';
+import { Player } from '../player';
+import * as util from '../utils';
+import * as e from './common';
 
-import e = effects;
-
-export var SetName = 'Seaside';
+export const SetName = 'Seaside';
 
 // TODO
 // Ambassador
 
-export var Bazaar = new cards.Card({
+export const Bazaar = new cards.Card({
     name: 'Bazaar',
     cost: 5,
     effects: [e.DrawOneCard, e.GainTwoActions, e.GainOneCoin],
@@ -43,7 +40,7 @@ export var Bazaar = new cards.Card({
 // Treasure Map
 // Treasury
 
-export var Warehouse = new cards.Card({
+export const Warehouse = new cards.Card({
     name: 'Warehouse',
     cost: 3,
     effects: [e.GainOneAction, e.DrawThreeCards, e.DiscardThreeCards],

@@ -1,553 +1,464 @@
-import _ = require('underscore');
+// TODO: comment until base works
 
-import * as base from '../base';
-import * as cards from '../cards';
-import * as decisions from '../decisions';
-import * as effects from '../effects';
-import Game from '../game';
+// import * as _ from 'underscore';
 
-import Player from '../player';
-import * as util from '../util';
+// import { CardType, DiscardDestination, GainDestination } from '../base';
 
-import DiscardDestination = base.DiscardDestination;
-import e = effects;
-import GainDestination = base.GainDestination;
-import Resolution = effects.Resolution;
+import { Card } from '../cards';
 
-var SetName = 'Intrigue';
+// import { Card, CardInPlay, Curse, Estate, Silver } from '../cards';
+// import * as decisions from '../decisions';
+// import { BasicVPEffect, CardDiscountEffect, DiscardEffect, DiscardForCoinsEffect,
+//          DrawOneCard, DrawTwoCards, DrawThreeCards, Effect, EffectChoice, GainCardEffect, GainCostRestriction, GainOneAction,
+//          GainOneBuy, GainOneCoin, GainTwoActions, GainTwoCoins, LabelledEffect, ReactionType,
+//          Resolution, Target, TrashEffect, TrashForEffect, TrashToGainPlusCostEffect, TrashTwoCards, VPEffect } from  '../effects';
+// import Game from '../game';
+// import { Player } from './player';
+// import * as util from '../util';
 
-class BaronDiscardEffect implements e.Effect {
+// const SetName = 'Intrigue';
 
-    getTarget() { return e.Target.ActivePlayer; }
+// class BaronDiscardEffect implements Effect {
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var matchingCards = cards.filterByCard(player.hand, cards.Estate);
-        var decision = decisions.makeDiscardCardDecision(
-            player, matchingCards, trigger, 0, 1, DiscardDestination.Discard);
-        return player.promptForDiscardDecision(decision, cs => {
-            if (cs.length > 0) {
-                game.incrementCoinCount(4)
-            } else {
-                game.playerGainsCard(player, cards.Estate);
-            }
-            return e.Resolution.Advance;
-        });
-    }
-}
+//     getTarget() { return Target.ActivePlayer; }
 
-class ConspiratorDrawEffect implements e.Effect {
+//     process(game:Game, player:Player, trigger: CardInPlay) {
+//         const estates = player.hand.filter(c => c.isSameCard(Estate));
+//         const decision = decisions.makeDiscardCardDecision(
+//             player, estates, trigger, 0, 1, DiscardDestination.Discard);
+//         return player.promptForDiscardDecision(decision, cs => {
+//             if (cs.length > 0) {
+//                 game.incrementCoinCount(4)
+//             } else {
+//                 game.playerGainsFromSupply(player, Estate);
+//             }
+//             return Resolution.Advance;
+//         });
+//     }
+// }
 
-    getTarget() { return e.Target.ActivePlayer; }
+// class ConspiratorDrawEffect implements Effect {
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        if (game.turnState.playedActionCount >= 3) {
-            game.drawCards(player, 1);
-            game.incrementActionCount(1);
-        }
+//     getTarget() { return Target.ActivePlayer; }
 
-        return e.Resolution.Advance;
-    }
-}
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         if (game.turnState.playedActionCount >= 3) {
+//             game.drawCards(player, 1);
+//             game.incrementActionCount(1);
+//         }
 
-class CoppersmithEffect implements e.Effect {
-
-    getTarget() { return e.Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        game.increaseCopperValueBy(1);
-        return e.Resolution.Advance;
-    }
-}
-
-class DukeVPEffect implements e.VPEffect {
-    calculatePoints(deck:cards.Card[]) : number {
-        return cards.countByCard(deck, cards.Duchy);
-    }
-}
-
-class IronworksEffect implements e.Effect {
-
-    getTarget() { return e.Target.ActivePlayer; }
-
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var gainableCards = cards.cardsFromPiles(game.filterGainablePiles(0, 4, cards.Type.All));
-        var decision = decisions.makeGainDecision(
-            player, gainableCards, trigger, GainDestination.Discard);
-        return player.promptForGainDecision(decision, cs => {
-            if (cs.length > 0) {
-                var gainedCard = cs[0];
-
-                if (gainedCard.isAction()) {
-                    game.incrementActionCount(1);
-                }
-
-                if (gainedCard.isTreasure()) {
-                    game.incrementCoinCount(1);
-                }
-
-                if (gainedCard.isVictory()) {
-                    game.drawCards(player, 1);
-                }
-            }
-
-            return Resolution.Advance;
-        });
-    }
-}
+//         return Resolution.Advance;
+//     }
+// }
 
 
-class MasqueradePassEffect implements e.Effect {
+// class DukeVPEffect implements VPEffect {
+//     calculatePoints(deck: Card[]) : number {
+//         return cards.countByCard(deck, cards.Duchy);
+//     }
+// }
 
-    getTarget() { return e.Target.AllPlayers; }
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var targetPlayer = game.playerLeftOf(player);
-        var decision = decisions.makePassCardDecision(player.hand, trigger, targetPlayer);
-        return player.promptForCardDecision(decision, cs => {
-            game.playerSelectsCardToPass(player, targetPlayer, cs[0]);
-            return Resolution.Advance;
-        });
-    }
-}
+// class IronworksEffect implements Effect {
 
-class MasqueradeReceiveEffect implements e.Effect {
-    getTarget() { return e.Target.ActivePlayer; }
-    process(game:Game, player:Player, trigger:cards.Card) {
-        game.distributePassedCards();
-        return Resolution.Advance;
-    }
-}
+//     getTarget() { return Target.ActivePlayer; }
 
-class MiningVillageTrashEffect implements e.Effect {
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         const gainableCards = game.filterGainablePiles(0, 4, CardType.All).map(p => p.card);
+//         const decision = decisions.makeGainDecision(
+//             player, gainableCards, trigger, GainDestination.Discard);
+//         return player.promptForGainDecision(decision, cs => {
+//             if (cs.length > 0) {
+//                 const gainedCard = cs[0];
 
-    getTarget() { return e.Target.ActivePlayer; }
+//                 if (gainedCard.isAction()) {
+//                     game.incrementActionCount(1);
+//                 }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        if (!game.isExactCardInPlay(trigger)) {
-            return Resolution.Advance;
-        }
+//                 if (gainedCard.isTreasure()) {
+//                     game.incrementCoinCount(1);
+//                 }
 
-        var decision = decisions.makeTrashInPlayCardDecision(player, trigger, trigger);
-        return player.promptForCardDecision(decision, cs => {
-            if (cs.length > 0 && game.trashCardFromPlay(player, trigger)) {
-                game.incrementCoinCount(2);
-            }
+//                 if (gainedCard.isVictory()) {
+//                     game.drawCards(player, 1);
+//                 }
+//             }
 
-            return Resolution.Advance;
-        });
-    }
-}
+//             return Resolution.Advance;
+//         });
+//     }
+// }
 
-class MinionDiscardEffect implements e.LabelledEffect {
 
-    getTarget() { return e.Target.AllPlayers; }
-    getLabel() { return 'Discard and draw four cards'; }
+// class MasqueradePassEffect implements Effect {
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        if (game.isActivePlayer(player) || player.hand.length >= 5) {
-            game.discardHand(player);
-            game.drawCards(player, 4);
-        }
-
-        return e.Resolution.Advance;
-    }
-}
-
-class SaboteurEffect implements e.Effect {
+//     getTarget() { return Target.AllPlayers; }
     
-    getTarget() { return e.Target.OtherPlayers; }
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         const targetPlayer = game.playerLeftOf(player);
+//         const decision = decisions.makePassCardDecision(player, targetPlayer, trigger);
+//         return player.promptForCardDecision(decision, cs => {
+//             game.playerSelectsCardToPass(player, targetPlayer, cs[0]);
+//             return Resolution.Advance;
+//         });
+//     }
+// }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var results = player.takeCardsFromDeckUntil(c => game.effectiveCardCost(c) >= 3);
+// class MasqueradeReceiveEffect implements Effect {
+//     getTarget() { return Target.ActivePlayer; }
+    
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         game.distributePassedCards();
+//         return Resolution.Advance;
+//     }
+// }
 
-        if (!results.foundCard) {
-            game.addCardsToDiscard(player, results.otherCards);
-            return e.Resolution.Advance;
-        }
+// class MiningVillageTrashEffect implements  Effect {
 
-        var cost = game.effectiveCardCost(results.foundCard);
-        var piles = game.filterGainablePiles(0, cost);
+//     getTarget() { return  Target.ActivePlayer; }
 
-        game.addCardToTrash(player, results.foundCard);
-        return player.gainsFromPiles(piles, trigger, base.GainDestination.Discard, c => {
-            game.addCardsToDiscard(player, results.otherCards);
-            return e.Resolution.Advance;
-        });
-    }
-}
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         if (!game.isExactCardInPlay(trigger)) {
+//             return Resolution.Advance;
+//         }
 
-class ScoutEffect implements e.Effect {
+//         const decision = decisions.makeTrashCardDecision(player, [trigger], trigger, 0, 1);
+//         return player.promptForCardDecision(decision, cs => {
+//             if (cs.length > 0 && game.trashCardFromPlay(player, trigger)) {
+//                 game.incrementCoinCount(2);
+//             }
 
-    getTarget() { return e.Target.ActivePlayer; }
+//             return Resolution.Advance;
+//         });
+//     }
+// }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var revealedCards = player.takeCardsFromDeck(4);
+// class MinionDiscardEffect implements LabelledEffect {
 
-        if (revealedCards.length === 0) {
-            return e.Resolution.Advance;
-        }
+//     getTarget() { return Target.AllPlayers; }
+//     getLabel() { return 'Discard and draw four cards'; }
 
-        var victoryCards = cards.getVictories(revealedCards);
-        var remaining = cards.difference(revealedCards, victoryCards);
-        victoryCards.forEach(c => game.drawTakenCard(player, c, true));
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         if (game.isActivePlayer(player) || player.hand.length >= 5) {
+//             game.discardHand(player);
+//             game.drawCards(player, 4);
+//         }
 
-        var decision = decisions.makeOrderCardsDecision(remaining, trigger);
-        return player.promptForCardDecision(decision, cs => {
-            if (cs.length > 0) {
-                game.putCardsOnDeck(player, cs);
-            }
-            return e.Resolution.Advance;
-        });
-    }
-}
+//         return Resolution.Advance;
+//     }
+// }
 
-class ShantyTownEffect implements e.Effect {
+// class ShantyTownEffect implements Effect {
 
-    getTarget() { return e.Target.ActivePlayer; }
+//     getTarget() { return Target.ActivePlayer; }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        game.revealPlayerHand(player);
+//     process(game:Game, player: Player, trigger: CardInPlay) {
+//         game.revealPlayerHand(player);
 
-        if (cards.getActions(player.hand).length === 0) {
-            game.drawCards(player, 2);
-        }
+//         if (player.hand.filter(c => c.isAction()).length === 0) {
+//             game.drawCards(player, 2);
+//         }
 
-        return e.Resolution.Advance;
-    }
+//         return Resolution.Advance;
+//     }
 
-}
+// }
 
-class SwindlerEffect implements e.Effect {
+// class SwindlerEffect implements Effect {
 
-    getTarget() { return e.Target.OtherPlayers; }
+//     getTarget() { return Target.OtherPlayers; }
 
-    process(game:Game, targetPlayer:Player, card:cards.Card) {
-        var card = game.trashCardFromDeck(targetPlayer);
-        if (!card) {
-            return e.Resolution.Advance;
-        }
+//     process(game: Game, targetPlayer: Player, trigger: CardInPlay) {
+//         const trashedCard = game.trashCardFromDeck(targetPlayer);
+//         if (!trashedCard) {
+//             return Resolution.Advance;
+//         }
 
-        var cost = game.effectiveCardCost(card);
-        var cs = cards.cardsFromPiles(game.filterGainablePiles(cost, cost));
-        var decision = decisions.makeGainDecision(targetPlayer, cs, card, GainDestination.Discard);
-        return game.activePlayer.promptForGainDecision(decision);
-    }
-}
+//         const cost = game.effectiveCardCost(trashedCard);
+//         const gainableCards = game.filterGainablePiles(cost, cost).map(p => p.card);
+//         const decision = decisions.makeGainDecision(targetPlayer, gainableCards, trigger, GainDestination.Discard);
+//         return game.activePlayer.promptForGainDecision(decision);
+//     }
+// }
 
-class TributeEffect implements e.Effect {
+// class TributeEffect implements Effect {
 
-    getTarget() { return e.Target.ActivePlayer; }
+//     getTarget() { return Target.ActivePlayer; }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var discardingPlayer = game.playerLeftOf(player);
-        var discarded = cards.uniq(discardingPlayer.discardCardsFromDeck(2));
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         const discardingPlayer = game.playerLeftOf(player);
+//         const discardedCards = game.discardFromDeck(discardingPlayer, 2);
+//         const uniqueDiscards = cards.uniq(discardedCards);
+//         uniqueDiscards.forEach(c => {
+//             if (c.isAction()) {
+//                 game.incrementActionCount(2);
+//             }
 
-        discarded.forEach(c => {
-            if (c.isAction()) {
-                game.incrementActionCount(2);
-            }
+//             if (c.isTreasure()) {
+//                 game.incrementCoinCount(2);
+//             }
 
-            if (c.isTreasure()) {
-                game.incrementCoinCount(2);
-            }
+//             if (c.isVictory()) {
+//                 game.drawCards(player, 2);
+//             }
+//         });
 
-            if (c.isVictory()) {
-                game.drawCards(player, 2);
-            }
-        });
+//         return Resolution.Advance;
+//     }
+// }
 
-        return e.Resolution.Advance;
-    }
-}
+// class WishingWellEffect implements Effect {
 
-class WishingWellEffect implements e.Effect {
+//     getTarget() { return Target.ActivePlayer; }
 
-    getTarget() { return e.Target.ActivePlayer; }
+//     process(game: Game, player: Player, trigger: CardInPlay) {
+//         const decision = decisions.makeNameCardDecision(player, game.allCardsInGame(), trigger);
+//         return player.promptForCardDecision(decision, cs => {
+//             const namedCard = cs[0];
+//             const revealed = game.revealCardFromDeck(player);
+//             if (revealed && revealed.isSameCard(namedCard)) {
+//                 game.drawCards(player, 1);
+//             }
+//             return Resolution.Advance;
+//         });
+//     }
+// }
 
-    process(game:Game, player:Player, trigger:cards.Card) {
-        var cs = cards.cardsFromPiles(game.kingdomPiles);
-        var decision = decisions.makeNameCardDecision(cs, trigger);
-        return player.promptForCardDecision(decision, cs => {
-            var namedCard = cs[0];
-            var revealed = game.revealCardFromDeck(player);
-            if (revealed && revealed.isSameCard(namedCard)) {
-                game.drawCards(player, 1);
-            }
-            return e.Resolution.Advance;
-        });
-    }
-}
+// export const Baron = new Card({
+//     name: 'Baron',
+//     cost: 4,
+//     effects: [
+//         GainOneBuy,
+//         new BaronDiscardEffect()
+//     ],
+//     set: SetName
+// });
 
-export var Baron = new cards.Card({
-    name: 'Baron',
-    cost: 4,
-    effects: [
-        e.GainOneBuy,
-        new BaronDiscardEffect()
-    ],
-    set: SetName
-});
+// export const Bridge = new Card({
+//     name: 'Bridge',
+//     cost: 4,
+//     effects: [
+//         GainOneBuy,
+//         GainOneCoin,
+//         new CardDiscountEffect(1)
+//     ],
+//     set: SetName
+// });
 
-export var Bridge = new cards.Card({
-    name: 'Bridge',
-    cost: 4,
-    effects: [
-        e.GainOneBuy,
-        e.GainOneCoin,
-        new e.CardDiscountEffect(1)
-    ],
-    set: SetName
-});
+// export const Conspirator = new Card({
+//     name: 'Conspirator',
+//     cost: 4,
+//     effects: [
+//         GainTwoCoins,
+//         new ConspiratorDrawEffect()
+//     ],
+//     set: SetName
+// });
 
-export var Conspirator = new cards.Card({
-    name: 'Conspirator',
-    cost: 4,
-    effects: [
-        e.GainTwoCoins,
-        new ConspiratorDrawEffect()
-    ],
-    set: SetName
-});
+// export const Courtyard = new Card({
+//     name: 'Courtyard',
+//     cost: 2,
+//     effects: [
+//         DrawThreeCards,
+//         new DiscardEffect(1, Target.ActivePlayer, DiscardDestination.Deck)
+//     ],
+//     set: SetName
+// });
 
-export var Coppersmith = new cards.Card({
-    name: 'Coppersmith',
-    cost: 4,
-    effects: [new CoppersmithEffect()],
-    set: SetName
-});
+// export const Duke = new Card({
+//     name: 'Duke',
+//     cost: 5,
+//     vp: new DukeVPEffect(),
+//     set: SetName
+// });
 
-export var Courtyard = new cards.Card({
-    name: 'Courtyard',
-    cost: 2,
-    effects: [
-        e.DrawThreeCards,
-        new e.DiscardEffect(1, e.Target.ActivePlayer, base.DiscardDestination.Deck)
-    ],
-    set: SetName
-});
+// export const GreatHall = new Card({
+//     name: 'Great Hall',
+//     cost: 3,
+//     effects: [DrawOneCard, GainOneAction],
+//     vp: new BasicVPEffect(1),
+//     set: SetName
+// });
 
-export var Duke = new cards.Card({
-    name: 'Duke',
-    cost: 5,
-    vp: new DukeVPEffect(),
-    set: SetName
-});
+// export const Harem = new Card({
+//     name: 'Harem',
+//     cost: 6,
+//     money: 2,
+//     vp: new BasicVPEffect(2),
+//     set: SetName
+// });
 
-export var GreatHall = new cards.Card({
-    name: 'Great Hall',
-    cost: 3,
-    effects: [e.DrawOneCard, e.GainOneAction],
-    vp: new e.BasicVPEffect(1),
-    set: SetName
-});
+// export const Ironworks = new Card({
+//     name: 'Ironworks',
+//     cost: 4,
+//     effects: [new IronworksEffect()],
+//     set: SetName
+// });
 
-export var Harem = new cards.Card({
-    name: 'Harem',
-    cost: 6,
-    money: 2,
-    vp: new e.BasicVPEffect(2),
-    set: SetName
-});
+// export const Masquerade = new Card({
+//     name: 'Masquerade',
+//     cost: 3,
+//     effects: [
+//         DrawTwoCards,
+//         new MasqueradePassEffect(), new MasqueradeReceiveEffect(),
+//         new TrashEffect(0, 1)
+//     ],
+//     set: SetName
+// });
 
-export var Ironworks = new cards.Card({
-    name: 'Ironworks',
-    cost: 4,
-    effects: [new IronworksEffect()],
-    set: SetName
-});
+// export const MiningVillage = new Card({
+//     name: 'Mining Village',
+//     cost: 4,
+//     effects: [
+//         DrawOneCard,
+//         GainTwoActions,
+//         new MiningVillageTrashEffect()],
+//     set: SetName
+// });
 
-export var Masquerade = new cards.Card({
-    name: 'Masquerade',
-    cost: 3,
-    effects: [
-        e.DrawTwoCards,
-        new MasqueradePassEffect(), new MasqueradeReceiveEffect(),
-        new e.TrashEffect(0, 1)
-    ],
-    set: SetName
-});
+// export const MinionDiscard = new MinionDiscardEffect();
 
-export var MiningVillage = new cards.Card({
-    name: 'Mining Village',
-    cost: 4,
-    effects: [
-        e.DrawOneCard,
-        e.GainTwoActions,
-        new MiningVillageTrashEffect()],
-    set: SetName
-});
+// export const Minion = new Card({
+//     name: 'Minion',
+//     cost: 5,
+//     effects: [
+//         GainOneAction,
+//         new EffectChoice([GainTwoCoins, ])
+//     ],
+//     attack: true,
+//     set: SetName
+// });
 
-export var MinionDiscard = new MinionDiscardEffect();
+// export const Nobles = new Card({
+//     name: 'Nobles',
+//     cost: 6,
+//     effects: [
+//         new EffectChoice([GainTwoActions, DrawThreeCards])
+//     ],
+//     vp: new BasicVPEffect(2),
+//     set: SetName
+// });
 
-export var Minion = new cards.Card({
-    name: 'Minion',
-    cost: 5,
-    effects: [
-        e.GainOneAction,
-        new e.EffectChoiceEffect([
-            e.GainTwoCoins,
-            MinionDiscard])
-    ],
-    attack: true,
-    set: SetName
-});
+// export const Pawn = new Card({
+//     name: 'Pawn',
+//     cost: 2,
+//     effects: [new EffectChoice(
+//         [GainOneAction, DrawOneCard, GainOneBuy, GainOneCoin],
+//         Target.ActivePlayer, 2)],
+//     set: SetName
+// });
 
-export var Nobles = new cards.Card({
-    name: 'Nobles',
-    cost: 6,
-    effects: [
-        new e.EffectChoiceEffect([e.GainTwoActions, e.DrawThreeCards])
-    ],
-    vp: new e.BasicVPEffect(2),
-    set: SetName
-});
+// export const SecretChamber = new Card({
+//     name: 'Secret Chamber',
+//     cost: 2,
+//     effects: [new DiscardForCoinsEffect()],
+//     reaction: [
+//         ReactionType.OnAttack,
+//         [DrawTwoCards, new DiscardEffect(2, Target.ActivePlayer, DiscardDestination.Deck)]],
+//     set: SetName
+// });
 
-export var Pawn = new cards.Card({
-    name: 'Pawn',
-    cost: 2,
-    effects: [new e.EffectChoiceEffect(
-        [e.GainOneAction, e.DrawOneCard, e.GainOneBuy, e.GainOneCoin],
-        e.Target.ActivePlayer, 2)],
-    set: SetName
-});
+// export const ShantyTown = new Card({
+//     name: 'Shanty Town',
+//     cost: 3,
+//     effects: [
+//         GainTwoActions,
+//         new ShantyTownEffect()],
+//     set: SetName
+// });
 
-export var Saboteur = new cards.Card({
-    name: 'Saboteur',
-    cost: 5,
-    effects: [new SaboteurEffect()],
-    attack: true,
-    set: SetName
-});
+// export const Steward = new Card({
+//     name: 'Steward',
+//     cost: 3,
+//     effects: [
+//         new EffectChoice([DrawTwoCards, GainTwoCoins, TrashTwoCards])
+//     ],
+//     set: SetName
+// });
 
-export var SecretChamber = new cards.Card({
-    name: 'Secret Chamber',
-    cost: 2,
-    effects: [new e.DiscardForCoinsEffect()],
-    reaction: [
-        e.ReactionType.OnAttack,
-        [e.DrawTwoCards, new e.DiscardEffect(2, e.Target.ActivePlayer, base.DiscardDestination.Deck)]],
-    set: SetName
-});
+// export const Swindler = new Card({
+//     name: 'Swindler',
+//     cost: 3,
+//     effects: [
+//         GainTwoCoins,
+//         new SwindlerEffect()],
+//     attack: true,
+//     set: SetName
+// });
 
-export var Scout = new cards.Card({
-    name: 'Scout',
-    cost: 4,
-    effects: [
-        e.GainOneAction,
-        new ScoutEffect()],
-    set: SetName
-});
+// export const TorturerDiscard = new DiscardEffect(2, Target.ChoosingPlayer);
+// export const GainCurseIntoHand = new GainCardEffect(Curse, Target.ChoosingPlayer, GainDestination.Hand);
 
-export var ShantyTown = new cards.Card({
-    name: 'Shanty Town',
-    cost: 3,
-    effects: [
-        e.GainTwoActions,
-        new ShantyTownEffect()],
-    set: SetName
-});
+// export const Torturer = new Card({
+//     name: 'Torturer',
+//     cost: 5,
+//     effects: [
+//         DrawThreeCards,
+//         new EffectChoice([TorturerDiscard, GainCurseIntoHand], Target.OtherPlayers)],
+//     attack: true,
+//     set: SetName
+// });
 
-export var Steward = new cards.Card({
-    name: 'Steward',
-    cost: 3,
-    effects: [
-        new e.EffectChoiceEffect([
-            e.DrawTwoCards,
-            e.GainTwoCoins,
-            e.TrashTwoCards])
-    ],
-    set: SetName
-});
+// const GainSilverEffect = new GainCardEffect(
+//     Silver, Target.ActivePlayer, GainDestination.Hand);
 
-export var Swindler = new cards.Card({
-    name: 'Swindler',
-    cost: 3,
-    effects: [
-        e.GainTwoCoins,
-        new SwindlerEffect()],
-    attack: true,
-    set: SetName
-});
+// export const TradingPost = new Card({
+//     name: 'Trading Post',
+//     cost: 5,
+//     effects: [
+//         new TrashForEffect(GainSilverEffect, cards.allCardsPredicate, 2)
+//     ],
+//     set: SetName
+// });
 
-export var TorturerDiscard = new e.DiscardEffect(2, e.Target.ChoosingPlayer);
-export var GainCurseIntoHand = new e.GainCardEffect(cards.Curse, e.Target.ChoosingPlayer, base.GainDestination.Hand);
+// export const Tribute = new Card({
+//     name: 'Tribute',
+//     cost: 5,
+//     effects: [new TributeEffect()],
+//     set: SetName
+// });
 
-export var Torturer = new cards.Card({
-    name: 'Torturer',
-    cost: 5,
-    effects: [
-        e.DrawThreeCards,
-        new e.EffectChoiceEffect([TorturerDiscard, GainCurseIntoHand], e.Target.OtherPlayers)],
-    attack: true,
-    set: SetName
-});
+// export const Upgrade = new Card({
+//     name: 'Upgrade',
+//     cost: 5,
+//     effects: [
+//         DrawOneCard,
+//         GainOneAction,
+//         new TrashToGainPlusCostEffect(
+//             1, CardType.All,
+//             GainDestination.Discard,
+//             GainCostRestriction.ExactlyCost)
+//     ],
+//     set: SetName
+// });
 
-var GainSilverEffect = new e.GainCardEffect(
-    cards.Silver, e.Target.ActivePlayer, base.GainDestination.Hand);
+// export const WishingWell = new Card({
+//     name: 'Wishing Well',
+//     cost: 3,
+//     effects: [ DrawOneCard, GainOneAction, new WishingWellEffect()],
+//     set: SetName
+// });
 
-export var TradingPost = new cards.Card({
-    name: 'Trading Post',
-    cost: 5,
-    effects: [
-        new e.TrashForEffect(GainSilverEffect, cards.allCardsPredicate, 2)
-    ],
-    set: SetName
-});
-
-export var Tribute = new cards.Card({
-    name: 'Tribute',
-    cost: 5,
-    effects: [new TributeEffect()],
-    set: SetName
-});
-
-export var Upgrade = new cards.Card({
-    name: 'Upgrade',
-    cost: 5,
-    effects: [
-        e.DrawOneCard,
-        e.GainOneAction,
-        new e.TrashToGainPlusCostEffect(
-            1, cards.Type.All,
-            base.GainDestination.Discard,
-            e.GainCostRestriction.ExactlyCost)
-    ],
-    set: SetName
-});
-
-export var WishingWell = new cards.Card({
-    name: 'Wishing Well',
-    cost: 3,
-    effects: [
-        e.DrawOneCard, e.GainOneAction,
-        new WishingWellEffect()
-    ],
-    set: SetName
-});
-
-export var Cardlist:cards.Card[] = [
-    Baron,
-    Bridge,
-    Conspirator,
-    Coppersmith,
-    Courtyard,
-    Duke,
-    GreatHall,
-    Harem,
-    Ironworks,
-    Masquerade,
-    MiningVillage,
-    Minion,
-    Nobles,
-    Pawn,
-    Saboteur,
-    Scout,
-    SecretChamber,
-    ShantyTown,
-    Steward,
-    Swindler,
-    Torturer,
-    TradingPost,
-    Tribute,
-    Upgrade,
-    WishingWell
+export const Cardlist: Card[] = [
+    // Baron,
+    // Bridge,
+    // Conspirator,
+    // Courtyard,
+    // Duke,
+    // GreatHall,
+    // Harem,
+    // Ironworks,
+    // Masquerade,
+    // MiningVillage,
+    // Minion,
+    // Nobles,
+    // Pawn,
+    // SecretChamber,
+    // ShantyTown,
+    // Steward,
+    // Swindler,
+    // Torturer,
+    // TradingPost,
+    // Tribute,
+    // Upgrade,
+    // WishingWell
 ];

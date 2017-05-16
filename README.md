@@ -33,3 +33,7 @@ To get started:
 2) to manually run tests
 
     run tests with: `grunt test`
+
+3) to manually run specific test files and tests:
+
+    `mocha -r ts-node/register test/{FILE}.ts --grep TEST`

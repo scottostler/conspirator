@@ -1,27 +1,23 @@
-import _ = require('underscore');
-import * as util from '../util';
+import * as utils from '../utils';
 import * as cards from '../cards';
-import Player from '../player';
 import Game from '../game';
-import * as ai from '../ai/aidecider';
-import * as socketdecider from './socketdecider';
-import * as serialization from './serialization';
+import { Player } from '../player';
+import Decider from '../decider';
+import SocketDecider from './socketdecider';
+
+import * as express from 'express';
+import * as cookieParser from 'cookie-parser';
+import * as http from 'http';
+import * as socketIo from 'socket.io';
 
 declare function require(name:string):any;
-declare var process:any;
+declare const process:any;
 
-// TODO: wrap server startup code in a function
+const app = express()
+const server = http.createServer(app)
+const io = socketIo.listen(server);
 
-var crypto = require('crypto');
-var http = require('http');
-var express = require('express');
-var socketIo = require('socket.io');
-
-var app = express()
-var server = http.createServer(app)
-var io = socketIo.listen(server);
-
-app.use(express.cookieParser());
+app.use(cookieParser());
 app.use(express.session({ secret: 'double jack' }));
 app.use('/assets', express.static('assets'));
 
@@ -29,55 +25,19 @@ app.get('/', (req:any, res:any) => {
     res.sendfile('index.html');
 });
 
-var playerCounter = 0;
+function startGame(playerNames: string[]) {
+    const gameInstance = new Game(playerNames);
 
-function collectGameState(game:Game, forPlayer:Player) {
-    var playerIndex = game.players.indexOf(forPlayer);
-    var players = game.players.map(function(p) {
-        return serialization.serialize(p, forPlayer);
-    });
-
-    return {
-        players: players,
-        kingdomPileGroups: serialization.serialize(game.kingdomPileGroups),
-        trash: serialization.serialize(game.trash),
-        playerIndex: playerIndex
-    };
-}
-
-function startGame(players:Player[]) {
-    var gameInstance = new Game(players, []);
-    // TODO
-    // gameInstance.emit = function(eventName) {
-    //     var args = _.toArray(arguments);
-
-    //     _.each(players, function(player) {
-    //         if (player.decider instanceof SocketDecider) {
-    //             // Each player will receive a different state.
-    //             var serializedArgs = serialization.serialize(args, player);
-    //             player.decider.socket.emit.apply(player.decider.socket, serializedArgs)
-    //         }
-    //     });
-    // };
-
-    // _.each(players, function(player) {
-    //     if (player.decider instanceof SocketDecider) {
-    //         player.decider.socket.emit('game-init',
-    //             collectGameState(gameInstance, player));
-    //     }
-    // });
 
     gameInstance.start();
 }
 
-var players:Player[] = [];
-io.sockets.on('connection', (socket:any) => {
-    var playerName = 'Player ' + playerCounter++;
-
-    var remoteInterface = new socketdecider.SocketDecider(socket);
-    var player = new Player(playerName, remoteInterface);
-
-    players.push(player);
+const numPlayers = 2;
+const deciders: Decider[] = [];
+io.sockets.on('connection', (socket: any) => {
+    const playerName = 'Player ' + deciders.length + 1;
+    const decider = new SocketDecider(socket);
+    deciders.push(decider);
 
     socket.emit('log', 'Welcome, ' + playerName);
     socket.broadcast.emit('log', playerName + ' joins');
@@ -89,11 +49,12 @@ io.sockets.on('connection', (socket:any) => {
         });
     });
 
-    if (players.length === 2) {
-        startGame(players);
+    if (deciders.length === numPlayers) {
+        const game = new Game(deciders.map(d => d.label));
+        game.completeWithDeciders(deciders);
     }
 });
 
-var port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 server.listen(port);
 console.log('Listening on ' + port);
