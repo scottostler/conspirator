@@ -9,12 +9,12 @@ class CardView extends View {
     //
     // No global registry is kept, so CardViews must be iterated in the view hierarchy
     // to find a particular CardView.
-    identifier:string;
+    identifier: string | null;
 
-    $badge:any;
-    $vpBadge:any;
+    $badge: any;
+    $vpBadge: any;
 
-    constructor(cardURL:string, identifier:string) {
+    constructor(cardURL: string | null, identifier: string | null) {
         super();
         this.identifier = identifier;
         this.$el = $('<div>').addClass('card');
@@ -26,9 +26,11 @@ class CardView extends View {
     }
 
     // Can pass null to clear image.
-    setCardImage(cardURL:string) {
+    setCardImage(cardURL: string | null) {
         this.$el.find('.card-inner').remove();
-        $('<img>').attr('src', cardURL).addClass('card-inner').appendTo(this.$el);
+        if (cardURL) {
+            $('<img>').attr('src', cardURL).addClass('card-inner').appendTo(this.$el);
+        }
     }
 
     setBadgeCount(count:number) {

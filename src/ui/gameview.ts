@@ -102,7 +102,7 @@ export class GameView extends View implements EventListener {
                 return view;
             }
         }
-        return null;
+        throw new Error(`No pile for card ${card.name}`);
     }
 
     viewForPlayer(player: PlayerIdentifier) : PlayerView {
@@ -150,19 +150,20 @@ export class GameView extends View implements EventListener {
         this.clearSelectionMode();
         this.trashView.$el.addClass('not-selectable');
 
-        const endSelection = (card:Card) => {
+        const endSelection = (card: Card | null) => {
             this.hideDoneButton();
             this.clearSelectionMode();
-            onSelect([card]);
+            onSelect(card ? [card] : []);
         };
 
         const selectableCardNames = selectablePiles.map(p => p.card.name);
         const playerView = this.playerViews[this.humanPlayerIndex];
 
         for (const pileView of this.pileViews) {
-            if (_.contains(selectableCardNames, pileView.identifier)) {
+            const identifier = pileView.identifier;
+            if (identifier && selectableCardNames.includes(identifier)) {
                 pileView.$el.addClass('selectable').click(() => {
-                    const card = getCardByName(pileView.identifier);
+                    const card = getCardByName(identifier);
                     endSelection(card);
                 });
             } else {
@@ -178,12 +179,17 @@ export class GameView extends View implements EventListener {
     }
 
     offerHandSelection(minCards: number, maxCards: number, autoConfirm: boolean, selectableCardIdentifiers: string[], onSelect: utils.StringArrayCallback) {
-        var currentSelection:CardView[] = [];
+        let currentSelection: CardView[] = [];
 
         const endSelection = () => {
             this.hideDoneButton();
             this.clearSelectionMode();
-            var names = currentSelection.map(v => v.identifier);
+            const names: string[] = [];
+            for (const v of currentSelection) {
+                if (v.identifier) {
+                    names.push(v.identifier);
+                }
+            }
             onSelect(names);
         };
 

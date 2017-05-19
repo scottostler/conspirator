@@ -34,7 +34,7 @@ class LocalGameContainer {
         this.playerInterface = new PlayerInterface(this.gameView); 
         this.game.eventEmitter.addEventListener(this.gameView);
         
-        const deciders = [this.playerInterface, new RandomDecider()];
+        const deciders = [this.playerInterface, new RandomDecider('Goofus')];
         this.game.completeWithDeciders(deciders);
     }
 

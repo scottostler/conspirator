@@ -3,10 +3,7 @@
         "src/**/*",
         "test/**/*"
     ],
-    "exclude": [
-        "src/server/*",
-        "src/ui/*"
-    ],
+    "exclude": [],
     "compilerOptions": {
         "module": "commonjs",
         "target": "es2016",

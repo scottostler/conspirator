@@ -75,7 +75,6 @@ class Game {
         });
 
         this.emptyPilesToEndGame = this.players.length >= 5 ? 4 : 3;
-
         this.kingdomPiles = generateDefaultPiles(kingdomCards, this.players.length);
     }
 
@@ -611,7 +610,7 @@ class Game {
         }
     }
 
-    allBuyablePiles() : SupplyPile[] {
+    get buyablePiles() : SupplyPile[] {
         return this.kingdomPiles.filter(pile => {
             return pile.count > 0;
         });
@@ -644,7 +643,7 @@ class Game {
         if (this.turnState.buyCount == 0) {
             return [];
         } else {
-            return this.allBuyablePiles().filter(pile => {
+            return this.buyablePiles.filter(pile => {
                 return this.effectiveCardCost(pile.card) <= this.turnState.coinCount;
             });
         }

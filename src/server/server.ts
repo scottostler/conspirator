@@ -6,7 +6,6 @@ import Decider from '../decider';
 import SocketDecider from './socketdecider';
 
 import * as express from 'express';
-import * as cookieParser from 'cookie-parser';
 import * as http from 'http';
 import * as socketIo from 'socket.io';
 
@@ -17,19 +16,15 @@ const app = express()
 const server = http.createServer(app)
 const io = socketIo.listen(server);
 
-app.use(cookieParser());
-app.use(express.session({ secret: 'double jack' }));
 app.use('/assets', express.static('assets'));
 
 app.get('/', (req:any, res:any) => {
     res.sendfile('index.html');
 });
 
-function startGame(playerNames: string[]) {
-    const gameInstance = new Game(playerNames);
-
-
-    gameInstance.start();
+function startGame(deciders: Decider[]) {
+    const game = new Game(deciders.map(d => d.label!));
+    game.completeWithDeciders(deciders);
 }
 
 const numPlayers = 2;
@@ -50,8 +45,7 @@ io.sockets.on('connection', (socket: any) => {
     });
 
     if (deciders.length === numPlayers) {
-        const game = new Game(deciders.map(d => d.label));
-        game.completeWithDeciders(deciders);
+        startGame(deciders);
     }
 });
 

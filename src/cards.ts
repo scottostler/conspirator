@@ -284,6 +284,10 @@ export class CardGroup {
         return CardGroupType[this.groupType];
     }
 
+    map<T>(f: (c: CardInPlay) => T) : T[] {
+        return this._cards.map(f);
+    }
+
     insertCard(card: CardInPlay) {
         if (card.location) {
             throw new Error(`Cannot insert card to ${this.toString()}: card ${card.name} already in ${card.location}`);
