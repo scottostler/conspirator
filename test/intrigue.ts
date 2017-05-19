@@ -273,9 +273,6 @@ describe('Mining Village', function() {
 
 describe('Minion', function() {
     const [minionCoins, minionDiscard] = intrigue.MinionChoiceEffect.effects;
-    console.log(minionCoins.label);
-    console.log(minionDiscard.label);
-
     const hand = [intrigue.Minion, intrigue.Minion, Copper, Copper, Estate];
     it('should give +1 action, and +2 coin or discard attack', function() {
         const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
@@ -300,7 +297,7 @@ describe('Minion', function() {
         decider1.playAction(intrigue.Minion);
         decider1.chooseEffect(minionCoins);
         expectCoinCount(game, 4);
-        
+
         const p2Hand = game.players[1].hand.cards;
         decider1.playAction(intrigue.Minion);
         decider1.chooseEffect(minionDiscard);
