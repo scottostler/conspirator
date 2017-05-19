@@ -11,6 +11,7 @@ import * as util from '../src/utils';
 import expectNonNull = testsupport.expectNonNull;
 import expectDeckScore = testsupport.expectDeckScore;
 import expectEqualCards = testsupport.expectEqualCards;
+import expectCardContents = testsupport.expectCardContents;
 import expectRevealedCards = testsupport.expectRevealedCards;
 import expectTopDeckCard = testsupport.expectTopDeckCard;
 import expectTopDiscardCard = testsupport.expectTopDiscardCard;
@@ -307,7 +308,7 @@ describe('Moneylender', function() {
         decider1.trashCard(Copper);
 
         expectTopTrashCard(game, Copper);
-        expectEqualCards(game.activePlayer.hand.cards, [Copper, Copper, Copper]);
+        expectCardContents(game.activePlayer.hand, [Copper, Copper, Copper]);
 
         expectCoinCount(game, 3);
     });
@@ -330,8 +331,7 @@ describe('Remodel', function() {
 
         decider1.playAction(baseset.Remodel);
         decider1.trashCard(Duchy);
-        expectTopTrashCard(game, Duchy);
-        expectEqualCards(game.activePlayer.hand.cards, [Copper, Copper, Copper]);
+        expectCardContents(game.activePlayer.hand, [Copper, Copper, Copper]);
 
         decider1.gainCard(Gold);
         decider1.playTreasures([Copper, Copper]);
@@ -409,7 +409,7 @@ describe('Throne Room', function() {
 describe('Village', function() {
     const villageHand = [baseset.Village, baseset.Village].concat(duplicateCard(Copper, 3));
     it('should give +1 card, +2 actions', function() {
-        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(villageHand);
+        const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(villageHand);        
         game.start();
 
         decider1.playAction(baseset.Village);

@@ -4,10 +4,10 @@ import { assert, expect } from 'chai';
 import * as util from '../src/utils';
 import * as baseset from '../src/sets/baseset';
 import { GainDestination } from '../src/base';
-import { Card, CardGroup, CardInPlay, difference, asNames } from '../src/cards';
+import { asNames, Card, CardGroup, CardInPlay, CardStack, difference } from '../src/cards';
 import Decider from '../src/decider';
 import { Decision, DecisionType, SetAsideCardDecision} from '../src/decisions';
-import { Effect } from '../src/effects';
+import { Effect, EffectTemplate } from '../src/effects';
 import { EventListener, GameEvent, CardsRevealedEvent } from '../src/event';
 import { CardRecord } from '../src/gamerecord';
 import Game from '../src/game';
@@ -56,6 +56,31 @@ export function neutralCardsWith(cs: Card[]) : Card[] {
 
 export function expectEqualCards(a: Card[], b: Card[]) {
     expect(a.map(a => a.name)).to.eql(b.map(b => b.name));
+}
+
+export function expectCardContents(a: CardGroup, b: Card[]) {
+    if (a instanceof CardStack) {
+        expectEqualCards(a.cards, b);
+    } else {
+        assert.sameMembers(asNames(a.cards), asNames(b));
+    }
+}
+
+export function expectCardsContain(a: CardGroup, b: Card) {
+    for (const c of a.cards) {
+        if (c.isSameCard(b)) {
+            return;
+        }
+    }
+    assert.fail(undefined, undefined, `${a.label} should contain ${b.name}`);
+}
+
+export function expectCardsNotContain(a: CardGroup, b: Card) {
+    for (const c of a.cards) {
+        if (c.isSameCard(b)) {
+            assert.fail(undefined, undefined, `${a.label} should not contain ${b.name}`);
+        }
+    }
 }
 
 export function expectEqualCardRecords(a: CardRecord[], b: Card[]) {
@@ -128,8 +153,10 @@ export function expectRevealedCards(game: Game, cs: Card[]) {
 
 export class TestDecider {
 
-    constructor(readonly game: Game, readonly player : PlayerIdentifier, readonly label: string = "TestDecider") {}
+    constructor(readonly game: Game, readonly player : PlayerIdentifier) {}
     
+    get label() { return `TestDecider ${this.player}`; }
+
     get pendingDecision() : Decision<any> | null {
         if (this.game.pendingDecision && this.game.pendingDecision.player == this.player) {
             return this.game.pendingDecision;
@@ -181,10 +208,9 @@ export class TestDecider {
         this.makeBooleanDecision(DecisionType.SetAsideCard, result);
     }
 
-    private makeEffectsDecision(es: Effect[]) {
+    private makeEffectsDecision(es: EffectTemplate[]) {
         this.expectPendingDecisionType(DecisionType.ChooseEffect);
-        const labels = _.map(es, e => e.label);
-        this.game.resolveDecision(labels);
+        this.game.resolveDecision(es);
         this.game.advanceToNextDecision();
     }
 
@@ -276,7 +302,7 @@ export class TestDecider {
         this.makeCardDecision(DecisionType.DiscardCard, c);
     }
 
-    trashCard(c: Card) {
+    trashCard(c: Card | null) {
         this.makeCardDecision(DecisionType.TrashCard, c);
     }
 
@@ -288,30 +314,42 @@ export class TestDecider {
         this.makeCardDecision(DecisionType.RevealCard, c);
     }
 
-    nameCard(c:Card) {
+    nameCard(c: Card) {
         this.makeCardDecision(DecisionType.NameCard, c);
     }
 
-    chooseEffect(e: Effect) {
+    chooseEffect(e: EffectTemplate) {
         this.makeEffectsDecision(e !== null ? [e] : []);
     }
 
-    chooseEffects(es: Effect[]) {
+    chooseEffects(es: EffectTemplate[]) {
         this.makeEffectsDecision(es);
     }
 
-    orderCards(cs:Card[]) {
+    orderCards(cs: Card[]) {
         this.makeCardsDecision(DecisionType.OrderCards, cs);
     }
 
-    passCard(c:Card) {
+    passCard(c: Card) {
         this.makeCardDecision(DecisionType.PassCard, c);
     }
 }
 
 class TestGame extends Game {
 
+    skipInitialDraws: PlayerIdentifier[] = [];
+
+    drawInitialHands() {
+        for (const player of this.players) {
+            // May already be populated in tests or other artificial scenarios
+            if (!this.skipInitialDraws.includes(player.identifier)) {
+                this.drawCards(player, 5);
+            }
+        }
+    }
+
     setPlayerHand(player: Player, cards: Card[]) {
+        this.skipInitialDraws.push(player.identifier);
         const vended = this.vendStartingCards(cards);
         player.hand.dropAllCards();
         player.hand.setCards(vended);

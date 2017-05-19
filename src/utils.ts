@@ -60,6 +60,15 @@ export function onEnter($input: any, f: ()=>void) {
     });
 }
 
+export function nextInRing<T>(xs: T[], x: T) : T {
+    const idx = xs.indexOf(x);
+    if (idx == -1) {
+        throw new Error(`${xs} does not contain ${x}`);
+    }
+    const nextIdx = idx + 1;
+    return xs[nextIdx % xs.length];
+}
+
 export interface AnyCallback {
     (x: any) : void;
 }
@@ -83,3 +92,13 @@ export class Guid {
         });
     }
 }
+
+declare global {
+    interface Array<T> {
+        reversed(): Array<T>;
+    }
+}
+
+Array.prototype.reversed = function<T>() : Array<T> {
+    return this.slice().reverse();
+};

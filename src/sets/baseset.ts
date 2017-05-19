@@ -39,7 +39,7 @@ export const SetName = 'Base';
 class BureaucratDiscardEffect extends EffectTemplate {
 
     get target() { return Target.OtherPlayers; }
-    get label() : string { return 'Bureaucrat Discard Attack'; }
+    get label() : string { return 'Bureaucrat Attack'; }
     
     resolve(game: Game, target: Player, trigger: CardInPlay) {
         const vpCards = target.hand.ofType(CardType.Victory);
@@ -65,7 +65,7 @@ class ChancellorEffect extends EffectTemplate {
 class DiscardToDrawEffect extends EffectTemplate {
 
     get target() { return Target.ActivePlayer; }
-    get label() : string { return 'Chancellor Effect'; }
+    get label() : string { return 'Discard to Draw'; }
 
     resolve(game: Game, player: Player, trigger: CardInPlay) {
         const drawFollowup = (game: Game, choices: CardInPlay[]) => {
@@ -90,7 +90,7 @@ class GardenVPEffect implements VPEffect {
 class LibraryDrawEffect extends EffectTemplate {
 
     target = Target.ActivePlayer;
-    label = "Library draw"
+    label = "Library Draw"
 
     resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
         return new LibraryDrawEffectImpl(player, trigger);
@@ -98,7 +98,7 @@ class LibraryDrawEffect extends EffectTemplate {
 }
 
 class LibraryDrawEffectImpl extends Effect {
-    label = "Library draw"
+    label = "Library Draw"
     readonly setAsideCards: CardInPlay[] = [];
 
     constructor(readonly player: Player, readonly trigger: CardInPlay) {
@@ -133,7 +133,7 @@ class LibraryDrawEffectImpl extends Effect {
 
 class MoatReaction extends AttackReactionEffectTemplate {
 
-    label = "Moat reaction"
+    label = "Moat Reaction"
 
     resolve(game: Game, target: Player, trigger: CardInPlay, actionEffect: PlayActionEffect) : GameStep {
         actionEffect.giveAttackImmunity(target.identifier);
@@ -144,7 +144,7 @@ class MoatReaction extends AttackReactionEffectTemplate {
 class SpyAttackEffect extends EffectTemplate {
 
     target = Target.AllPlayers;
-    label = "Reveal and discard";
+    label = "Spy Attack";
 
     resolve(game: Game, player: Player, trigger: CardInPlay) {
         const attackingPlayer = game.activePlayer;
@@ -162,7 +162,7 @@ class SpyAttackEffect extends EffectTemplate {
 export const Bureaucrat = new Card({
     name: 'Bureaucrat',
     cost: 4,
-    attack:true,
+    attack: true,
     effects: [
         new GainCardEffect(Silver, Target.ActivePlayer, GainDestination.Deck),
         new BureaucratDiscardEffect()],
@@ -287,7 +287,7 @@ export const Moneylender = new Card({
     cost: 4,
     effects: [
         new TrashForEffect(
-            new GainCoinsEffect(3),
+            new GainCoinsEffect(3), 1,
             makeIsCardPredicate(Copper))],
     set: SetName
 });

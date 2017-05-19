@@ -8,8 +8,8 @@ import expectBuyCount = testsupport.expectBuyCount;
 import expectCoinCount = testsupport.expectCoinCount;
 import expectPlayerHandSize = testsupport.expectPlayerHandSize;
 
-describe('Bazaar', () => {
-    it('should give +1, +2 actions, +1 coin', done => {
+describe('Bazaar', function() {
+    it('should give +1, +2 actions, +1 coin', function() {
         const hand = [seaside.Bazaar, common.Copper, common.Copper, common.Copper, common.Copper];
         const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
 
@@ -19,13 +19,11 @@ describe('Bazaar', () => {
         expectPlayerHandSize(game.activePlayer, 5);
         expectActionCount(game, 2);
         expectCoinCount(game, 1);
-
-        done();
     });
 });
 
-describe('Warehouse', () => {
-    it('should give +1 action and +3 cards, then discard 3 cards', done => {
+describe('Warehouse', function() {
+    it('should give +1 action and +3 cards, then discard 3 cards', function() {
         const hand = [seaside.Warehouse, common.Copper, common.Copper, common.Copper, common.Copper];
         const [game, decider1, decider2] = testsupport.setupTwoPlayerGame(hand);
 
@@ -37,7 +35,5 @@ describe('Warehouse', () => {
         decider1.discardCards([common.Copper, common.Copper, common.Copper]);
 
         decider1.playTreasures([common.Copper]);
-
-        done();
     });
 });

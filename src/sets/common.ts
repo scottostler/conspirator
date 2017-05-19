@@ -1,12 +1,12 @@
 import * as _ from 'underscore';
 
 import { CardType, DiscardDestination, GainDestination } from '../base';
-import { Card, CardInPlay, CardPredicate, SupplyPile, ReactionType } from  '../cards';
+import { Card, CardGroup, CardInPlay, CardPredicate, ReactionType, SupplyPile } from '../cards';
 import * as decisions from '../decisions';
-import { EffectTemplate, Target, VPEffect } from '../effects';
+import { EffectTemplate, labelForTarget, Target, VPEffect } from '../effects';
 import Game, { GameStep } from '../game';
-import { Player } from '../player';
-import { labelRange, pluralize } from '../utils';
+import { Player, PlayerIdentifier } from '../player';
+import { labelRange, pluralize, listToOption } from '../utils';
 
 /// Common module defines cards / effects used by all sets.
 
@@ -118,7 +118,7 @@ export class DiscardEffect extends EffectTemplate {
     target: Target;
     destination: DiscardDestination;
 
-    constructor(numCards:number, target:Target=Target.ActivePlayer, destination:DiscardDestination=DiscardDestination.Discard) {
+    constructor(numCards:number, target = Target.ActivePlayer, destination = DiscardDestination.Discard) {
         if (numCards <= 0) {
             throw new Error(`Invalid numCards ${numCards} (must be positive)`);
         }
@@ -134,7 +134,12 @@ export class DiscardEffect extends EffectTemplate {
 
     resolve(game:Game, player:Player, trigger: CardInPlay) : GameStep {
         const numToDiscard = Math.min(this.numCards, player.hand.count);
-        return new decisions.DiscardCardDecision(player.identifier, trigger, numToDiscard, numToDiscard, player.hand.cards, this.destination);
+        if (numToDiscard > 0) {
+            return new decisions.DiscardCardDecision(player.identifier, trigger, numToDiscard, numToDiscard,
+                player.hand.cards, this.destination);
+        } else {
+            return null;
+        }
     }
 }
 
@@ -164,18 +169,69 @@ export class DiscardToEffect extends EffectTemplate {
     }
 }
 
-export class TrashEffect extends EffectTemplate {
-    min: number;
-    max: number;
-    cardType: CardType;
-    target: Target;
+export class DiscardConditions {
+    constructor(readonly numCards: number = 1, readonly card: Card | null = null) {
+    }
 
-    constructor(min:number, max:number, cardType:CardType=CardType.All, target:Target=Target.ActivePlayer) {
+    static card(card: Card) : DiscardConditions {
+        return new DiscardConditions(1, card);
+    }
+
+    filter(hand: CardGroup) : CardInPlay[] {
+        if (this.card) {
+            return hand.ofCard(this.card);
+        } else {
+            return hand.cards;
+        }
+    }
+}
+
+export class DiscardForEffect extends EffectTemplate {
+    get label() { return `Discard for ${this.effect.label} (${labelForTarget(this.target)})`; }
+
+    constructor(readonly conditions: DiscardConditions, readonly effect: EffectTemplate, readonly elseEffect: EffectTemplate | null = null, readonly target = Target.ActivePlayer) {
         super();
-        this.min = min;
-        this.max = max;
-        this.cardType = cardType;
-        this.target = target;
+    }
+
+    resolve(game: Game, target: Player, trigger: CardInPlay) : GameStep {
+        const matching = this.conditions.filter(target.hand);
+        if (matching.length == 0) {
+            if (this.elseEffect) {
+                game.queueEffectsForTemplate(this.elseEffect, trigger);
+            }
+            return null;
+        }
+
+        const followup = (game: Game, choice: CardInPlay[]) : GameStep => {
+            if (choice.length >= this.conditions.numCards) {
+                game.queueEffectsForTemplate(this.effect, trigger);
+            } else if (this.elseEffect) {
+                game.queueEffectsForTemplate(this.elseEffect, trigger);
+            }
+            return null;
+        }
+
+        return new decisions.DiscardCardDecision(target.identifier, trigger, 0, this.conditions.numCards,
+                                                 matching, DiscardDestination.Discard, followup);
+    }
+}
+
+export class DiscardHandEffect extends EffectTemplate {
+    get label() { return `${labelForTarget(this.target)} Discard Hand`; }
+    constructor(readonly target = Target.ActivePlayer) {
+        super();
+    }
+
+    resolve(game: Game, target: Player, trigger: CardInPlay) : GameStep {
+        game.discardHand(target);
+        return null;
+    }
+}
+
+export class TrashEffect extends EffectTemplate {
+
+    constructor(readonly min: number, readonly max: number, readonly cardType = CardType.All, readonly target = Target.ActivePlayer) {
+        super();
     }
 
     get label() : string {
@@ -198,13 +254,39 @@ export class TrashThisCardEffect extends EffectTemplate {
     }
 }
 
+export class MayTrashThisForEffect extends EffectTemplate {
+    get label() { return `Trash this card for ${this.effect.label}` }
+    target = Target.ActivePlayer;
+
+    constructor(readonly effect: EffectTemplate) {
+        super();
+    }
+
+    resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
+        // BAD RULES: trashing should use lose-track rules, not just check if card is in play
+        if (!trigger.inPlay) {
+            return null;
+        }
+
+        const followup = (game: Game, choice: CardInPlay[]) => {
+            const trashed = listToOption(choice);
+            if (trashed) {
+                game.queueEffectsForTemplate(this.effect, trigger);
+            }
+            return null;
+        };
+
+        return new decisions.TrashCardDecision(player.identifier, trigger, 0, 1, [trigger], followup);
+    }
+}
+
 export class GainCardEffect extends EffectTemplate {
 
     card: Card;
     target: Target;
     destination: GainDestination;
 
-    constructor(card: Card, target: Target=Target.ActivePlayer, destination: GainDestination) {
+    constructor(card: Card, target = Target.ActivePlayer, destination = GainDestination.Discard) {
         super();
         this.card = card;
         this.target = target;
@@ -219,7 +301,7 @@ export class GainCardEffect extends EffectTemplate {
             game.playerGainsFromSupply(player, this.card, this.destination)
         }
 
-        return null; // TODO: on-gain effects
+        return null; // BAD RULES: on-gain reactions will need to trigger
     }
 }
 
@@ -236,7 +318,7 @@ export class GainCardWithCostEffect extends EffectTemplate {
         return `Gain card costing ${labelRange(this.minCost, this.maxCost)}`;
     }
 
-    constructor(minCost: number, maxCost: number, target: Target = Target.ActivePlayer, cardType=CardType.All, destination=GainDestination.Discard, mustGain: boolean = true) {
+    constructor(minCost: number, maxCost: number, target = Target.ActivePlayer, cardType = CardType.All, destination = GainDestination.Discard, mustGain: boolean = true) {
         super();
         this.minCost = minCost;
         this.maxCost = maxCost;
@@ -248,7 +330,11 @@ export class GainCardWithCostEffect extends EffectTemplate {
 
     resolve(game:Game, player:Player, trigger: CardInPlay) : GameStep {
         const piles = game.filterGainablePiles(this.minCost, this.maxCost, this.cardType);
-        return new decisions.GainFromPileDecision(player.identifier, trigger, piles.map(p => p.card), this.destination, this.mustGain);
+        if (piles.length == 0) {
+            return null;
+        } else {
+            return new decisions.GainFromPileDecision(player.identifier, trigger, piles.map(p => p.card), this.destination, this.mustGain);
+        }
     }
 }
 
@@ -278,9 +364,9 @@ export class TrashToGainPlusCostEffect extends EffectTemplate {
     }
 
     constructor(plusCost: number,
-                cardType: CardType=CardType.All,
-                destination: GainDestination=GainDestination.Discard,
-                costRestriction: GainCostRestriction=GainCostRestriction.UpToCost) {
+                cardType= CardType.All,
+                destination = GainDestination.Discard,
+                costRestriction = GainCostRestriction.UpToCost) {
         super();
         this.plusCost = plusCost;
         this.cardType = cardType;
@@ -320,11 +406,11 @@ export class TrashForEffect extends EffectTemplate {
     target = Target.ActivePlayer;
     get label() : string { return `Trash ${pluralize('card', this.numTrashed)} for '${this.effect.label}' effect`; }
 
-    constructor(effect: EffectTemplate, cardPredicate?: CardPredicate, numTrashed: number=1) {
+    constructor(effect: EffectTemplate, numTrashed: number = 1, cardPredicate?: CardPredicate) {
         super();
         this.effect = effect;
-        this.cardPredicate = cardPredicate ? cardPredicate : null;
         this.numTrashed = numTrashed;
+        this.cardPredicate = cardPredicate ? cardPredicate : null;
     }
 
     resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
@@ -339,7 +425,8 @@ export class TrashForEffect extends EffectTemplate {
             }
             return null;
         };
-        return new decisions.TrashCardDecision(player.identifier, trigger, this.numTrashed, this.numTrashed, trashableCards, followup);
+        const num = Math.min(trashableCards.length, this.numTrashed);
+        return new decisions.TrashCardDecision(player.identifier, trigger, num, num, trashableCards, followup);
     }
 }
 
@@ -368,7 +455,7 @@ export class EffectChoice extends EffectTemplate {
         return `Choose ${this.numChoices} of ${this.effects.length} ${pluralize('effect', this.effects.length)}`;
     }
 
-    constructor(effects: EffectTemplate[], target: Target=Target.ActivePlayer, numChoices: number=1) {
+    constructor(effects: EffectTemplate[], target = Target.ActivePlayer, numChoices = 1) {
         super();
         this.effects = effects;
         this.target = target;
@@ -376,7 +463,24 @@ export class EffectChoice extends EffectTemplate {
     }
 
     resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
-        return new decisions.ChooseEffectDecision(player.identifier, trigger, this.effects);
+        return new decisions.ChooseEffectDecision(player.identifier, trigger, this.effects, this.numChoices);
+    }
+}
+
+export class EffectSequence extends EffectTemplate {
+    target = Target.ChoosingPlayer;
+    get label() { return this.effects.map(e => e.label).join(', '); }
+    
+    readonly effects: EffectTemplate[];
+
+    constructor(...effects: EffectTemplate[]) {
+        super();
+        this.effects = effects;
+    }
+
+    resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
+        game.queueEffectsForTemplates(this.effects, trigger, []);
+        return null;
     }
 }
 
@@ -384,7 +488,7 @@ export class DiscardForCoinsEffect extends EffectTemplate {
     target = Target.ActivePlayer;
     get label() { return "Discard cards for coins"; }
 
-    resolve(game:Game, player:Player, trigger: CardInPlay) : GameStep {
+    resolve(game: Game, player: Player, trigger: CardInPlay) : GameStep {
         const followup = (game: Game, choice: CardInPlay[]) => {
             if (choice.length > 0) {
                 game.incrementCoinCount(choice.length);
@@ -400,6 +504,7 @@ export class DiscardForCoinsEffect extends EffectTemplate {
 export const DrawOneCard = new DrawEffect(1);
 export const DrawTwoCards = new DrawEffect(2);
 export const DrawThreeCards = new DrawEffect(3);
+export const DrawFourCards = new DrawEffect(4);
 
 export const DiscardThreeCards = new DiscardEffect(3);
 
@@ -408,6 +513,8 @@ export const GainTwoActions = new GainActionsEffect(2);
 
 export const GainOneCoin = new GainCoinsEffect(1);
 export const GainTwoCoins = new GainCoinsEffect(2);
+export const GainThreeCoins = new GainCoinsEffect(3);
+export const GainFourCoins = new GainCoinsEffect(4);
 
 export const GainOneBuy = new GainBuysEffect(1);
 export const GainTwoBuys = new GainBuysEffect(2);

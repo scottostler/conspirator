@@ -1,3 +1,4 @@
+import { nextInRing } from './utils';
 import * as _ from 'underscore';
 
 import * as utils from './utils';
@@ -36,14 +37,14 @@ export type GameStep = Decision<any> | Effect | null;
 
 class Game {
 
-    players: Player[];
-    kingdomPiles: SupplyPile[];
+    readonly players: Player[];
+    readonly kingdomPiles: SupplyPile[];
 
-    trash = new CardGroup(null, CardGroupType.Trash);
-    setAside = new CardGroup(null, CardGroupType.SetAside);
-    inPlay = new CardStack(null, CardGroupType.InPlay);
+    readonly trash = new CardGroup(null, CardGroupType.Trash);
+    readonly setAside = new CardGroup(null, CardGroupType.SetAside);
+    readonly inPlay = new CardStack(null, CardGroupType.InPlay);
 
-    effectStack: Effect[] = [];
+    readonly effectStack: Effect[] = [];
     hasGameStarted: boolean = false;
     hasGameEnded: boolean = false;
 
@@ -54,9 +55,10 @@ class Game {
 
     pendingDecision: Decision<any> | null = null;
 
-    eventEmitter: EventEmitter = new EventEmitter();
+    readonly eventEmitter: EventEmitter = new EventEmitter();
 
     printLog = false;
+    printDebugLog = false;
     
     constructor(playerNames: string[], forcedKingdomCards: Card[] = []) {
         const kingdomCards = randomizedKingdomCards(forcedKingdomCards, AllKingdomCards, NumKingdomCards);
@@ -84,11 +86,8 @@ class Game {
     }
 
     drawInitialHands() {
-        for (let player of this.players) {
-            // May already be populated in tests or other artificial scenarios
-            if (player.hand.empty) {
-                this.drawCards(player, HandSize);
-            }
+        for (const player of this.players) {
+            this.drawCards(player, HandSize);
         }
     }
 
@@ -152,8 +151,7 @@ class Game {
     }
 
     playerLeftOf(player: Player) : Player {
-        const index = this.players.indexOf(player) + 1;
-        return this.players[index % this.players.length];
+        return nextInRing(this.players, player);
     }
 
     // Phases
@@ -285,6 +283,7 @@ class Game {
             throw new Error(`processQueuedEffect called with empty effect queue`);
         }
 
+        this.debug(`Resolving effect: ${effect.label}`);
         return effect.resolve(this);
     }
 
@@ -292,7 +291,7 @@ class Game {
         this.assertGameIsActive();
 
         if (this.pendingDecision) {
-            throw new Error("advanceGameState(): pending decision already exists");
+            throw new Error(`advanceGameState(): pending decision already exists: ${this.pendingDecision.label}`);
         }
 
         if (this.hasQueuedEffect) {
@@ -341,26 +340,31 @@ class Game {
         return this.effectStack.length > 0;
     }
 
-    // TODO: immunity won't work with multiple reactions
     queueEffectsForTemplate(template: EffectTemplate, trigger: CardInPlay, ignoredPlayers: PlayerIdentifier[] = []) {
         // Effects should be queued starting with the last to resolve, i.e. reverse order
-        const players = this.playersForTarget(template.target).reverse();
-        for (let p of players) {
+        const players = this.playersForTarget(template.target);
+        for (let p of players.reversed()) {
             if (!ignoredPlayers.includes(p.identifier)) {
                 this.queueEffect(template.bindTargets(p.identifier, trigger));
             }
         }
     }
 
+    queueEffectsForTemplates(templates: EffectTemplate[], trigger: CardInPlay, ignoredPlayers: PlayerIdentifier[]) {
+        for (const template of templates.reversed()) {
+            this.queueEffectsForTemplate(template, trigger, ignoredPlayers);
+        }
+    }
+
     // Used by cards like Steward and Torturer
     playerChoosesEffects(player: Player, effects: EffectTemplate[], trigger: CardInPlay) {
-        const labels = effects.map(e => e.label);
-        this.log(player.name, 'chooses', labels.join(', '));
+        const labels = effects.map(e => e.label).join(', ');
+        this.debug(`${player.name} chooses ${labels}`);
 
         // Effects should be queued starting with the last to resolve, i.e. reverse order
 
-        for (let e of effects.reverse()) {
-            const players = this.playersForTarget(e.target, player).reverse();
+        for (let e of effects.reversed()) {
+            const players = this.playersForTarget(e.target, player).reversed();
             for (let p of players) {
                 this.queueEffect(e.bindTargets(p.identifier, trigger));
             }
@@ -402,6 +406,7 @@ class Game {
             this.turnState.actionCount--;
         }
 
+        this.turnState.playedActionCount++;
         this.moveCard(card, this.inPlay);
 
         for (let i = 0; i < playCount; i++) {
@@ -454,7 +459,7 @@ class Game {
         const cardGroup = player.cardGroupForGainDestination(destination);
         this.moveCard(gainedCard, cardGroup);
 
-        this.log(`${this.activePlayer.name} gains ${card.name}`);
+        this.log(`${player.name} gains ${card.name}`);
         this.eventEmitter.playerGainedCards(player, [gainedCard], GainSource.Pile, destination);
 
         return null; // TODO: on-gain reactions like Watchtower will trigger a decision
@@ -487,7 +492,7 @@ class Game {
     }
 
     moveCardsToBottom(cards: CardInPlay[], destination: CardStack) {
-        for (let c of cards.reverse()) {
+        for (let c of cards.reversed()) {
             this.moveCardToBottom(c, destination);
         }
     }
@@ -583,7 +588,7 @@ class Game {
         return card;
     }
 
-    filterGainablePiles(minCost: number, maxCost: number, cardType: CardType=CardType.All) : SupplyPile[] {
+    filterGainablePiles(minCost: number, maxCost: number, cardType = CardType.All) : SupplyPile[] {
         return this.kingdomPiles.filter(pile => {
             if (pile.count == 0) {
                 return false;
@@ -711,12 +716,19 @@ class Game {
         this.eventEmitter.gameEnds();
     }
 
-    // Misc.
+    // Misc
 
     // Output text message by converting arguments to strings.
     log(...args: any[]) {
         if (this.printLog) {
-            var msg = Array(args).join(' ');
+            const msg = Array(args).join(' ');
+            console.log(msg);
+        }
+    }
+
+    debug(...args: any[]) {
+        if (this.printDebugLog) {
+            const msg = Array(args).join(' ');
             console.log(msg);
         }
     }

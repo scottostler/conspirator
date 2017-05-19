@@ -25,6 +25,18 @@ export enum DecisionType {
     PassCard,                // For Masquerade
 }
 
+export function formatChoice(xs: any[]) : string {
+    return xs.map(x => {
+        if (x instanceof Card) {
+            return x.name
+        } else if (x instanceof EffectTemplate) {
+            return x.label
+        } else {
+            return x.toString();
+        }
+    }).join(', ');
+}
+
 // Validate type of decision choices
 function decisionOptionConstructor(dType: DecisionType) : any {
     switch (dType) {
@@ -41,7 +53,7 @@ function decisionOptionConstructor(dType: DecisionType) : any {
         case DecisionType.BuyCard:
             return Card;
         case DecisionType.ChooseEffect:
-            return Effect
+            return EffectTemplate
         case DecisionType.DiscardDeck:
         case DecisionType.SetAsideCard:
             return Boolean;
@@ -52,7 +64,7 @@ function decisionOptionConstructor(dType: DecisionType) : any {
 
 type DecisionFollowup<T> = (game: Game, choice: T[]) => GameStep;
 
-class DecisionValidationError extends Error {}
+export class DecisionValidationError extends Error {}
 
 export abstract class Decision<T> {
     readonly decisionType: DecisionType;
@@ -87,10 +99,14 @@ export abstract class Decision<T> {
             throw new DecisionValidationError(`Too many choices provided for ${this.label}: ${xs.length} given, at most ${this.maxSelections} required`);
         }
 
-        const optionConstuctor = decisionOptionConstructor(this.decisionType);
+        const optionConstructor = decisionOptionConstructor(this.decisionType);
         for (const [idx, x] of xs.entries()) {
-            if (x.constructor !== optionConstuctor) {
-                throw new DecisionValidationError(`Invalid choice at index ${idx} for ${this.label}: ${x} has type ${x.constructor.name}, expected ${optionConstuctor.name}`);
+            if (!(x.constructor == optionConstructor || x instanceof optionConstructor)) {
+                throw new DecisionValidationError(`Invalid choice at index ${idx} for ${this.label}: ${x} has type ${x.constructor.name}, expected ${optionConstructor.name}`);
+            }
+
+            if (!this.options.includes(x)) {
+                throw new DecisionValidationError(`Invalid choice at index ${idx} for ${this.label}: ${x} is not an option`);
             }
         }
     }
@@ -153,13 +169,13 @@ export class BuyCardDecision extends Decision<Card> {
 export class GainFromPileDecision extends Decision<Card> {
     destination: GainDestination;
 
-    constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: Card[], destination: GainDestination, mustGain: boolean) {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: Card[], destination: GainDestination, mustGain: boolean, followup: DecisionFollowup<Card> | null = null, gainingPlayer: PlayerIdentifier | null = null) {
         const gainFromPileFollowup = (game: Game, choice: Card[]) : GameStep => {
             if (choice.length > 0) {
-                const playerObject = game.playerForIdentifier(this.player);
+                const playerObject = game.playerForIdentifier(gainingPlayer ? gainingPlayer : this.player);
                 game.playerGainsFromSupply(playerObject, choice[0], this.destination)
             }
-            return null;
+            return followup ? followup(game, choice) : null;
         };
 
         super(DecisionType.GainCard, player, trigger, mustGain ? 1 : 0, 1, cards, gainFromPileFollowup);
@@ -222,18 +238,23 @@ export class RevealReactionDecision extends Decision<CardInPlay> {
 
     constructor(player: PlayerIdentifier, trigger: CardInPlay, cards: CardInPlay[], reactionType: ReactionType, triggerEffect: PlayActionEffect) {
         const revealAttackReactionFollowup = (game: Game, choice: CardInPlay[]) : GameStep => {
-            if (choice.length > 0) {
-                let [rxnType, effectTemplates] = choice[0].reaction;
+            const revealedCard = listToOption(choice);
+            if (revealedCard) {
+                let [rxnType, effectTemplates] = revealedCard.reaction;
                 if (rxnType != this.reactionType) {
-                    throw new Error(`Invalid ReactionType: ${rxnType} on ${choice[0].name}`);
+                    throw new Error(`Invalid ReactionType: ${rxnType} on ${revealedCard.name}`);
                 }
 
                 game.queueEffect(new RevealReactionDecisionEffect(game, player, ReactionType.OnAttack, trigger, triggerEffect));
 
                 const playerObject = game.playerForIdentifier(player);
-                for (let effectTemplate of effectTemplates.reverse()) {
-                    const boundEffect = effectTemplate.bindTargets(playerObject, choice[0], triggerEffect);
-                    game.queueEffect(boundEffect);
+                for (let effectTemplate of effectTemplates.reversed()) {
+                    if (effectTemplate instanceof EffectTemplate) {
+                        game.queueEffect(effectTemplate.bindTargets(player, revealedCard));
+                    } else {
+                        const boundEffect = effectTemplate.bindTargets(playerObject, revealedCard, triggerEffect);
+                        game.queueEffect(boundEffect);
+                    }
                 }
             }
             return null;
@@ -269,10 +290,10 @@ class RevealReactionDecisionEffect extends Effect {
 }
 
 export class ChooseEffectDecision extends Decision<EffectTemplate> {
-    constructor(player: PlayerIdentifier, trigger: CardInPlay, effects: EffectTemplate[]) {
-        super(DecisionType.ChooseEffect, player, trigger, 1, 1, effects, (game: Game, choice: EffectTemplate[]) => {
+    constructor(player: PlayerIdentifier, trigger: CardInPlay, effects: EffectTemplate[], numChoices = 1) {
+        super(DecisionType.ChooseEffect, player, trigger, numChoices, numChoices, effects, (game: Game, choice: EffectTemplate[]) => {
             const playerObject = game.playerForIdentifier(player);
-            game.playerChoosesEffects(playerObject, effects, trigger);
+            game.playerChoosesEffects(playerObject, choice, trigger);
             return null;
         });
     }
@@ -300,16 +321,9 @@ export class NameCardDecision extends Decision<Card> {
 export class PassCardDecision extends Decision<CardInPlay> {
     toPlayer: PlayerIdentifier;
 
-    constructor(player: PlayerIdentifier, toPlayer: PlayerIdentifier, trigger: CardInPlay, cards: CardInPlay[]) {
-        const followup = (game: Game, choice: CardInPlay[]) : GameStep => {
-            if (choice.length > 0) {
-                const fromPlayer = game.playerForIdentifier(this.player);
-                const toPlayer = game.playerForIdentifier(this.toPlayer);
-                game.playerPassesCard(fromPlayer, toPlayer, choice[0]);
-            }
-            return null;
-        };
-        super(DecisionType.PassCard, player, trigger, 1, 1, cards, followup);
+    // PassCardDecision has no inherent behavior, since Masquerade's followup passes all cards at end.
+    constructor(fromPlayer: PlayerIdentifier, toPlayer: PlayerIdentifier, trigger: CardInPlay, cards: CardInPlay[], followup: DecisionFollowup<CardInPlay>) {
+        super(DecisionType.PassCard, fromPlayer, trigger, 1, 1, cards, followup);
         this.toPlayer = toPlayer;
     }
 }

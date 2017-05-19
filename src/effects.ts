@@ -20,6 +20,16 @@ export enum Target {
     ChoosingPlayer // For use with EffectChoiceEffect
 }
 
+export function labelForTarget(target: Target) : string {
+    switch (target) {
+        case Target.ActivePlayer: return 'Active Player';
+        case Target.OtherPlayers: return 'Opponents';
+        case Target.AllPlayers: return 'All Players';
+        // See ? about Choosing Player
+        case Target.ChoosingPlayer: return 'Choosing Player';
+    }
+}
+
 // An effect is a function wrapper that can modify the game state,
 // trigger player decisions, and queue additional effects to be resolved.
 export abstract class Effect {
@@ -42,8 +52,6 @@ export abstract class EffectTemplate {
 }
 
 export class TargetedEffectTemplate extends Effect {
-
-    game: Game;
 
     get label() : string {
         return `${this.template.label} (${this.player})`
@@ -101,7 +109,7 @@ export class PlayActionEffect extends Effect {
     }
 
     static initialPlay(card: CardInPlay, game: Game) : PlayActionEffect {
-        let pendingPlayers = card.isAction ? game.inactivePlayers.map(p => p.identifier) : [];
+        let pendingPlayers = card.isAttack ? game.inactivePlayers.map(p => p.identifier) : [];
         return new PlayActionEffect(card, pendingPlayers, []);
     }
 
@@ -109,7 +117,7 @@ export class PlayActionEffect extends Effect {
 
     resolve(game: Game) : GameStep {
         if (this.pendingPlayers.length == 0) {
-            for (let effectTemplate of this.card.effects.reverse()) {
+            for (let effectTemplate of this.card.effects.reversed()) {
                 game.queueEffectsForTemplate(effectTemplate, this.card, this.immunePlayers);
             }
             return null;

@@ -23,19 +23,21 @@ export interface CardProperties {
     name: string;
     cost?: number;
     effects?: EffectTemplate[];
-    reaction?: [ReactionType, [AttackReactionEffectTemplate]];
+    reaction?: [ReactionType, ReactionEffectTemplate[]];
     money?: number;
     moneyEffect?: EffectTemplate;
     vp?: VPEffect;
     attack?: boolean;
 }
 
+type ReactionEffectTemplate = AttackReactionEffectTemplate | EffectTemplate;
+
 export class Card {
     set: string;
     name: string;
     cost: number;
     effects: EffectTemplate[];
-    reaction: [ReactionType, [AttackReactionEffectTemplate]];
+    reaction: [ReactionType, ReactionEffectTemplate[]];
     money: number;
     moneyEffect: EffectTemplate;
     vp: VPEffect;
@@ -125,6 +127,14 @@ export class CardInPlay extends Card {
         return `${this.name} (${this.identifier})`;
     }
 
+    get inTrash() : boolean {
+        return this.location !== null && this.location.groupType == CardGroupType.Trash;
+    }
+
+    get inPlay() : boolean {
+        return this.location !== null && this.location.groupType == CardGroupType.InPlay;
+    }
+
     isExactCard(c: CardInPlay) {
         return this.name === c.name && this.identifier === c.identifier;
     }
@@ -147,15 +157,15 @@ export interface CardsPredicate {
 }
 
 export function makeIsCardPredicate(card: Card) : CardPredicate {
-    return (c:Card) => { return card.isSameCard(c); }
+    return (c: Card) => { return card.isSameCard(c); }
 }
 
 export function makeIsTypePredicate(cardType: CardType) : CardPredicate {
-    return (c:Card) => { return c.matchesType(cardType); }
+    return (c: Card) => { return c.matchesType(cardType); }
 }
 
 export function makeIsCostPredicate(lower: number, upper: number) : CardPredicate {
-    return (c:Card) => { return c.cost >= lower && c.cost <= upper; }
+    return (c: Card) => { return c.cost >= lower && c.cost <= upper; }
 }
 
 export var allCardsPredicate: CardPredicate = makeIsTypePredicate(CardType.All);
@@ -249,6 +259,15 @@ export class CardGroup {
     get empty() : boolean { return this._cards.length == 0; }
     get count() : number { return this._cards.length; }
 
+    get label() : string {
+        const typeLabel = CardGroupType[this.groupType];
+        if (this.owner) {
+            return  `${this.owner} ${typeLabel}`;
+        } else {
+            return typeLabel;
+        }
+    }
+
     constructor(readonly owner: PlayerIdentifier | null,
                 readonly groupType: CardGroupType,
                 cards: CardInPlay[] = []) {
@@ -297,6 +316,10 @@ export class CardGroup {
 
     ofReactionType(reactionType: ReactionType) : CardInPlay[] {
         return this._cards.filter(c => c.isReactionType(reactionType));
+    }
+
+    ofCard(card: Card) {
+        return this._cards.filter(c => c.isSameCard(card));
     }
 
     // For debuging and testing
